@@ -561,7 +561,7 @@ namespace EmployeeManagement.GUI.Projects
             // General tab
             projectCodeTextBox.Text = project.ProjectCode ?? "";
             projectNameTextBox.Text = project.ProjectName ?? "";
-            customerTextBox.Text = $"Khách hàng {project.CustomerID}";
+            customerTextBox.Text = $"Khách hàng ";
             managerTextBox.Text = $"Quản lý {project.ManagerID}";
             budgetTextBox.Text = project.Budget.ToString("C0");
 
@@ -570,8 +570,8 @@ namespace EmployeeManagement.GUI.Projects
             else
                 statusComboBox.SelectedIndex = 0;
 
-            startDatePicker.Value = project.StartDate == DateTime.MinValue ? DateTime.Now : project.StartDate;
-            endDatePicker.Value = project.EndDate == DateTime.MinValue ? DateTime.Now.AddMonths(6) : project.EndDate;
+            //startDatePicker.Value = project.StartDate == DateTime.MinValue ? DateTime.Now : project.StartDate;
+            //endDatePicker.Value = project.EndDate == DateTime.MinValue ? DateTime.Now.AddMonths(6) : project.EndDate;
 
             UpdateProgress();
 
@@ -612,21 +612,21 @@ namespace EmployeeManagement.GUI.Projects
         {
             timelineListView.Items.Clear();
 
-            var timelineEvents = new[]
-            {
-                new { Date = project.CreatedAt, Event = "Tạo dự án", Description = "Dự án được khởi tạo", User = "Admin" },
-                new { Date = project.StartDate, Event = "Bắt đầu", Description = "Bắt đầu thực hiện dự án", User = $"Quản lý {project.ManagerID}" },
-                new { Date = DateTime.Now, Event = "Cập nhật", Description = "Cập nhật thông tin dự án", User = "User" }
-            };
+            //var timelineEvents = new[]
+            //{
+            //    new { Date = project.CreatedAt, Event = "Tạo dự án", Description = "Dự án được khởi tạo", User = "Admin" },
+            //    new { Date = project.StartDate, Event = "Bắt đầu", Description = "Bắt đầu thực hiện dự án", User = $"Quản lý {project.ManagerID}" },
+            //    new { Date = DateTime.Now, Event = "Cập nhật", Description = "Cập nhật thông tin dự án", User = "User" }
+            //};
 
-            foreach (var evt in timelineEvents)
-            {
-                var item = new ListViewItem(evt.Date.ToString("dd/MM/yyyy"));
-                item.SubItems.Add(evt.Event);
-                item.SubItems.Add(evt.Description);
-                item.SubItems.Add(evt.User);
-                timelineListView.Items.Add(item);
-            }
+            //foreach (var evt in timelineEvents)
+            //{
+            //    var item = new ListViewItem(evt.Date.ToString("dd/MM/yyyy"));
+            //    item.SubItems.Add(evt.Event);
+            //    item.SubItems.Add(evt.Description);
+            //    item.SubItems.Add(evt.User);
+            //    timelineListView.Items.Add(item);
+            //}
         }
 
         private void UpdateProgress()

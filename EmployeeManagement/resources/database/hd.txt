@@ -1,0 +1,208 @@
+﻿1. User (Người dùng)
+Tác dụng: Quản lý tài khoản người dùng để đăng nhập vào hệ thống.
+
+Lưu trữ:
+
+Thông tin đăng nhập (username, password)
+Thông tin liên hệ (email, họ tên)
+Liên kết với nhân viên (EmployeeID)
+Trạng thái hoạt động và thời gian đăng nhập cuối
+Thông tin tạo/cập nhật tài khoản
+
+
+
+2. Role (Vai trò)
+Tác dụng: Định nghĩa các vai trò trong hệ thống để phân quyền.
+
+Lưu trữ:
+
+Tên vai trò (Admin, Manager, User, v.v.)
+Mô tả vai trò
+Thời gian tạo vai trò
+
+
+
+3. Department (Phòng ban)
+Tác dụng: Quản lý cơ cấu tổ chức của công ty.
+
+Lưu trữ:
+
+Tên phòng ban
+Mô tả phòng ban
+Trưởng phòng (ManagerID)
+Thông tin tạo/cập nhật phòng ban
+
+
+
+4. Position (Vị trí/Chức vụ)
+Tác dụng: Quản lý các vị trí công việc trong công ty.
+
+Lưu trữ:
+
+Tên vị trí (Giám đốc, Trưởng phòng, Nhân viên, v.v.)
+Mô tả vị trí
+Mức lương cơ bản của vị trí
+Thông tin tạo/cập nhật vị trí
+
+
+
+5. Employee (Nhân viên)
+Tác dụng: Quản lý thông tin cá nhân và công việc của nhân viên.
+
+Lưu trữ:
+
+Thông tin cá nhân (họ tên, giới tính, ngày sinh, CMND/CCCD)
+Thông tin liên hệ (địa chỉ, điện thoại, email)
+Thông tin công việc (phòng ban, chức vụ, quản lý trực tiếp)
+Thông tin hợp đồng (ngày vào làm, ngày kết thúc, trạng thái)
+Thông tin tài chính (tài khoản ngân hàng, mã số thuế, mã BHXH)
+Đường dẫn đến dữ liệu khuôn mặt (cho chấm công)
+Ghi chú và thông tin khác
+Thông tin tạo/cập nhật hồ sơ
+
+
+
+6. Project (Dự án)
+Tác dụng: Quản lý các dự án của công ty.
+
+Lưu trữ:
+
+Thông tin dự án (mã, tên, mô tả)
+Thời gian (ngày bắt đầu, kết thúc)
+Thông tin tài chính (ngân sách)
+Người quản lý dự án
+Trạng thái và tiến độ hoàn thành
+Ghi chú
+Thông tin tạo/cập nhật dự án
+
+
+
+7. Task (Công việc)
+Tác dụng: Quản lý các công việc, nhiệm vụ trong dự án.
+
+Lưu trữ:
+
+Thông tin công việc (mã, tên, mô tả)
+Thông tin dự án liên quan
+Người được giao
+Thời gian (bắt đầu, hạn hoàn thành, ngày hoàn thành)
+Trạng thái, ưu tiên và tiến độ
+Ghi chú
+Thông tin tạo/cập nhật công việc
+
+
+
+8. Customer (Khách hàng)
+Tác dụng: Quản lý thông tin khách hàng của công ty.
+
+Lưu trữ:
+
+Thông tin khách hàng (mã, tên công ty)
+Thông tin liên hệ (người liên hệ, chức vụ, địa chỉ, điện thoại, email)
+Trạng thái hợp tác
+Ghi chú
+Thông tin tạo/cập nhật khách hàng
+
+
+
+9. Document (Tài liệu)
+Tác dụng: Quản lý hồ sơ, tài liệu của công ty, dự án, nhân viên.
+
+Lưu trữ:
+
+Thông tin tài liệu (mã, tên, mô tả)
+Đường dẫn, loại tệp
+Liên kết với dự án, nhân viên hoặc khách hàng
+Người tải lên
+Loại tài liệu
+Thông tin tạo/cập nhật tài liệu
+
+
+
+10. Attendance (Chấm công)
+Tác dụng: Theo dõi giờ làm việc của nhân viên.
+
+Lưu trữ:
+
+Nhân viên
+Thời gian check-in, check-out
+Phương thức chấm công (thủ công, nhận diện khuôn mặt, v.v.)
+Hình ảnh check-in
+Số giờ làm việc
+Trạng thái (đúng giờ, trễ, v.v.)
+Ghi chú
+Thời gian tạo bản ghi
+
+
+
+11. Salary (Lương)
+Tác dụng: Quản lý lương của nhân viên.
+
+Lưu trữ:
+
+Nhân viên
+Tháng, năm
+Lương cơ bản
+Phụ cấp, thưởng, khấu trừ
+Lương thực nhận
+Ngày thanh toán
+Trạng thái thanh toán
+Ghi chú
+Thời gian tạo bản ghi
+
+
+
+12. Finance (Tài chính)
+Tác dụng: Theo dõi các giao dịch tài chính của công ty.
+
+Lưu trữ:
+
+Thông tin giao dịch (mã, số tiền)
+Loại giao dịch (thu, chi)
+Danh mục (lương, mua sắm, v.v.)
+Liên kết với dự án, nhân viên hoặc khách hàng
+Ngày giao dịch
+Mô tả, phương thức thanh toán, mã tham chiếu
+Trạng thái
+Người ghi nhận
+Thời gian tạo bản ghi
+
+
+
+13. ProjectEmployee (Nhân viên dự án)
+Tác dụng: Quản lý việc phân công nhân viên vào dự án.
+
+Lưu trữ:
+
+Dự án và nhân viên
+Vai trò trong dự án
+Ngày tham gia, ngày rời dự án
+Ghi chú
+
+
+
+14. UserRole (Vai trò người dùng)
+Tác dụng: Quản lý việc gán vai trò cho người dùng.
+
+Lưu trữ:
+
+Người dùng và vai trò
+Thời gian gán vai trò
+
+
+
+Mối quan hệ giữa các bảng
+
+User - Employee: Mỗi nhân viên có thể có một tài khoản người dùng
+User - Role: Mỗi người dùng có thể có nhiều vai trò và mỗi vai trò có thể được gán cho nhiều người dùng (quan hệ nhiều-nhiều thông qua UserRole)
+Department - Employee: Mỗi phòng ban có nhiều nhân viên, mỗi nhân viên thuộc về một phòng ban
+Position - Employee: Mỗi vị trí có nhiều nhân viên, mỗi nhân viên giữ một vị trí
+Employee - Employee: Quan hệ tự tham chiếu, mỗi nhân viên có thể có một quản lý (là một nhân viên khác)
+Project - Employee: Mỗi dự án có nhiều nhân viên và mỗi nhân viên có thể tham gia nhiều dự án (quan hệ nhiều-nhiều thông qua ProjectEmployee)
+Project - Task: Mỗi dự án có nhiều công việc, mỗi công việc thuộc về một dự án
+Employee - Task: Mỗi nhân viên có thể được giao nhiều công việc, mỗi công việc được giao cho một nhân viên
+Project - Customer: Mỗi dự án có thể liên quan đến nhiều khách hàng và mỗi khách hàng có thể liên quan đến nhiều dự án
+Document - Project/Employee/Customer: Mỗi tài liệu có thể liên quan đến một dự án, nhân viên hoặc khách hàng
+Attendance - Employee: Mỗi nhân viên có nhiều bản ghi chấm công
+Salary - Employee: Mỗi nhân viên có nhiều bản ghi lương (mỗi tháng)
+Finance - Project/Employee/Customer: Mỗi giao dịch tài chính có thể liên quan đến một dự án, nhân viên hoặc khách hàng
