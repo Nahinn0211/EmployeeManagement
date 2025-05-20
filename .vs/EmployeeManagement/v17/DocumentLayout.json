@@ -1,0 +1,592 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\models\\employee.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\models\\employee.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeedetail.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeedetail.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeecreate.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeecreate.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\menu\\mainmenu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\menu\\mainmenu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeedetail.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeedetail.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeecreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeecreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeecreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeecreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeelist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeelist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeelist.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeelist.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeeedit.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeeedit.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeeedit.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeeedit.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeeedit.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeeedit.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeelist.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeelist.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeecreate.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeecreate.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeedetail.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeedetail.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\employee\\employeedetail.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\employee\\employeedetail.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\admin\\usermanagementform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\admin\\usermanagementform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\auth\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\auth\\loginform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\menu\\mainmenu.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\menu\\mainmenu.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\menu\\mainmenu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\menu\\mainmenu.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\projects\\projectdetail.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\projects\\projectdetail.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\gui\\menu\\mainmenu.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\gui\\menu\\mainmenu.resx||{81828910-B8B3-4D2B-99A3-067027C180C1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\models\\finance.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\models\\finance.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\models\\project.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\models\\project.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\models\\customer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\models\\customer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\models\\attendance.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\models\\attendance.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\utilities\\facerecognition.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\utilities\\facerecognition.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\utilities\\excelexport.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\utilities\\excelexport.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\utilities\\common.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\utilities\\common.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\bll\\attendancebll.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\bll\\attendancebll.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|e:\\du_an_ca_nhan\\kh\u00E1chvv\\employeemanagement\\employeemanagement\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8D2C865F-01BD-436D-9549-E85E86AED8C2}|EmployeeManagement\\EmployeeManagement.csproj|solutionrelative:employeemanagement\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "EmployeeDetail.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAawA8AAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:47:33.978Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "EmployeeCreate.Designer.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.Designer.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.Designer.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.Designer.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.Designer.cs",
+              "ViewState": "AgIAABIAAAAAAAAAAAAuwAoAAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:49:22.782Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "EmployeeCreate.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:49:14.661Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "EmployeeCreate.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.cs",
+              "ViewState": "AgIAAJkDAAAAAAAAAAAAAKQDAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:38:25.062Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MainMenu.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Menu\\MainMenu.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Menu\\MainMenu.cs",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAuwBUAAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:07:28.417Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Employee.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Employee.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Models\\Employee.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Employee.cs",
+              "RelativeToolTip": "EmployeeManagement\\Models\\Employee.cs",
+              "ViewState": "AgIAAD8AAAAAAAAAAAA2wEYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:00:05.104Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "EmployeeDetail.Designer.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.Designer.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.Designer.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.Designer.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.Designer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:48:58.472Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "EmployeeList.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeList.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeList.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeList.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeList.cs",
+              "ViewState": "AgIAAEQDAAAAAAAAAAAcwEsDAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:53:21.491Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "EmployeeList.Designer.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeList.Designer.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeList.Designer.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeList.Designer.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeList.Designer.cs",
+              "ViewState": "AgIAACMAAAAAAAAAAAAAACgAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:51:54.336Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "EmployeeEdit.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T16:10:58.45Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "MainForm.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\MainForm.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\MainForm.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\MainForm.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\MainForm.cs",
+              "ViewState": "AgIAADABAAAAAAAAAAAhwDcBAABDAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:32:39.025Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "EmployeeList.resx",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeList.resx",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeList.resx",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeList.resx",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeList.resx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
+              "WhenOpened": "2025-05-20T15:54:02.628Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Microsoft.Common.CurrentVersion.targets",
+              "DocumentMoniker": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "ToolTip": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\MSBuild\\Current\\Bin\\amd64\\Microsoft.Common.CurrentVersion.targets",
+              "ViewState": "AgIAAFoNAAAAAAAAAAAhwGENAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003801|",
+              "WhenOpened": "2025-05-20T15:58:49.311Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "EmployeeEdit.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeEdit.cs",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAqwAsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T16:08:37.071Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "EmployeeEdit.Designer.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeEdit.Designer.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeEdit.Designer.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeEdit.Designer.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeEdit.Designer.cs",
+              "ViewState": "AgIAACYAAAAAAAAAAAAAAAUAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T16:10:46.213Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "EmployeeCreate.resx",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.resx",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.resx",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeCreate.resx",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeCreate.resx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
+              "WhenOpened": "2025-05-20T15:49:29.072Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "EmployeeDetail.resx",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.resx",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.resx",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.resx",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.resx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
+              "WhenOpened": "2025-05-20T15:49:08.466Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "EmployeeDetail.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Employee\\EmployeeDetail.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:49:06.154Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "ProjectDetail.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Projects\\ProjectDetail.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Projects\\ProjectDetail.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Projects\\ProjectDetail.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Projects\\ProjectDetail.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:19:19.986Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "MainMenu.resx",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.resx",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Menu\\MainMenu.resx",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.resx",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Menu\\MainMenu.resx",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001005|",
+              "WhenOpened": "2025-05-20T15:19:08.835Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "MainMenu.Designer.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.Designer.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Menu\\MainMenu.Designer.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.Designer.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Menu\\MainMenu.Designer.cs",
+              "ViewState": "AgIAABUAAAAAAAAAAAAuwAwAAABWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:01:24.324Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "UserManagementForm.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Admin\\UserManagementForm.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Admin\\UserManagementForm.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Admin\\UserManagementForm.cs",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Admin\\UserManagementForm.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:00:33.716Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "LoginForm.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Auth\\LoginForm.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Auth\\LoginForm.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Auth\\LoginForm.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Auth\\LoginForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:36:59.911Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "MainForm.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\MainForm.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\MainForm.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\MainForm.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\MainForm.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:32:30.764Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "MainMenu.cs [Design]",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\GUI\\Menu\\MainMenu.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\GUI\\Menu\\MainMenu.cs [Design]",
+              "RelativeToolTip": "EmployeeManagement\\GUI\\Menu\\MainMenu.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:00:55.97Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "Finance.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Finance.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Models\\Finance.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Finance.cs",
+              "RelativeToolTip": "EmployeeManagement\\Models\\Finance.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAUwA8AAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:00:17.647Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "Project.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Project.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Models\\Project.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Project.cs",
+              "RelativeToolTip": "EmployeeManagement\\Models\\Project.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAAA8wAsAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:00:10.93Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "Customer.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Customer.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Models\\Customer.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Customer.cs",
+              "RelativeToolTip": "EmployeeManagement\\Models\\Customer.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T15:00:03.916Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "Attendance.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Attendance.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Models\\Attendance.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Models\\Attendance.cs",
+              "RelativeToolTip": "EmployeeManagement\\Models\\Attendance.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAUwBAAAAAoAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T14:59:58.704Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "FaceRecognition.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Utilities\\FaceRecognition.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Utilities\\FaceRecognition.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Utilities\\FaceRecognition.cs",
+              "RelativeToolTip": "EmployeeManagement\\Utilities\\FaceRecognition.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T14:59:55.557Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "ExcelExport.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Utilities\\ExcelExport.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Utilities\\ExcelExport.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Utilities\\ExcelExport.cs",
+              "RelativeToolTip": "EmployeeManagement\\Utilities\\ExcelExport.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T14:59:54.266Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "Common.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Utilities\\Common.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Utilities\\Common.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Utilities\\Common.cs",
+              "RelativeToolTip": "EmployeeManagement\\Utilities\\Common.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T14:59:52.459Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "AttendanceBLL.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\BLL\\AttendanceBLL.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\BLL\\AttendanceBLL.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\BLL\\AttendanceBLL.cs",
+              "RelativeToolTip": "EmployeeManagement\\BLL\\AttendanceBLL.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAgAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T14:59:45.955Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Program.cs",
+              "RelativeDocumentMoniker": "EmployeeManagement\\Program.cs",
+              "ToolTip": "E:\\du_an_ca_nhan\\kh\u00E1chVV\\EmployeeManagement\\EmployeeManagement\\Program.cs",
+              "RelativeToolTip": "EmployeeManagement\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-20T14:21:39.029Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

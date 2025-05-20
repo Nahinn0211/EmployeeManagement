@@ -106,6 +106,8 @@ namespace EmployeeManagement.GUI.Menu
             this.Controls.Add(headerCard);
         }
 
+
+
         private void CreateMenuItems()
         {
             var menuCard = new MaterialCard
@@ -123,16 +125,40 @@ namespace EmployeeManagement.GUI.Menu
                 BackColor = Color.Transparent
             };
 
-            var menuItems = new[]
+             var menuItems = new[]
             {
-                new { Text = "Bảng điều khiển", Icon = "📊", Key = "Dashboard" },
+                 new { Text = "Bảng điều khiển", Icon = "📊", Key = "Dashboard" },
+
+                // Nhóm Quản lý nhân sự
                 new { Text = "Quản lý Nhân viên", Icon = "👥", Key = "Employee" },
                 new { Text = "Quản lý Phòng ban", Icon = "🏢", Key = "Department" },
-                new { Text = "Quản lý Dự án", Icon = "📋", Key = "Projects" }, // THÊM DỰ ÁN
+                new { Text = "Quản lý Chức vụ", Icon = "⭐", Key = "Position" },
+        
+                // Nhóm Quản lý dự án
+                new { Text = "Quản lý Dự án", Icon = "📋", Key = "Project" },
+                new { Text = "Quản lý Công việc", Icon = "✅", Key = "Task" },
+                new { Text = "Quản lý Khách hàng", Icon = "🤝", Key = "Customer" },
+        
+                // Nhóm Quản lý tài liệu
+                new { Text = "Quản lý Tài liệu", Icon = "📁", Key = "Document" },
+        
+                // Nhóm Chấm công & Lương
                 new { Text = "Chấm công", Icon = "⏰", Key = "Attendance" },
-                new { Text = "Tính lương", Icon = "💰", Key = "Payroll" },
-                new { Text = "Báo cáo", Icon = "📈", Key = "Reports" },
-                new { Text = "Cài đặt", Icon = "⚙️", Key = "Settings" }
+                new { Text = "Quản lý Lương", Icon = "💰", Key = "Salary" },
+        
+                // Nhóm Tài chính
+                new { Text = "Quản lý Tài chính", Icon = "💵", Key = "Finance" },
+                new { Text = "Thu chi Dự án", Icon = "📝", Key = "ProjectFinance" },
+        
+                // Nhóm Báo cáo
+                new { Text = "Báo cáo Nhân sự", Icon = "📈", Key = "HRReport" },
+                new { Text = "Báo cáo Dự án", Icon = "📊", Key = "ProjectReport" },
+                new { Text = "Báo cáo Tài chính", Icon = "📉", Key = "FinanceReport" },
+        
+                // Nhóm Quản trị
+                new { Text = "Quản lý Người dùng", Icon = "👤", Key = "UserManagement" },
+                new { Text = "Phân quyền", Icon = "🔒", Key = "Permission" },
+                new { Text = "Cài đặt Hệ thống", Icon = "⚙️", Key = "Settings" }
             };
 
             int yPosition = 10;
@@ -147,6 +173,7 @@ namespace EmployeeManagement.GUI.Menu
             menuCard.Controls.Add(scrollPanel);
             this.Controls.Add(menuCard);
         }
+
 
         private Panel CreateMenuItemPanel(string text, string icon, string key)
         {
