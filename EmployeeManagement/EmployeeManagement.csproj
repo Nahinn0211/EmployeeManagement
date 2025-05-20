@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MaterialSkin.2" Version="2.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="GUI\Attendance\" />
+    <Folder Include="GUI\Customer\" />
+    <Folder Include="GUI\Document\" />
+    <Folder Include="GUI\Employee\" />
+    <Folder Include="GUI\Finance\" />
+    <Folder Include="GUI\Salary\" />
+    <Folder Include="GUI\Task\" />
+    <Folder Include="Resources\Images\" />
+    <Folder Include="Resources\Database\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="GUI\Customer\ListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Project\ListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Salary\ListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+
+</Project>
