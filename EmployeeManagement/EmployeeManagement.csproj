@@ -16,7 +16,6 @@
   <ItemGroup>
     <Folder Include="GUI\Attendance\" />
     <Folder Include="GUI\Customer\" />
-    <Folder Include="GUI\Department\" />
     <Folder Include="GUI\Document\" />
     <Folder Include="GUI\Finance\" />
     <Folder Include="GUI\Salary\" />
@@ -27,6 +26,12 @@
 
   <ItemGroup>
     <Compile Update="GUI\Customer\ListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Department\DepartmentCreate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Department\EmployeeList.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Employee\EmployeeCreate.cs">
