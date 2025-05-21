@@ -66,3 +66,11 @@ C:\Users\naman\OneDrive\Desktop\EmployeeManagement\EmployeeManagement\obj\Debug\
 C:\Users\naman\OneDrive\Desktop\EmployeeManagement\EmployeeManagement\obj\Debug\net8.0-windows\EmployeeManagement.genruntimeconfig.cache
 C:\Users\naman\OneDrive\Desktop\EmployeeManagement\EmployeeManagement\obj\Debug\net8.0-windows\ref\EmployeeManagement.dll
 C:\Users\naman\OneDrive\Desktop\EmployeeManagement\EmployeeManagement\obj\Debug\net8.0-windows\EmployeeManagement.GUI.Admin.UserManagementForm.resources
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\EmployeeManagement.dll.config
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\System.Data.SqlClient.dll
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\runtimes\win-arm64\native\sni.dll
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\runtimes\win-x64\native\sni.dll
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\runtimes\win-x86\native\sni.dll
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\runtimes\unix\lib\net8.0\System.Data.SqlClient.dll
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\bin\Debug\net8.0-windows\runtimes\win\lib\net8.0\System.Data.SqlClient.dll
+E:\du_an_ca_nhan\kháchVV\EmployeeManagement\EmployeeManagement\obj\Debug\net8.0-windows\EmployeeManagement.GUI.Admin.UserManagementForm.resources

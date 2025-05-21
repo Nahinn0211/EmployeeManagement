@@ -202,23 +202,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\naman\\.nuget\\packages\\": {},
+    "C:\\Users\\Admin\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\naman\\OneDrive\\Desktop\\EmployeeManagement\\EmployeeManagement\\EmployeeManagement.csproj",
+      "projectUniqueName": "E:\\du_an_ca_nhan\\kháchVV\\EmployeeManagement\\EmployeeManagement\\EmployeeManagement.csproj",
       "projectName": "EmployeeManagement",
-      "projectPath": "C:\\Users\\naman\\OneDrive\\Desktop\\EmployeeManagement\\EmployeeManagement\\EmployeeManagement.csproj",
-      "packagesPath": "C:\\Users\\naman\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\naman\\OneDrive\\Desktop\\EmployeeManagement\\EmployeeManagement\\obj\\",
+      "projectPath": "E:\\du_an_ca_nhan\\kháchVV\\EmployeeManagement\\EmployeeManagement\\EmployeeManagement.csproj",
+      "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
+      "outputPath": "E:\\du_an_ca_nhan\\kháchVV\\EmployeeManagement\\EmployeeManagement\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\naman\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -227,6 +227,7 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -279,7 +280,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.204/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
