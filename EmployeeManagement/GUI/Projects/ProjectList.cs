@@ -7,33 +7,34 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Linq;
 using EmployeeManagement.Models;
-
+ 
 namespace EmployeeManagement.GUI.Projects
 {
     public partial class ProjectListForm : Form
     {
         #region Fields
-        private TableLayoutPanel mainTableLayout;
-        private Panel headerPanel;
-        private Panel searchPanel;
-        private Panel gridPanel;
-        private Panel footerPanel;
-        private Label titleLabel;
-        private TextBox searchTextBox;
-        private ComboBox statusComboBox;
-        private ComboBox managerComboBox;
-        private Button searchButton;
-        private Button clearButton;
-        private DataGridView projectDataGridView;
-        private Button addButton;
-        private Button editButton;
-        private Button viewButton;
-        private Button deleteButton;
-        private Label statisticsLabel;
+        private TableLayoutPanel mainTableLayout = null!;
+        private Panel headerPanel = null!;
+        private Panel searchPanel = null!;
+        private Panel gridPanel = null!;
+        private Panel footerPanel = null!;
+        private Label titleLabel = null!;
+        private TextBox searchTextBox = null!;
+        private ComboBox statusComboBox = null!;
+        private ComboBox managerComboBox = null!;
+        private Button searchButton = null!;
+        private Button clearButton = null!;
+        private DataGridView projectDataGridView = null!;
+        private Button addButton = null!;
+        private Button editButton = null!;
+        private Button viewButton = null!;
+        private Button deleteButton = null!;
+        private Label statisticsLabel = null!;
 
-        private List<Models.Project> projects;
-        private List<Models.Project> filteredProjects;
+        private List<Models.Project> projects = new();
+        private List<Models.Project> filteredProjects = new();
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên dự án, mã dự án...";
         #endregion
 
@@ -156,7 +157,7 @@ namespace EmployeeManagement.GUI.Projects
                 Height = 35,
                 Margin = new Padding(5, 5, 10, 5)
             };
-            statusComboBox.Items.AddRange(new[] { "Tất cả trạng thái", "Planning", "In Progress", "Completed", "On Hold" });
+            statusComboBox.Items.AddRange(new[] { "Tất cả trạng thái", "Khởi tạo", "Đang thực hiện", "Hoàn thành", "Tạm dừng" });
             statusComboBox.SelectedIndex = 0;
             statusComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
 
@@ -311,7 +312,7 @@ namespace EmployeeManagement.GUI.Projects
         #endregion
 
         #region Control Helpers
-        private Button CreateStyledButton(string text, Color backColor)
+        private static Button CreateStyledButton(string text, Color backColor)
         {
             return new Button
             {
@@ -326,7 +327,7 @@ namespace EmployeeManagement.GUI.Projects
             };
         }
 
-        private Button CreateActionButton(string text, Color backColor)
+        private static Button CreateActionButton(string text, Color backColor)
         {
             return new Button
             {
@@ -372,7 +373,7 @@ namespace EmployeeManagement.GUI.Projects
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(64, 64, 64),
                 SelectionBackColor = Color.FromArgb(33, 150, 243, 80),
-                SelectionForeColor = Color.White,
+                SelectionForeColor = Color.Black,
                 Alignment = DataGridViewContentAlignment.MiddleLeft,
                 Padding = new Padding(10, 8, 10, 8),
                 Font = new Font("Segoe UI", 9)
@@ -404,8 +405,7 @@ namespace EmployeeManagement.GUI.Projects
             {
                 new { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 100, Alignment = DataGridViewContentAlignment.MiddleCenter },
                 new { Name = "ProjectName", HeaderText = "Tên dự án", Width = 200, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Customer", HeaderText = "Khách hàng", Width = 150, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Manager", HeaderText = "Quản lý", Width = 130, Alignment = DataGridViewContentAlignment.MiddleLeft },
+                new { Name = "ManagerName", HeaderText = "Quản lý", Width = 130, Alignment = DataGridViewContentAlignment.MiddleLeft },
                 new { Name = "Status", HeaderText = "Trạng thái", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
                 new { Name = "Budget", HeaderText = "Ngân sách", Width = 130, Alignment = DataGridViewContentAlignment.MiddleRight },
                 new { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
@@ -428,7 +428,7 @@ namespace EmployeeManagement.GUI.Projects
                 };
 
                 if (col.Name == "Budget")
-                    column.DefaultCellStyle.Format = "C0";
+                    column.DefaultCellStyle.Format = "N0";
                 else if (col.Name == "StartDate" || col.Name == "EndDate")
                     column.DefaultCellStyle.Format = "dd/MM/yyyy";
 
@@ -465,6 +465,7 @@ namespace EmployeeManagement.GUI.Projects
         #region Data Management
         private void InitializeData()
         {
+            // Tạo dữ liệu mẫu cho danh sách dự án
             projects = new List<Models.Project>
             {
                 new Models.Project
@@ -476,10 +477,11 @@ namespace EmployeeManagement.GUI.Projects
                     StartDate = new DateTime(2024, 1, 15),
                     EndDate = new DateTime(2024, 12, 15),
                     Budget = 500000000,
-                    Status = "In Progress",
-                    CustomerID = 1,
+                    Status = "Đang thực hiện",
                     ManagerID = 1,
-                    CreatedAt = DateTime.Now.AddDays(-30)
+                    CompletionPercentage = 35.5m,
+                    CreatedAt = DateTime.Now.AddDays(-30),
+                    UpdatedAt = DateTime.Now.AddDays(-5)
                 },
                 new Models.Project
                 {
@@ -490,10 +492,11 @@ namespace EmployeeManagement.GUI.Projects
                     StartDate = new DateTime(2024, 3, 1),
                     EndDate = new DateTime(2024, 8, 1),
                     Budget = 800000000,
-                    Status = "Planning",
-                    CustomerID = 2,
+                    Status = "Khởi tạo",
                     ManagerID = 2,
-                    CreatedAt = DateTime.Now.AddDays(-45)
+                    CompletionPercentage = 5.0m,
+                    CreatedAt = DateTime.Now.AddDays(-45),
+                    UpdatedAt = DateTime.Now.AddDays(-45)
                 },
                 new Models.Project
                 {
@@ -504,10 +507,11 @@ namespace EmployeeManagement.GUI.Projects
                     StartDate = new DateTime(2023, 10, 1),
                     EndDate = new DateTime(2024, 2, 1),
                     Budget = 300000000,
-                    Status = "Completed",
-                    CustomerID = 3,
+                    Status = "Hoàn thành",
                     ManagerID = 1,
-                    CreatedAt = DateTime.Now.AddDays(-120)
+                    CompletionPercentage = 100.0m,
+                    CreatedAt = DateTime.Now.AddDays(-120),
+                    UpdatedAt = DateTime.Now.AddDays(-15)
                 },
                 new Models.Project
                 {
@@ -518,10 +522,11 @@ namespace EmployeeManagement.GUI.Projects
                     StartDate = new DateTime(2024, 2, 1),
                     EndDate = new DateTime(2024, 10, 1),
                     Budget = 450000000,
-                    Status = "On Hold",
-                    CustomerID = 4,
+                    Status = "Tạm dừng",
                     ManagerID = 3,
-                    CreatedAt = DateTime.Now.AddDays(-60)
+                    CompletionPercentage = 25.0m,
+                    CreatedAt = DateTime.Now.AddDays(-60),
+                    UpdatedAt = DateTime.Now.AddDays(-10)
                 },
                 new Models.Project
                 {
@@ -532,31 +537,45 @@ namespace EmployeeManagement.GUI.Projects
                     StartDate = new DateTime(2024, 4, 1),
                     EndDate = new DateTime(2024, 11, 1),
                     Budget = 600000000,
-                    Status = "In Progress",
-                    CustomerID = 5,
+                    Status = "Đang thực hiện",
                     ManagerID = 2,
-                    CreatedAt = DateTime.Now.AddDays(-15)
+                    CompletionPercentage = 15.0m,
+                    CreatedAt = DateTime.Now.AddDays(-15),
+                    UpdatedAt = DateTime.Now.AddDays(-2)
                 }
             };
 
-            filteredProjects = new List<Models.Project>(projects.Cast<Models.Project>());
+            filteredProjects = new List<Models.Project>(projects);
+
+            // Thêm quản lý vào ComboBox
+            PopulateManagerComboBox();
+        }
+
+        private void PopulateManagerComboBox()
+        {
+            // Trong môi trường thực tế, sẽ lấy danh sách người quản lý từ cơ sở dữ liệu
+            managerComboBox.Items.Clear();
+            managerComboBox.Items.Add("Tất cả quản lý");
+            managerComboBox.Items.Add("Nguyễn Văn A");
+            managerComboBox.Items.Add("Trần Thị B");
+            managerComboBox.Items.Add("Lê Văn C");
+            managerComboBox.SelectedIndex = 0;
         }
 
         private void LoadProjects()
         {
             try
             {
-                var dataSource = filteredProjects.Select(p => new ProjectDisplayModel
+                var dataSource = filteredProjects.Select(p => new
                 {
                     ProjectCode = p.ProjectCode,
                     ProjectName = p.ProjectName,
-                    Customer = $"Khách hàng {p.CustomerID}",
-                    Manager = $"Quản lý {p.ManagerID}",
+                    ManagerName = GetManagerName(p.ManagerID),
                     Status = GetStatusDisplayText(p.Status),
                     Budget = p.Budget,
                     StartDate = p.StartDate,
                     EndDate = p.EndDate,
-                    Progress = CalculateProgress(p)
+                    Progress = $"{p.CompletionPercentage:F0}%"
                 }).ToList();
 
                 projectDataGridView.DataSource = dataSource;
@@ -567,6 +586,18 @@ namespace EmployeeManagement.GUI.Projects
                 MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private static string GetManagerName(int managerId)
+        {
+            // Trong môi trường thực tế, sẽ truy vấn tên quản lý từ cơ sở dữ liệu
+            return managerId switch
+            {
+                1 => "Nguyễn Văn A",
+                2 => "Trần Thị B",
+                3 => "Lê Văn C",
+                _ => $"Quản lý {managerId}"
+            };
         }
 
         private void ApplyFilters()
@@ -582,8 +613,8 @@ namespace EmployeeManagement.GUI.Projects
                      p.ProjectName.ToLower().Contains(searchText) ||
                      p.ProjectCode.ToLower().Contains(searchText) ||
                      p.Description.ToLower().Contains(searchText)) &&
-                    (string.IsNullOrEmpty(statusFilter) || p.Status == statusFilter) &&
-                    (string.IsNullOrEmpty(managerFilter))
+                    (string.IsNullOrEmpty(statusFilter) || GetStatusDisplayText(p.Status) == statusFilter) &&
+                    (string.IsNullOrEmpty(managerFilter) || GetManagerName(p.ManagerID) == managerFilter)
                 ).ToList();
 
                 LoadProjects();
@@ -607,50 +638,37 @@ namespace EmployeeManagement.GUI.Projects
         private void UpdateStatistics()
         {
             var total = filteredProjects.Count;
-            var inProgress = filteredProjects.Count(p => p.Status == "In Progress");
-            var completed = filteredProjects.Count(p => p.Status == "Completed");
-            var planning = filteredProjects.Count(p => p.Status == "Planning");
-            var onHold = filteredProjects.Count(p => p.Status == "On Hold");
+            var inProgress = filteredProjects.Count(p => p.Status == "Đang thực hiện");
+            var completed = filteredProjects.Count(p => p.Status == "Hoàn thành");
+            var planning = filteredProjects.Count(p => p.Status == "Khởi tạo");
+            var onHold = filteredProjects.Count(p => p.Status == "Tạm dừng");
 
-            statisticsLabel.Text = $"📊 Tổng: {total} | 📋 Lên kế hoạch: {planning} | 🔄 Đang thực hiện: {inProgress} | ✅ Hoàn thành: {completed} | ⏸️ Tạm dừng: {onHold}";
+            statisticsLabel.Text = $"📊 Tổng: {total} | 📋 Khởi tạo: {planning} | 🔄 Đang thực hiện: {inProgress} | ✅ Hoàn thành: {completed} | ⏸️ Tạm dừng: {onHold}";
         }
         #endregion
 
         #region Helper Methods
-        private string GetStatusDisplayText(string status)
+        private static string GetStatusDisplayText(string status)
         {
             return status switch
             {
-                "Planning" => "📋 Lên kế hoạch",
-                "In Progress" => "🔄 Đang thực hiện",
-                "Completed" => "✅ Hoàn thành",
-                "On Hold" => "⏸️ Tạm dừng",
+                "Khởi tạo" => "📋 Khởi tạo",
+                "Đang thực hiện" => "🔄 Đang thực hiện",
+                "Hoàn thành" => "✅ Hoàn thành",
+                "Tạm dừng" => "⏸️ Tạm dừng",
                 _ => status
             };
         }
 
-        private string CalculateProgress(Models.Project project)
-        {
-            var totalDays = (project.EndDate - project.StartDate).TotalDays;
-            if (totalDays <= 0) return "0%";
-
-            var elapsedDays = (DateTime.Now - project.StartDate).TotalDays;
-            var progress = Math.Max(0, Math.Min(100, (elapsedDays / totalDays) * 100));
-
-            if (project.Status == "Completed") progress = 100;
-            else if (project.Status == "Planning") progress = 0;
-
-            return $"{progress:F0}%";
-        }
-
-        private Models.Project GetSelectedProject()
+        private Models.Project? GetSelectedProject()
         {
             if (projectDataGridView.SelectedRows.Count > 0)
             {
                 var selectedRow = projectDataGridView.SelectedRows[0];
-                if (selectedRow.DataBoundItem is ProjectDisplayModel displayModel)
+                if (selectedRow?.Cells["ProjectCode"]?.Value != null)
                 {
-                    return projects.FirstOrDefault(p => p.ProjectCode == displayModel.ProjectCode);
+                    var projectCode = selectedRow.Cells["ProjectCode"].Value.ToString();
+                    return projects.FirstOrDefault(p => p.ProjectCode == projectCode);
                 }
             }
             return null;
@@ -658,28 +676,33 @@ namespace EmployeeManagement.GUI.Projects
         #endregion
 
         #region Event Handlers
-        private void ProjectDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        private void ProjectDataGridView_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            if (projectDataGridView.Columns[e.ColumnIndex] == null) return;
 
             var columnName = projectDataGridView.Columns[e.ColumnIndex].Name;
 
             if (columnName == "Status" && e.Value != null)
             {
                 var status = e.Value.ToString();
-                e.CellStyle.ForeColor = status switch
+                if (status != null)
                 {
-                    "📋 Lên kế hoạch" => Color.FromArgb(255, 152, 0),
-                    "🔄 Đang thực hiện" => Color.FromArgb(33, 150, 243),
-                    "✅ Hoàn thành" => Color.FromArgb(76, 175, 80),
-                    "⏸️ Tạm dừng" => Color.FromArgb(244, 67, 54),
-                    _ => Color.FromArgb(64, 64, 64)
-                };
+                    e.CellStyle.ForeColor = status switch
+                    {
+                        "📋 Khởi tạo" => Color.FromArgb(255, 152, 0),
+                        "🔄 Đang thực hiện" => Color.FromArgb(33, 150, 243),
+                        "✅ Hoàn thành" => Color.FromArgb(76, 175, 80),
+                        "⏸️ Tạm dừng" => Color.FromArgb(244, 67, 54),
+                        _ => Color.FromArgb(64, 64, 64)
+                    };
+                }
             }
             else if (columnName == "Progress" && e.Value != null)
             {
-                var progressStr = e.Value.ToString().Replace("%", "");
-                if (double.TryParse(progressStr, out double progressValue))
+                var progressStr = e.Value.ToString()?.Replace("%", "");
+                if (progressStr != null && double.TryParse(progressStr, out double progressValue))
                 {
                     e.CellStyle.ForeColor = progressValue switch
                     {
@@ -695,25 +718,23 @@ namespace EmployeeManagement.GUI.Projects
         {
             try
             {
-                using (var form = new ProjectCreate())
+                using var form = new ProjectCreate();
+                if (form.ShowDialog() == DialogResult.OK && form.CreatedProject != null)
                 {
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        // Thêm dự án mới vào danh sách
-                        var newProject = form.CreatedProject;
-                        newProject.ProjectID = projects.Count + 1; // Assign new ID
-                        projects.Add(newProject);
+                    // Thêm dự án mới vào danh sách
+                    var newProject = form.CreatedProject;
+                    newProject.ProjectID = projects.Count + 1; // Assign new ID
+                    projects.Add(newProject);
 
-                        ApplyFilters(); // Refresh grid
-                        MessageBox.Show("Thêm dự án thành công!", "Thành công",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
+                    ApplyFilters(); // Refresh grid
+                    MessageBox.Show("Thêm dự án thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Lỗi khi thêm dự án: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -724,15 +745,13 @@ namespace EmployeeManagement.GUI.Projects
 
             try
             {
-                using (var form = new ProjectDetail(project))
+                using var form = new ProjectDetail(project);
+                if (form.ShowDialog() == DialogResult.OK)
                 {
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        // Refresh data after editing
-                        ApplyFilters();
-                        MessageBox.Show("Cập nhật dự án thành công!", "Thành công",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
+                    // Refresh data after editing
+                    ApplyFilters();
+                    MessageBox.Show("Cập nhật dự án thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
@@ -749,10 +768,8 @@ namespace EmployeeManagement.GUI.Projects
 
             try
             {
-                using (var form = new ProjectDetail(project, true))
-                {
-                    form.ShowDialog();
-                }
+                using var form = new ProjectDetail(project, true);
+                form.ShowDialog();
             }
             catch (Exception ex)
             {
@@ -760,10 +777,6 @@ namespace EmployeeManagement.GUI.Projects
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-        // Fix for CS1503: Ensure the correct type is being used in the `projects.Remove(project)` line.
-        // The error indicates a mismatch between `EmployeeManagement.Models.Project` and `EmployeeManagement.GUI.Project`.
-        // Update the `projects.Remove` call to use the correct type.
 
         private void DeleteProject()
         {
@@ -781,15 +794,10 @@ namespace EmployeeManagement.GUI.Projects
 
                 if (result == DialogResult.Yes)
                 {
-                    // Ensure the correct type is used for removal
-                    var projectToRemove = projects.FirstOrDefault(p => p.ProjectID == project.ProjectID);
-                    if (projectToRemove != null)
-                    {
-                        projects.Remove(projectToRemove);
-                        ApplyFilters();
-                        MessageBox.Show("Xóa dự án thành công!", "Thành công",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
+                    projects.Remove(project);
+                    ApplyFilters();
+                    MessageBox.Show("Xóa dự án thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
@@ -800,19 +808,4 @@ namespace EmployeeManagement.GUI.Projects
         }
         #endregion
     }
-
-    #region Display Models
-    public class ProjectDisplayModel
-    {
-        public string ProjectCode { get; set; }
-        public string ProjectName { get; set; }
-        public string Customer { get; set; }
-        public string Manager { get; set; }
-        public string Status { get; set; }
-        public decimal Budget { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public string Progress { get; set; }
-    }
-    #endregion
 }

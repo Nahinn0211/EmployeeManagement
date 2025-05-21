@@ -896,7 +896,6 @@ namespace EmployeeManagement.GUI.Projects
                 project.Status = statusComboBox.Text;
                 project.StartDate = startDatePicker.Value;
                 project.EndDate = endDatePicker.Value;
-                project.CustomerID = customerComboBox.SelectedIndex + 1;
                 project.ManagerID = managerComboBox.SelectedIndex + 1;
                 project.CreatedAt = DateTime.Now;
 

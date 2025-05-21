@@ -4,6 +4,12 @@
     <Compile Update="GUI\Auth\LoginForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GUI\Employee\EmployeeDetail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Employee\EmployeeList.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="GUI\MainForm.cs">
       <SubType>Form</SubType>
     </Compile>

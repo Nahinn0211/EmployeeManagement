@@ -1,0 +1,236 @@
+﻿-- 1. Bảng Departments 
+CREATE TABLE Departments (
+    DepartmentID INT PRIMARY KEY IDENTITY(1,1),
+    DepartmentName NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(255),
+    ManagerID INT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 2. Bảng Positions 
+CREATE TABLE Positions (
+    PositionID INT PRIMARY KEY IDENTITY(1,1),
+    PositionName NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(255),
+    BaseSalary DECIMAL(18,2),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 3. Bảng Employees
+CREATE TABLE Employees (
+    EmployeeID INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeCode NVARCHAR(20) NOT NULL UNIQUE,
+    FirstName NVARCHAR(50) NOT NULL,
+    LastName NVARCHAR(50) NOT NULL,
+    FullName AS (FirstName + ' ' + LastName) PERSISTED,
+    Gender NVARCHAR(10),
+    DateOfBirth DATE,
+    IDCardNumber NVARCHAR(20),
+    Address NVARCHAR(255),
+    Phone NVARCHAR(20),
+    Email NVARCHAR(100) UNIQUE,
+    DepartmentID INT,
+    PositionID INT,
+    ManagerID INT NULL,
+    HireDate DATE NOT NULL,
+    EndDate DATE NULL,
+    Status NVARCHAR(20) DEFAULT N'Đang làm việc',
+    BankAccount NVARCHAR(30),
+    BankName NVARCHAR(100),
+    TaxCode NVARCHAR(20),
+    InsuranceCode NVARCHAR(20),
+    FaceDataPath NVARCHAR(255),
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (DepartmentID) REFERENCES Departments(DepartmentID),
+    FOREIGN KEY (PositionID) REFERENCES Positions(PositionID),
+    FOREIGN KEY (ManagerID) REFERENCES Employees(EmployeeID)
+);
+
+-- 4. Bảng Users 
+CREATE TABLE Users (
+    UserID INT PRIMARY KEY IDENTITY(1,1),
+    Username NVARCHAR(50) NOT NULL UNIQUE,
+    Password NVARCHAR(255) NOT NULL,
+    Email NVARCHAR(100) UNIQUE,
+    FullName NVARCHAR(100),
+    EmployeeID INT NULL,
+    IsActive BIT DEFAULT 1,
+    LastLogin DATETIME,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID)
+);
+
+-- 5. Bảng Roles 
+CREATE TABLE Roles (
+    RoleID INT PRIMARY KEY IDENTITY(1,1),
+    RoleName NVARCHAR(50) NOT NULL UNIQUE,
+    Description NVARCHAR(255),
+    CreatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 6. Bảng UserRoles 
+CREATE TABLE UserRoles (
+    UserRoleID INT PRIMARY KEY IDENTITY(1,1),
+    UserID INT NOT NULL,
+    RoleID INT NOT NULL,
+    AssignedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (UserID) REFERENCES Users(UserID),
+    FOREIGN KEY (RoleID) REFERENCES Roles(RoleID),
+    CONSTRAINT UK_UserRole UNIQUE (UserID, RoleID)
+);
+
+-- 7. Bảng Customers 
+CREATE TABLE Customers (
+    CustomerID INT PRIMARY KEY IDENTITY(1,1),
+    CustomerCode NVARCHAR(20) NOT NULL UNIQUE,
+    CompanyName NVARCHAR(200) NOT NULL,
+    ContactName NVARCHAR(100),
+    ContactTitle NVARCHAR(50),
+    Address NVARCHAR(255),
+    Phone NVARCHAR(20),
+    Email NVARCHAR(100),
+    Status NVARCHAR(20) DEFAULT N'Đang hợp tác',
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- 8. Bảng Projects 
+CREATE TABLE Projects (
+    ProjectID INT PRIMARY KEY IDENTITY(1,1),
+    ProjectCode NVARCHAR(20) NOT NULL UNIQUE,
+    ProjectName NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX),
+    StartDate DATE,
+    EndDate DATE,
+    Budget DECIMAL(18,2),
+    ManagerID INT,
+    Status NVARCHAR(50) DEFAULT N'Khởi tạo',
+    CompletionPercentage DECIMAL(5,2) DEFAULT 0.00,
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (ManagerID) REFERENCES Employees(EmployeeID)
+);
+
+-- 9. Bảng ProjectEmployees 
+CREATE TABLE ProjectEmployees (
+    ProjectEmployeeID INT PRIMARY KEY IDENTITY(1,1),
+    ProjectID INT NOT NULL,
+    EmployeeID INT NOT NULL,
+    RoleInProject NVARCHAR(100),
+    JoinDate DATE DEFAULT GETDATE(),
+    LeaveDate DATE NULL,
+    Notes NVARCHAR(MAX),
+    FOREIGN KEY (ProjectID) REFERENCES Projects(ProjectID),
+    FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID),
+    CONSTRAINT UK_ProjectEmployee UNIQUE (ProjectID, EmployeeID)
+);
+
+-- 10. Bảng Tasks 
+CREATE TABLE Tasks (
+    TaskID INT PRIMARY KEY IDENTITY(1,1),
+    TaskCode NVARCHAR(20) NOT NULL UNIQUE,
+    TaskName NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX),
+    ProjectID INT NOT NULL,
+    AssignedToID INT,
+    StartDate DATETIME,
+    DueDate DATETIME,
+    CompletedDate DATETIME NULL,
+    Status NVARCHAR(50) DEFAULT N'Chưa bắt đầu',
+    Priority NVARCHAR(20) DEFAULT N'Trung bình',
+    CompletionPercentage DECIMAL(5,2) DEFAULT 0.00,
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (ProjectID) REFERENCES Projects(ProjectID),
+    FOREIGN KEY (AssignedToID) REFERENCES Employees(EmployeeID)
+);
+
+-- 11. Bảng Documents 
+CREATE TABLE Documents (
+    DocumentID INT PRIMARY KEY IDENTITY(1,1),
+    DocumentCode NVARCHAR(20) NOT NULL UNIQUE,
+    DocumentName NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX),
+    FilePath NVARCHAR(255) NOT NULL,
+    FileType NVARCHAR(50),
+    ProjectID INT NULL,
+    EmployeeID INT NULL,
+    CustomerID INT NULL,
+    UploadedByID INT NOT NULL,
+    DocumentType NVARCHAR(50),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    UpdatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (ProjectID) REFERENCES Projects(ProjectID),
+    FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),
+    FOREIGN KEY (UploadedByID) REFERENCES Users(UserID)
+);
+
+-- 12. Bảng Attendance 
+CREATE TABLE Attendance (
+    AttendanceID INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeID INT NOT NULL,
+    CheckInTime DATETIME NOT NULL,
+    CheckOutTime DATETIME NULL,
+    CheckInMethod NVARCHAR(50),
+    CheckInImage NVARCHAR(255),
+    WorkingHours DECIMAL(5,2),
+    Status NVARCHAR(50),
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID)
+);
+
+-- 13. Bảng Salary 
+CREATE TABLE Salary (
+    SalaryID INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeID INT NOT NULL,
+    Month INT NOT NULL,
+    Year INT NOT NULL,
+    BaseSalary DECIMAL(18,2) NOT NULL,
+    Allowance DECIMAL(18,2) DEFAULT 0,
+    Bonus DECIMAL(18,2) DEFAULT 0,
+    Deduction DECIMAL(18,2) DEFAULT 0,
+    NetSalary DECIMAL(18,2) NOT NULL,
+    PaymentDate DATE,
+    PaymentStatus NVARCHAR(50) DEFAULT N'Chưa thanh toán',
+    Notes NVARCHAR(MAX),
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID),
+    CONSTRAINT UK_Salary UNIQUE (EmployeeID, Month, Year)
+);
+
+-- 14. Bảng Finance 
+CREATE TABLE Finance (
+    FinanceID INT PRIMARY KEY IDENTITY(1,1),
+    TransactionCode NVARCHAR(20) NOT NULL UNIQUE,
+    Amount DECIMAL(18,2) NOT NULL,
+    TransactionType NVARCHAR(50) NOT NULL, -- Thu, Chi
+    Category NVARCHAR(100) NOT NULL, -- Loại thu chi
+    ProjectID INT NULL,
+    EmployeeID INT NULL,
+    CustomerID INT NULL,
+    TransactionDate DATE NOT NULL,
+    Description NVARCHAR(MAX),
+    PaymentMethod NVARCHAR(50),
+    ReferenceNo NVARCHAR(50),
+    Status NVARCHAR(50) DEFAULT N'Đã ghi nhận',
+    RecordedByID INT NOT NULL,
+    CreatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (ProjectID) REFERENCES Projects(ProjectID),
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),
+    FOREIGN KEY (EmployeeID) REFERENCES Employees(EmployeeID),
+    FOREIGN KEY (RecordedByID) REFERENCES Users(UserID)
+);
+
+ALTER TABLE Departments
+ADD CONSTRAINT FK_Departments_Manager
+FOREIGN KEY (ManagerID) REFERENCES Employees(EmployeeID);
