@@ -314,8 +314,8 @@ namespace EmployeeManagement.GUI
                     case "Department":
                         OpenChildForm(new DepartmentForm());
                         break;
-                    case "Projects": // THÊM CASE CHO DỰ ÁN
-                        OpenChildForm(new ProjectListForm());
+                    case "Projects":
+                        OpenChildForm(new Projects.ProjectListForm());
                         break;
                     case "Attendance":
                         OpenChildForm(new AttendanceForm());

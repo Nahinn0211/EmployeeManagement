@@ -16,6 +16,7 @@
   <ItemGroup>
     <Folder Include="GUI\Attendance\" />
     <Folder Include="GUI\Customer\" />
+    <Folder Include="GUI\Department\" />
     <Folder Include="GUI\Document\" />
     <Folder Include="GUI\Finance\" />
     <Folder Include="GUI\Salary\" />
