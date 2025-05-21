@@ -396,7 +396,7 @@ namespace EmployeeManagement.GUI.Auth
 
             try
             {
-                await Task.Delay(1500); // Mô phỏng quá trình xác thực
+                await System.Threading.Tasks.Task.Delay(1500); // Mô phỏng quá trình xác thực
 
                 if (await AuthenticateAsync(username, password))
                 {
@@ -406,7 +406,7 @@ namespace EmployeeManagement.GUI.Auth
                         ClearSavedUsername();
 
                     ShowMessage("Đăng nhập thành công! Chào mừng bạn trở lại.", "Thành công");
-                    await Task.Delay(1000);
+                    await System.Threading.Tasks.Task.Delay(1500);
 
                     // Đánh dấu đăng nhập thành công
                     isLoginSuccessful = true;
@@ -510,7 +510,7 @@ namespace EmployeeManagement.GUI.Auth
 
         private async Task<bool> AuthenticateAsync(string username, string password)
         {
-            await Task.Delay(1000);
+            await System.Threading.Tasks.Task.Delay(1000);
             var validCredentials = new Dictionary<string, string>
             {
                 { "admin", "123456" },
