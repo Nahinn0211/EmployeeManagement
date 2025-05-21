@@ -9,24 +9,67 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EPPlus" Version="8.0.5" />
+    <PackageReference Include="HIC.System.Windows.Forms.DataVisualization" Version="1.0.1" />
     <PackageReference Include="MaterialSkin.2" Version="2.3.1" />
+    <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.4795.1001" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="GUI\Attendance\" />
-    <Folder Include="GUI\Customer\" />
-    <Folder Include="GUI\Department\" />
-    <Folder Include="GUI\Document\" />
-    <Folder Include="GUI\Finance\" />
-    <Folder Include="GUI\Salary\" />
-    <Folder Include="GUI\Task\" />
     <Folder Include="Resources\Images\" />
     <Folder Include="Resources\Database\" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="GUI\Customer\CustomerDetail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Customer\CustomerList.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="GUI\Customer\ListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Department\DepartmentCreate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Department\EmployeeList.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Document\DocumentDetailForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Document\DocumentListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Finance\ProjectFinance.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Finance\RejectReasonForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Reports\ProjectReport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Reports\FinanceReport.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Finance\FinanceDetail.cs" />
+    <Compile Update="GUI\Finance\FinanceList.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Position\PositionCreate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Position\PositionDetail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Position\PositionEdit.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Position\PositionList.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Employee\EmployeeCreate.cs">
@@ -37,10 +80,32 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Employee\EmployeeList.cs" />
+    <Compile Update="GUI\Projects\ProjectManagementForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="GUI\Project\ListForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GUI\Salary\BulkSalaryCreate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Salary\SalaryPayment.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Salary\SalaryDetail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Salary\SalaryList.cs" />
     <Compile Update="GUI\Salary\ListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Task\TaskDetail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Task\TaskCreate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Task\TaskList.cs">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>

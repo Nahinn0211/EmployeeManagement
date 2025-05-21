@@ -5,37 +5,38 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Xml.Linq;
+using EmployeeManagement.BLL;
 using EmployeeManagement.Models;
- 
+
 namespace EmployeeManagement.GUI.Projects
 {
     public partial class ProjectListForm : Form
     {
         #region Fields
-        private TableLayoutPanel mainTableLayout = null!;
-        private Panel headerPanel = null!;
-        private Panel searchPanel = null!;
-        private Panel gridPanel = null!;
-        private Panel footerPanel = null!;
-        private Label titleLabel = null!;
-        private TextBox searchTextBox = null!;
-        private ComboBox statusComboBox = null!;
-        private ComboBox managerComboBox = null!;
-        private Button searchButton = null!;
-        private Button clearButton = null!;
-        private DataGridView projectDataGridView = null!;
-        private Button addButton = null!;
-        private Button editButton = null!;
-        private Button viewButton = null!;
-        private Button deleteButton = null!;
-        private Label statisticsLabel = null!;
-
-        private List<Models.Project> projects = new();
-        private List<Models.Project> filteredProjects = new();
+        private ProjectBLL projectBLL;
+        private List<Models.Project> projects;
+        private List<Models.Project> filteredProjects;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên dự án, mã dự án...";
+
+        // UI Controls
+        private TableLayoutPanel mainTableLayout;
+        private Panel headerPanel;
+        private Panel searchPanel;
+        private Panel gridPanel;
+        private Panel footerPanel;
+        private Label titleLabel;
+        private TextBox searchTextBox;
+        private ComboBox statusComboBox;
+        private ComboBox managerComboBox;
+        private Button searchButton;
+        private Button clearButton;
+        private DataGridView projectDataGridView;
+        private Button addButton;
+        private Button editButton;
+        private Button viewButton;
+        private Button deleteButton;
+        private Label statisticsLabel;
         #endregion
 
         #region Constructor
@@ -43,8 +44,360 @@ namespace EmployeeManagement.GUI.Projects
         {
             InitializeComponent();
             InitializeLayout();
-            InitializeData();
+            projectBLL = new ProjectBLL();
             LoadProjects();
+        }
+        #endregion
+
+        #region Data Methods
+        private void LoadProjects()
+        {
+            try
+            {
+                projects = projectBLL.GetAllProjects();
+                filteredProjects = new List<Models.Project>(projects);
+                LoadProjectsToGrid();
+                LoadManagersToComboBox();
+                UpdateStatistics();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải danh sách dự án: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadProjectsToGrid()
+        {
+            try
+            {
+                var dataSource = filteredProjects.Select(p => new
+                {
+                    p.ProjectID,
+                    p.ProjectCode,
+                    p.ProjectName,
+                    StartDate = p.StartDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định",
+                    EndDate = p.EndDate?.ToString("dd/MM/yyyy") ?? "Chưa xác định",
+                    Status = GetStatusDisplayText(p.Status),
+                    Budget = FormatBudget(p.Budget),
+                    Progress = p.CompletionPercentage + "%",
+                    ManagerName = p.Manager?.FullName ?? "Chưa phân công",
+                    EmployeeCount = p.Employees?.Count ?? 0,
+                    TaskCount = p.Tasks?.Count ?? 0,
+                    Health = projectBLL.GetProjectHealthStatus(p)
+                }).ToList();
+
+                projectDataGridView.DataSource = dataSource;
+                UpdateStatistics();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadManagersToComboBox()
+        {
+            try
+            {
+                managerComboBox.Items.Clear();
+                managerComboBox.Items.Add("Tất cả quản lý");
+
+                var managers = projectBLL.GetAvailableManagers();
+                foreach (var manager in managers)
+                {
+                    managerComboBox.Items.Add(manager.FullName);
+                }
+
+                managerComboBox.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải danh sách quản lý: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ApplyFilters()
+        {
+            try
+            {
+                string searchText = searchTextBox.Text == searchPlaceholder ? "" : searchTextBox.Text.ToLower();
+                string statusFilter = statusComboBox.SelectedIndex == 0 ? "" : GetOriginalStatus(statusComboBox.Text);
+                string managerFilter = managerComboBox.SelectedIndex == 0 ? "" : managerComboBox.Text;
+
+                filteredProjects = projects.Where(p =>
+                    (string.IsNullOrEmpty(searchText) ||
+                     p.ProjectName.ToLower().Contains(searchText) ||
+                     p.ProjectCode.ToLower().Contains(searchText)) &&
+                    (string.IsNullOrEmpty(statusFilter) || p.Status == statusFilter) &&
+                    (string.IsNullOrEmpty(managerFilter) || p.Manager?.FullName == managerFilter)
+                ).ToList();
+
+                LoadProjectsToGrid();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi lọc dữ liệu: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ClearFilters(object sender, EventArgs e)
+        {
+            searchTextBox.Text = searchPlaceholder;
+            searchTextBox.ForeColor = Color.Gray;
+            statusComboBox.SelectedIndex = 0;
+            managerComboBox.SelectedIndex = 0;
+            filteredProjects = new List<Models.Project>(projects);
+            LoadProjectsToGrid();
+        }
+
+        private void UpdateStatistics()
+        {
+            var total = filteredProjects.Count;
+            var active = filteredProjects.Count(p => p.Status == "Đang thực hiện");
+            var completed = filteredProjects.Count(p => p.Status == "Hoàn thành");
+            var onHold = filteredProjects.Count(p => p.Status == "Tạm dừng");
+            var initializing = filteredProjects.Count(p => p.Status == "Khởi tạo");
+            var cancelled = filteredProjects.Count(p => p.Status == "Hủy bỏ");
+
+            statisticsLabel.Text = $"📊 Tổng: {total} | 🆕 Khởi tạo: {initializing} | 🚀 Đang thực hiện: {active} | ✅ Hoàn thành: {completed} | ⏸️ Tạm dừng: {onHold} | ❌ Hủy bỏ: {cancelled}";
+        }
+        #endregion
+
+        #region Helper Methods
+        private string GetStatusDisplayText(string status)
+        {
+            return status switch
+            {
+                "Khởi tạo" => "🆕 Khởi tạo",
+                "Đang thực hiện" => "🚀 Đang thực hiện",
+                "Hoàn thành" => "✅ Hoàn thành",
+                "Tạm dừng" => "⏸️ Tạm dừng",
+                "Hủy bỏ" => "❌ Hủy bỏ",
+                _ => status
+            };
+        }
+
+        private string GetOriginalStatus(string displayStatus)
+        {
+            return displayStatus switch
+            {
+                "🆕 Khởi tạo" => "Khởi tạo",
+                "🚀 Đang thực hiện" => "Đang thực hiện",
+                "✅ Hoàn thành" => "Hoàn thành",
+                "⏸️ Tạm dừng" => "Tạm dừng",
+                "❌ Hủy bỏ" => "Hủy bỏ",
+                _ => displayStatus
+            };
+        }
+
+        private string FormatBudget(decimal budget)
+        {
+            if (budget >= 1000000000) // >= 1 tỷ
+                return $"{budget / 1000000000:F1} tỷ";
+            else if (budget >= 1000000) // >= 1 triệu
+                return $"{budget / 1000000:F1} tr";
+            else if (budget >= 1000) // >= 1 nghìn
+                return $"{budget / 1000:F0}k";
+            else
+                return $"{budget:N0}";
+        }
+
+        private Models.Project GetSelectedProject()
+        {
+            if (projectDataGridView.SelectedRows.Count > 0)
+            {
+                var selectedRow = projectDataGridView.SelectedRows[0];
+                if (selectedRow.DataBoundItem != null)
+                {
+                    dynamic item = selectedRow.DataBoundItem;
+                    return projects.FirstOrDefault(p => p.ProjectID == item.ProjectID);
+                }
+            }
+            return null;
+        }
+        #endregion
+
+        #region Event Handlers
+        private void ProjectDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            var columnName = projectDataGridView.Columns[e.ColumnIndex].Name;
+
+            if (columnName == "Status" && e.Value != null)
+            {
+                var status = e.Value.ToString();
+                e.CellStyle.ForeColor = status switch
+                {
+                    string s when s.Contains("Hoàn thành") => Color.FromArgb(76, 175, 80),
+                    string s when s.Contains("Đang thực hiện") => Color.FromArgb(33, 150, 243),
+                    string s when s.Contains("Khởi tạo") => Color.FromArgb(158, 158, 158),
+                    string s when s.Contains("Tạm dừng") => Color.FromArgb(255, 152, 0),
+                    string s when s.Contains("Hủy bỏ") => Color.FromArgb(244, 67, 54),
+                    _ => Color.FromArgb(64, 64, 64)
+                };
+            }
+            else if (columnName == "Progress" && e.Value != null)
+            {
+                var progressText = e.Value.ToString();
+                if (decimal.TryParse(progressText.Replace("%", ""), out decimal progress))
+                {
+                    e.CellStyle.ForeColor = progress switch
+                    {
+                        >= 100 => Color.FromArgb(76, 175, 80),
+                        >= 75 => Color.FromArgb(139, 195, 74),
+                        >= 50 => Color.FromArgb(255, 152, 0),
+                        >= 25 => Color.FromArgb(255, 193, 7),
+                        _ => Color.FromArgb(244, 67, 54)
+                    };
+                }
+            }
+            else if (columnName == "Health" && e.Value != null)
+            {
+                var health = e.Value.ToString();
+                e.CellStyle.ForeColor = health switch
+                {
+                    string h when h.Contains("Hoàn thành") || h.Contains("Đúng tiến độ") => Color.FromArgb(76, 175, 80),
+                    string h when h.Contains("Chậm tiến độ") => Color.FromArgb(255, 152, 0),
+                    string h when h.Contains("Nguy cơ trễ hạn") || h.Contains("Đã quá hạn") => Color.FromArgb(244, 67, 54),
+                    string h when h.Contains("Tạm dừng") => Color.FromArgb(255, 152, 0),
+                    string h when h.Contains("Đã hủy") => Color.FromArgb(158, 158, 158),
+                    _ => Color.FromArgb(158, 158, 158)
+                };
+            }
+        }
+
+        private void AddProject()
+        {
+            try
+            {
+                // Sử dụng ProjectManagementForm với mode Create
+                var form = new ProjectManagementForm();
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    LoadProjects();
+                    MessageBox.Show("Thêm dự án thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi thêm dự án: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void EditProject()
+        {
+            var project = GetSelectedProject();
+            if (project == null)
+            {
+                MessageBox.Show("Vui lòng chọn dự án cần chỉnh sửa!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Sử dụng ProjectManagementForm với mode Update
+                var form = new ProjectManagementForm(project.ProjectID, FormMode.Update);
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    LoadProjects();
+                    MessageBox.Show("Cập nhật dự án thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi chỉnh sửa dự án: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ViewProject()
+        {
+            var project = GetSelectedProject();
+            if (project == null)
+            {
+                MessageBox.Show("Vui lòng chọn dự án cần xem!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Sử dụng ProjectManagementForm với mode Detail
+                var form = new ProjectManagementForm(project.ProjectID, FormMode.Detail);
+                form.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xem chi tiết dự án: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void DeleteProject()
+        {
+            var project = GetSelectedProject();
+            if (project == null)
+            {
+                MessageBox.Show("Vui lòng chọn dự án cần xóa!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                // Kiểm tra xem có thể xóa dự án không
+                if (!projectBLL.CanDeleteProject(project.ProjectID))
+                {
+                    MessageBox.Show(
+                        $"Không thể xóa dự án '{project.ProjectName}' vì:\n" +
+                        $"- Dự án có {project.Tasks?.Count ?? 0} công việc đang hoạt động\n" +
+                        $"- Dự án có {project.Employees?.Count ?? 0} nhân viên tham gia\n" +
+                        $"- Dự án có tài liệu hoặc giao dịch tài chính liên quan\n\n" +
+                        "Vui lòng xử lý các liên kết trước khi xóa dự án.",
+                        "Không thể xóa",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"Bạn có chắc chắn muốn xóa dự án '{project.ProjectName}'?\n\n" +
+                    $"Thông tin dự án:\n" +
+                    $"- Mã dự án: {project.ProjectCode}\n" +
+                    $"- Ngân sách: {FormatBudget(project.Budget)} VNĐ\n" +
+                    $"- Trạng thái: {project.Status}\n" +
+                    $"- Tiến độ: {project.CompletionPercentage}%\n\n" +
+                    "⚠️ Hành động này không thể hoàn tác!",
+                    "Xác nhận xóa dự án",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2);
+
+                if (result == DialogResult.Yes)
+                {
+                    projectBLL.DeleteProject(project.ProjectID);
+                    LoadProjects();
+                    MessageBox.Show(
+                        $"Đã xóa dự án '{project.ProjectName}' thành công!",
+                        "Xóa thành công",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xóa dự án: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         #endregion
 
@@ -123,18 +476,19 @@ namespace EmployeeManagement.GUI.Projects
             var searchContainer = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 5,
+                ColumnCount = 6,
                 RowCount = 1,
                 BackColor = Color.Transparent,
                 CellBorderStyle = TableLayoutPanelCellBorderStyle.None
             };
 
             // Column widths
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));  // Search box
+            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));  // Search box
             searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));  // Status filter
             searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));  // Manager filter
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 12.5f)); // Search button
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 12.5f)); // Clear button
+            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));  // Search button
+            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));  // Clear button
+            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 10));  // Export button
 
             // Search TextBox
             searchTextBox = new TextBox
@@ -157,7 +511,10 @@ namespace EmployeeManagement.GUI.Projects
                 Height = 35,
                 Margin = new Padding(5, 5, 10, 5)
             };
-            statusComboBox.Items.AddRange(new[] { "Tất cả trạng thái", "Khởi tạo", "Đang thực hiện", "Hoàn thành", "Tạm dừng" });
+            statusComboBox.Items.AddRange(new[] {
+                "Tất cả trạng thái", "🆕 Khởi tạo", "🚀 Đang thực hiện",
+                "✅ Hoàn thành", "⏸️ Tạm dừng", "❌ Hủy bỏ"
+            });
             statusComboBox.SelectedIndex = 0;
             statusComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
 
@@ -170,8 +527,6 @@ namespace EmployeeManagement.GUI.Projects
                 Height = 35,
                 Margin = new Padding(5, 5, 10, 5)
             };
-            managerComboBox.Items.Add("Tất cả quản lý");
-            managerComboBox.SelectedIndex = 0;
             managerComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
 
             // Search Button
@@ -182,12 +537,17 @@ namespace EmployeeManagement.GUI.Projects
             clearButton = CreateStyledButton("🗑️ XÓA BỘ LỌC", Color.FromArgb(244, 67, 54));
             clearButton.Click += ClearFilters;
 
+            // Export Button
+            var exportButton = CreateStyledButton("📤 XUẤT EXCEL", Color.FromArgb(76, 175, 80));
+            exportButton.Click += (s, e) => ExportToExcel();
+
             // Add controls to search container
             searchContainer.Controls.Add(searchTextBox, 0, 0);
             searchContainer.Controls.Add(statusComboBox, 1, 0);
             searchContainer.Controls.Add(managerComboBox, 2, 0);
             searchContainer.Controls.Add(searchButton, 3, 0);
             searchContainer.Controls.Add(clearButton, 4, 0);
+            searchContainer.Controls.Add(exportButton, 5, 0);
 
             searchPanel.Controls.Add(searchContainer);
             mainTableLayout.Controls.Add(searchPanel, 0, 1);
@@ -309,10 +669,8 @@ namespace EmployeeManagement.GUI.Projects
             footerPanel.Controls.Add(footerContainer);
             mainTableLayout.Controls.Add(footerPanel, 0, 3);
         }
-        #endregion
 
-        #region Control Helpers
-        private static Button CreateStyledButton(string text, Color backColor)
+        private Button CreateStyledButton(string text, Color backColor)
         {
             return new Button
             {
@@ -327,7 +685,7 @@ namespace EmployeeManagement.GUI.Projects
             };
         }
 
-        private static Button CreateActionButton(string text, Color backColor)
+        private Button CreateActionButton(string text, Color backColor)
         {
             return new Button
             {
@@ -344,7 +702,8 @@ namespace EmployeeManagement.GUI.Projects
 
         private void SetupSearchTextBoxEvents()
         {
-            searchTextBox.GotFocus += (s, e) => {
+            searchTextBox.GotFocus += (s, e) =>
+            {
                 if (searchTextBox.Text == searchPlaceholder)
                 {
                     searchTextBox.Text = "";
@@ -352,7 +711,8 @@ namespace EmployeeManagement.GUI.Projects
                 }
             };
 
-            searchTextBox.LostFocus += (s, e) => {
+            searchTextBox.LostFocus += (s, e) =>
+            {
                 if (string.IsNullOrWhiteSpace(searchTextBox.Text))
                 {
                     searchTextBox.Text = searchPlaceholder;
@@ -360,7 +720,8 @@ namespace EmployeeManagement.GUI.Projects
                 }
             };
 
-            searchTextBox.TextChanged += (s, e) => {
+            searchTextBox.TextChanged += (s, e) =>
+            {
                 if (searchTextBox.Text != searchPlaceholder)
                     ApplyFilters();
             };
@@ -403,14 +764,18 @@ namespace EmployeeManagement.GUI.Projects
 
             var columns = new[]
             {
-                new { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 100, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "ProjectName", HeaderText = "Tên dự án", Width = 200, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "ManagerName", HeaderText = "Quản lý", Width = 130, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Status", HeaderText = "Trạng thái", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "Budget", HeaderText = "Ngân sách", Width = 130, Alignment = DataGridViewContentAlignment.MiddleRight },
-                new { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "EndDate", HeaderText = "Ngày kết thúc", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "Progress", HeaderText = "Tiến độ", Width = 100, Alignment = DataGridViewContentAlignment.MiddleCenter }
+                new { Name = "ProjectID", HeaderText = "ID", Width = 60, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = false },
+                new { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 100, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "ProjectName", HeaderText = "Tên dự án", Width = 200, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "EndDate", HeaderText = "Ngày kết thúc", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "Status", HeaderText = "Trạng thái", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "Progress", HeaderText = "Tiến độ", Width = 80, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "Budget", HeaderText = "Ngân sách", Width = 100, Alignment = DataGridViewContentAlignment.MiddleRight, Visible = true },
+                new { Name = "ManagerName", HeaderText = "Quản lý", Width = 150, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "EmployeeCount", HeaderText = "NV", Width = 60, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "TaskCount", HeaderText = "CV", Width = 60, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "Health", HeaderText = "Tình trạng", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true }
             };
 
             foreach (var col in columns)
@@ -422,15 +787,11 @@ namespace EmployeeManagement.GUI.Projects
                     DataPropertyName = col.Name,
                     Width = col.Width,
                     SortMode = DataGridViewColumnSortMode.Automatic,
-                    MinimumWidth = 80,
+                    MinimumWidth = 60,
                     Resizable = DataGridViewTriState.True,
-                    DefaultCellStyle = { Alignment = col.Alignment }
+                    DefaultCellStyle = { Alignment = col.Alignment },
+                    Visible = col.Visible
                 };
-
-                if (col.Name == "Budget")
-                    column.DefaultCellStyle.Format = "N0";
-                else if (col.Name == "StartDate" || col.Name == "EndDate")
-                    column.DefaultCellStyle.Format = "dd/MM/yyyy";
 
                 projectDataGridView.Columns.Add(column);
             }
@@ -438,14 +799,16 @@ namespace EmployeeManagement.GUI.Projects
 
         private void SetupDataGridEvents()
         {
-            projectDataGridView.SelectionChanged += (s, e) => {
+            projectDataGridView.SelectionChanged += (s, e) =>
+            {
                 bool hasSelection = projectDataGridView.SelectedRows.Count > 0;
                 editButton.Enabled = hasSelection;
                 viewButton.Enabled = hasSelection;
                 deleteButton.Enabled = hasSelection;
             };
 
-            projectDataGridView.CellDoubleClick += (s, e) => {
+            projectDataGridView.CellDoubleClick += (s, e) =>
+            {
                 if (e.RowIndex >= 0)
                     ViewProject();
             };
@@ -460,349 +823,103 @@ namespace EmployeeManagement.GUI.Projects
             viewButton.Click += (s, e) => ViewProject();
             deleteButton.Click += (s, e) => DeleteProject();
         }
-        #endregion
 
-        #region Data Management
-        private void InitializeData()
-        {
-            // Tạo dữ liệu mẫu cho danh sách dự án
-            projects = new List<Models.Project>
-            {
-                new Models.Project
-                {
-                    ProjectID = 1,
-                    ProjectCode = "PRJ001",
-                    ProjectName = "Hệ thống quản lý nhân sự ERP",
-                    Description = "Phát triển hệ thống quản lý nhân sự toàn diện cho doanh nghiệp",
-                    StartDate = new DateTime(2024, 1, 15),
-                    EndDate = new DateTime(2024, 12, 15),
-                    Budget = 500000000,
-                    Status = "Đang thực hiện",
-                    ManagerID = 1,
-                    CompletionPercentage = 35.5m,
-                    CreatedAt = DateTime.Now.AddDays(-30),
-                    UpdatedAt = DateTime.Now.AddDays(-5)
-                },
-                new Models.Project
-                {
-                    ProjectID = 2,
-                    ProjectCode = "PRJ002",
-                    ProjectName = "Ứng dụng Mobile Banking",
-                    Description = "Phát triển ứng dụng ngân hàng di động cho khách hàng cá nhân",
-                    StartDate = new DateTime(2024, 3, 1),
-                    EndDate = new DateTime(2024, 8, 1),
-                    Budget = 800000000,
-                    Status = "Khởi tạo",
-                    ManagerID = 2,
-                    CompletionPercentage = 5.0m,
-                    CreatedAt = DateTime.Now.AddDays(-45),
-                    UpdatedAt = DateTime.Now.AddDays(-45)
-                },
-                new Models.Project
-                {
-                    ProjectID = 3,
-                    ProjectCode = "PRJ003",
-                    ProjectName = "Website thương mại điện tử",
-                    Description = "Xây dựng website bán hàng trực tuyến với tính năng đầy đủ",
-                    StartDate = new DateTime(2023, 10, 1),
-                    EndDate = new DateTime(2024, 2, 1),
-                    Budget = 300000000,
-                    Status = "Hoàn thành",
-                    ManagerID = 1,
-                    CompletionPercentage = 100.0m,
-                    CreatedAt = DateTime.Now.AddDays(-120),
-                    UpdatedAt = DateTime.Now.AddDays(-15)
-                },
-                new Models.Project
-                {
-                    ProjectID = 4,
-                    ProjectCode = "PRJ004",
-                    ProjectName = "Hệ thống CRM cho doanh nghiệp",
-                    Description = "Phát triển hệ thống quản lý quan hệ khách hàng",
-                    StartDate = new DateTime(2024, 2, 1),
-                    EndDate = new DateTime(2024, 10, 1),
-                    Budget = 450000000,
-                    Status = "Tạm dừng",
-                    ManagerID = 3,
-                    CompletionPercentage = 25.0m,
-                    CreatedAt = DateTime.Now.AddDays(-60),
-                    UpdatedAt = DateTime.Now.AddDays(-10)
-                },
-                new Models.Project
-                {
-                    ProjectID = 5,
-                    ProjectCode = "PRJ005",
-                    ProjectName = "Ứng dụng học trực tuyến",
-                    Description = "Platform học tập trực tuyến với video và bài tập tương tác",
-                    StartDate = new DateTime(2024, 4, 1),
-                    EndDate = new DateTime(2024, 11, 1),
-                    Budget = 600000000,
-                    Status = "Đang thực hiện",
-                    ManagerID = 2,
-                    CompletionPercentage = 15.0m,
-                    CreatedAt = DateTime.Now.AddDays(-15),
-                    UpdatedAt = DateTime.Now.AddDays(-2)
-                }
-            };
-
-            filteredProjects = new List<Models.Project>(projects);
-
-            // Thêm quản lý vào ComboBox
-            PopulateManagerComboBox();
-        }
-
-        private void PopulateManagerComboBox()
-        {
-            // Trong môi trường thực tế, sẽ lấy danh sách người quản lý từ cơ sở dữ liệu
-            managerComboBox.Items.Clear();
-            managerComboBox.Items.Add("Tất cả quản lý");
-            managerComboBox.Items.Add("Nguyễn Văn A");
-            managerComboBox.Items.Add("Trần Thị B");
-            managerComboBox.Items.Add("Lê Văn C");
-            managerComboBox.SelectedIndex = 0;
-        }
-
-        private void LoadProjects()
+        private void ExportToExcel()
         {
             try
             {
-                var dataSource = filteredProjects.Select(p => new
-                {
-                    ProjectCode = p.ProjectCode,
-                    ProjectName = p.ProjectName,
-                    ManagerName = GetManagerName(p.ManagerID),
-                    Status = GetStatusDisplayText(p.Status),
-                    Budget = p.Budget,
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    Progress = $"{p.CompletionPercentage:F0}%"
-                }).ToList();
-
-                projectDataGridView.DataSource = dataSource;
-                UpdateStatistics();
+                MessageBox.Show("Chức năng xuất Excel đang được phát triển!\n\nTính năng sẽ bao gồm:\n" +
+                    "• Xuất toàn bộ danh sách dự án\n" +
+                    "• Xuất dữ liệu đã được lọc\n" +
+                    "• Bao gồm thống kê tổng quan\n" +
+                    "• Định dạng chuyên nghiệp",
+                    "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
+                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private static string GetManagerName(int managerId)
+        // Method để refresh data từ bên ngoài
+        public void RefreshData()
         {
-            // Trong môi trường thực tế, sẽ truy vấn tên quản lý từ cơ sở dữ liệu
-            return managerId switch
-            {
-                1 => "Nguyễn Văn A",
-                2 => "Trần Thị B",
-                3 => "Lê Văn C",
-                _ => $"Quản lý {managerId}"
-            };
+            LoadProjects();
         }
 
-        private void ApplyFilters()
+        // Method để focus vào một dự án cụ thể
+        public void SelectProject(int projectId)
         {
             try
             {
-                string searchText = searchTextBox.Text == searchPlaceholder ? "" : searchTextBox.Text.ToLower();
-                string statusFilter = statusComboBox.SelectedIndex == 0 ? "" : statusComboBox.Text;
-                string managerFilter = managerComboBox.SelectedIndex == 0 ? "" : managerComboBox.Text;
+                LoadProjects(); // Refresh data first
 
-                filteredProjects = projects.Where(p =>
-                    (string.IsNullOrEmpty(searchText) ||
-                     p.ProjectName.ToLower().Contains(searchText) ||
-                     p.ProjectCode.ToLower().Contains(searchText) ||
-                     p.Description.ToLower().Contains(searchText)) &&
-                    (string.IsNullOrEmpty(statusFilter) || GetStatusDisplayText(p.Status) == statusFilter) &&
-                    (string.IsNullOrEmpty(managerFilter) || GetManagerName(p.ManagerID) == managerFilter)
-                ).ToList();
-
-                LoadProjects();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi lọc dữ liệu: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void ClearFilters(object sender, EventArgs e)
-        {
-            searchTextBox.Text = searchPlaceholder;
-            searchTextBox.ForeColor = Color.Gray;
-            statusComboBox.SelectedIndex = 0;
-            managerComboBox.SelectedIndex = 0;
-            ApplyFilters();
-        }
-
-        private void UpdateStatistics()
-        {
-            var total = filteredProjects.Count;
-            var inProgress = filteredProjects.Count(p => p.Status == "Đang thực hiện");
-            var completed = filteredProjects.Count(p => p.Status == "Hoàn thành");
-            var planning = filteredProjects.Count(p => p.Status == "Khởi tạo");
-            var onHold = filteredProjects.Count(p => p.Status == "Tạm dừng");
-
-            statisticsLabel.Text = $"📊 Tổng: {total} | 📋 Khởi tạo: {planning} | 🔄 Đang thực hiện: {inProgress} | ✅ Hoàn thành: {completed} | ⏸️ Tạm dừng: {onHold}";
-        }
-        #endregion
-
-        #region Helper Methods
-        private static string GetStatusDisplayText(string status)
-        {
-            return status switch
-            {
-                "Khởi tạo" => "📋 Khởi tạo",
-                "Đang thực hiện" => "🔄 Đang thực hiện",
-                "Hoàn thành" => "✅ Hoàn thành",
-                "Tạm dừng" => "⏸️ Tạm dừng",
-                _ => status
-            };
-        }
-
-        private Models.Project? GetSelectedProject()
-        {
-            if (projectDataGridView.SelectedRows.Count > 0)
-            {
-                var selectedRow = projectDataGridView.SelectedRows[0];
-                if (selectedRow?.Cells["ProjectCode"]?.Value != null)
+                for (int i = 0; i < projectDataGridView.Rows.Count; i++)
                 {
-                    var projectCode = selectedRow.Cells["ProjectCode"].Value.ToString();
-                    return projects.FirstOrDefault(p => p.ProjectCode == projectCode);
-                }
-            }
-            return null;
-        }
-        #endregion
-
-        #region Event Handlers
-        private void ProjectDataGridView_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
-        {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
-
-            if (projectDataGridView.Columns[e.ColumnIndex] == null) return;
-
-            var columnName = projectDataGridView.Columns[e.ColumnIndex].Name;
-
-            if (columnName == "Status" && e.Value != null)
-            {
-                var status = e.Value.ToString();
-                if (status != null)
-                {
-                    e.CellStyle.ForeColor = status switch
+                    if (projectDataGridView.Rows[i].DataBoundItem != null)
                     {
-                        "📋 Khởi tạo" => Color.FromArgb(255, 152, 0),
-                        "🔄 Đang thực hiện" => Color.FromArgb(33, 150, 243),
-                        "✅ Hoàn thành" => Color.FromArgb(76, 175, 80),
-                        "⏸️ Tạm dừng" => Color.FromArgb(244, 67, 54),
-                        _ => Color.FromArgb(64, 64, 64)
-                    };
+                        dynamic item = projectDataGridView.Rows[i].DataBoundItem;
+                        if (item.ProjectID == projectId)
+                        {
+                            projectDataGridView.ClearSelection();
+                            projectDataGridView.Rows[i].Selected = true;
+                            projectDataGridView.FirstDisplayedScrollingRowIndex = i;
+                            break;
+                        }
+                    }
                 }
             }
-            else if (columnName == "Progress" && e.Value != null)
+            catch (Exception ex)
             {
-                var progressStr = e.Value.ToString()?.Replace("%", "");
-                if (progressStr != null && double.TryParse(progressStr, out double progressValue))
+                MessageBox.Show($"Lỗi khi chọn dự án: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Method để lọc theo trạng thái từ bên ngoài
+        public void FilterByStatus(string status)
+        {
+            try
+            {
+                var displayStatus = GetStatusDisplayText(status);
+                for (int i = 0; i < statusComboBox.Items.Count; i++)
                 {
-                    e.CellStyle.ForeColor = progressValue switch
+                    if (statusComboBox.Items[i].ToString() == displayStatus)
                     {
-                        >= 80 => Color.FromArgb(76, 175, 80),
-                        >= 50 => Color.FromArgb(255, 152, 0),
-                        _ => Color.FromArgb(244, 67, 54)
-                    };
-                }
-            }
-        }
-
-        private void AddProject()
-        {
-            try
-            {
-                using var form = new ProjectCreate();
-                if (form.ShowDialog() == DialogResult.OK && form.CreatedProject != null)
-                {
-                    // Thêm dự án mới vào danh sách
-                    var newProject = form.CreatedProject;
-                    newProject.ProjectID = projects.Count + 1; // Assign new ID
-                    projects.Add(newProject);
-
-                    ApplyFilters(); // Refresh grid
-                    MessageBox.Show("Thêm dự án thành công!", "Thành công",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        statusComboBox.SelectedIndex = i;
+                        break;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi khi thêm dự án: {ex.Message}", "Lỗi",
-                   MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void EditProject()
-        {
-            var project = GetSelectedProject();
-            if (project == null) return;
-
-            try
-            {
-                using var form = new ProjectDetail(project);
-                if (form.ShowDialog() == DialogResult.OK)
-                {
-                    // Refresh data after editing
-                    ApplyFilters();
-                    MessageBox.Show("Cập nhật dự án thành công!", "Thành công",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi chỉnh sửa dự án: {ex.Message}", "Lỗi",
+                MessageBox.Show($"Lỗi khi lọc theo trạng thái: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private void ViewProject()
+        // Method để search từ bên ngoài
+        public void SearchProjects(string searchText)
         {
-            var project = GetSelectedProject();
-            if (project == null) return;
-
             try
             {
-                using var form = new ProjectDetail(project, true);
-                form.ShowDialog();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi xem chi tiết dự án: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void DeleteProject()
-        {
-            var project = GetSelectedProject();
-            if (project == null) return;
-
-            try
-            {
-                var result = MessageBox.Show(
-                    $"Bạn có chắc chắn muốn xóa dự án '{project.ProjectName}'?\nHành động này không thể hoàn tác.",
-                    "Xác nhận xóa",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning,
-                    MessageBoxDefaultButton.Button2);
-
-                if (result == DialogResult.Yes)
+                if (!string.IsNullOrWhiteSpace(searchText))
                 {
-                    projects.Remove(project);
-                    ApplyFilters();
-                    MessageBox.Show("Xóa dự án thành công!", "Thành công",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    searchTextBox.ForeColor = Color.Black;
+                    searchTextBox.Text = searchText;
                 }
+                else
+                {
+                    searchTextBox.ForeColor = Color.Gray;
+                    searchTextBox.Text = searchPlaceholder;
+                }
+                ApplyFilters();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi khi xóa dự án: {ex.Message}", "Lỗi",
+                MessageBox.Show($"Lỗi khi tìm kiếm: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
