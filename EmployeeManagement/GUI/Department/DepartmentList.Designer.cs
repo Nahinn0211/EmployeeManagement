@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace EmployeeManagement.GUI.Employee
+namespace EmployeeManagement.GUI.Department
 {
-    partial class EmployeeListForm
+    partial class DepartmentListForm
     {
         /// <summary>
         /// Required designer variable.
@@ -43,7 +43,7 @@ namespace EmployeeManagement.GUI.Employee
             this.departmentComboBox = new System.Windows.Forms.ComboBox();
             this.searchButton = new System.Windows.Forms.Button();
             this.clearButton = new System.Windows.Forms.Button();
-            this.employeeDataGridView = new System.Windows.Forms.DataGridView();
+            this.DepartmentDataGridView = new System.Windows.Forms.DataGridView();
             this.addButton = new System.Windows.Forms.Button();
             this.editButton = new System.Windows.Forms.Button();
             this.viewButton = new System.Windows.Forms.Button();
@@ -57,8 +57,8 @@ namespace EmployeeManagement.GUI.Employee
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(1400, 900);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-            this.Name = "EmployeeListForm";
-            this.Text = "Quản lý Nhân viên";
+            this.Name = "DepartmentListForm";
+            this.Text = "Quản lý Phòng ban";
             this.Dock = System.Windows.Forms.DockStyle.Fill;
             this.Padding = new System.Windows.Forms.Padding(20);
             this.ResumeLayout(false);
@@ -78,7 +78,7 @@ namespace EmployeeManagement.GUI.Employee
         private System.Windows.Forms.ComboBox departmentComboBox;
         private System.Windows.Forms.Button searchButton;
         private System.Windows.Forms.Button clearButton;
-        private System.Windows.Forms.DataGridView employeeDataGridView;
+        private System.Windows.Forms.DataGridView DepartmentDataGridView;
         private System.Windows.Forms.Button addButton;
         private System.Windows.Forms.Button editButton;
         private System.Windows.Forms.Button viewButton;

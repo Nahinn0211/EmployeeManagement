@@ -1,9 +1,6 @@
-﻿using System;
-using System.Windows.Forms;
-
-namespace EmployeeManagement.GUI.Employee
+﻿namespace EmployeeManagement.GUI.Admin
 {
-    partial class EmployeeEdit
+    partial class UserManagementForm
     {
         /// <summary>
         /// Required designer variable.
@@ -34,7 +31,7 @@ namespace EmployeeManagement.GUI.Employee
             this.components = new System.ComponentModel.Container();
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Text = "Chỉnh sửa nhân viên";
+            this.Text = "UserManagementForm";
         }
 
         #endregion

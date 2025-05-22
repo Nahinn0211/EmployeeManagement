@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.SqlClient;
 using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using EmployeeManagement.GUI.Projects;
+using System.Configuration;
 using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Employee
@@ -15,24 +16,6 @@ namespace EmployeeManagement.GUI.Employee
     public partial class EmployeeListForm : Form
     {
         #region Fields
-        private TableLayoutPanel mainTableLayout;
-        private Panel headerPanel;
-        private Panel searchPanel;
-        private Panel gridPanel;
-        private Panel footerPanel;
-        private Label titleLabel;
-        private TextBox searchTextBox;
-        private ComboBox statusComboBox;
-        private ComboBox departmentComboBox;
-        private Button searchButton;
-        private Button clearButton;
-        private DataGridView employeeDataGridView;
-        private Button addButton;
-        private Button editButton;
-        private Button viewButton;
-        private Button deleteButton;
-        private Label statisticsLabel;
-
         private List<Models.Employee> employees;
         private List<Models.Employee> filteredEmployees;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên nhân viên, mã nhân viên...";
@@ -43,8 +26,609 @@ namespace EmployeeManagement.GUI.Employee
         {
             InitializeComponent();
             InitializeLayout();
-            InitializeData();
-            LoadEmployees();
+            LoadEmployeesFromDatabase();
+        }
+        #endregion
+
+        #region Database Methods
+        private string GetConnectionString()
+        {
+            return ConfigurationManager.ConnectionStrings["EmployeeManagement"].ConnectionString;
+        }
+
+        private void LoadEmployeesFromDatabase()
+        {
+            try
+            {
+                employees = new List<Models.Employee>();
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                        SELECT e.EmployeeID, e.EmployeeCode, e.FirstName, e.LastName, e.FullName, 
+                               e.Gender, e.DateOfBirth, e.IDCardNumber, e.Address, e.Phone, 
+                               e.Email, e.DepartmentID, e.PositionID, e.ManagerID, 
+                               e.HireDate, e.EndDate, e.Status, e.BankAccount, e.BankName, 
+                               e.TaxCode, e.InsuranceCode, e.Notes, e.CreatedAt, e.UpdatedAt,
+                               d.DepartmentName, p.PositionName
+                        FROM Employees e
+                        LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                        LEFT JOIN Positions p ON e.PositionID = p.PositionID
+                        ORDER BY e.EmployeeCode";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    connection.Open();
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            Models.Employee employee = new Models.Employee
+                            {
+                                EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
+                                EmployeeCode = reader["EmployeeCode"].ToString(),
+                                FirstName = reader["FirstName"].ToString(),
+                                LastName = reader["LastName"].ToString(),
+                                FullName = reader["FullName"].ToString(),
+                                Gender = reader["Gender"].ToString(),
+                                DateOfBirth = Convert.ToDateTime(reader["DateOfBirth"]),
+                                IDCardNumber = reader["IDCardNumber"].ToString(),
+                                Address = reader["Address"].ToString(),
+                                Phone = reader["Phone"].ToString(),
+                                Email = reader["Email"].ToString(),
+                                DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
+                                PositionID = Convert.ToInt32(reader["PositionID"]),
+                                HireDate = Convert.ToDateTime(reader["HireDate"]),
+                                Status = reader["Status"].ToString(),
+                                CreatedAt = Convert.ToDateTime(reader["CreatedAt"])
+                            };
+
+                            // Xử lý các trường nullable
+                            if (reader["ManagerID"] != DBNull.Value)
+                                employee.ManagerID = Convert.ToInt32(reader["ManagerID"]);
+
+                            if (reader["EndDate"] != DBNull.Value)
+                                employee.EndDate = Convert.ToDateTime(reader["EndDate"]);
+
+                            if (reader["BankAccount"] != DBNull.Value)
+                                employee.BankAccount = reader["BankAccount"].ToString();
+
+                            if (reader["BankName"] != DBNull.Value)
+                                employee.BankName = reader["BankName"].ToString();
+
+                            if (reader["TaxCode"] != DBNull.Value)
+                                employee.TaxCode = reader["TaxCode"].ToString();
+
+                            if (reader["InsuranceCode"] != DBNull.Value)
+                                employee.InsuranceCode = reader["InsuranceCode"].ToString();
+
+                            if (reader["Notes"] != DBNull.Value)
+                                employee.Notes = reader["Notes"].ToString();
+
+                            if (reader["UpdatedAt"] != DBNull.Value)
+                                employee.UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"]);
+
+                            // Thêm thông tin phòng ban và chức vụ
+                            if (reader["DepartmentName"] != DBNull.Value)
+                                employee.Department = new Models.Department { DepartmentName = reader["DepartmentName"].ToString() };
+
+                            if (reader["PositionName"] != DBNull.Value)
+                                employee.Position = new Models.Position { PositionName = reader["PositionName"].ToString() };
+
+                            employees.Add(employee);
+                        }
+                    }
+                }
+
+                // Thiết lập danh sách lọc ban đầu
+                filteredEmployees = new List<Models.Employee>(employees);
+
+                // Tải dữ liệu lên DataGridView
+                LoadEmployeesToGrid();
+
+                // Cập nhật thống kê
+                UpdateStatistics();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải dữ liệu từ cơ sở dữ liệu: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void AddEmployeeToDatabase(Models.Employee employee)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                        INSERT INTO Employees (
+                            EmployeeCode, FirstName, LastName, Gender, DateOfBirth, 
+                            IDCardNumber, Address, Phone, Email, DepartmentID, 
+                            PositionID, ManagerID, HireDate, Status
+                        ) VALUES (
+                            @EmployeeCode, @FirstName, @LastName, @Gender, @DateOfBirth,
+                            @IDCardNumber, @Address, @Phone, @Email, @DepartmentID,
+                            @PositionID, @ManagerID, @HireDate, @Status
+                        );
+                        SELECT SCOPE_IDENTITY();";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@EmployeeCode", employee.EmployeeCode);
+                    command.Parameters.AddWithValue("@FirstName", employee.FirstName);
+                    command.Parameters.AddWithValue("@LastName", employee.LastName);
+                    command.Parameters.AddWithValue("@Gender", employee.Gender);
+                    command.Parameters.AddWithValue("@DateOfBirth", employee.DateOfBirth);
+                    command.Parameters.AddWithValue("@IDCardNumber", employee.IDCardNumber);
+                    command.Parameters.AddWithValue("@Address", employee.Address);
+                    command.Parameters.AddWithValue("@Phone", employee.Phone);
+                    command.Parameters.AddWithValue("@Email", employee.Email);
+                    command.Parameters.AddWithValue("@DepartmentID", employee.DepartmentID);
+                    command.Parameters.AddWithValue("@PositionID", employee.PositionID);
+                    command.Parameters.AddWithValue("@HireDate", employee.HireDate);
+                    command.Parameters.AddWithValue("@Status", employee.Status);
+
+                    // Xử lý các tham số có thể null
+                    if (employee.ManagerID.HasValue)
+                        command.Parameters.AddWithValue("@ManagerID", employee.ManagerID.Value);
+                    else
+                        command.Parameters.AddWithValue("@ManagerID", DBNull.Value);
+
+                    connection.Open();
+                    int newEmployeeId = Convert.ToInt32(command.ExecuteScalar());
+                    employee.EmployeeID = newEmployeeId;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi thêm nhân viên vào cơ sở dữ liệu: {ex.Message}", ex);
+            }
+        }
+
+        private void UpdateEmployeeInDatabase(Models.Employee employee)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                        UPDATE Employees SET
+                            FirstName = @FirstName,
+                            LastName = @LastName,
+                            Gender = @Gender,
+                            DateOfBirth = @DateOfBirth,
+                            IDCardNumber = @IDCardNumber,
+                            Address = @Address,
+                            Phone = @Phone,
+                            Email = @Email,
+                            DepartmentID = @DepartmentID,
+                            PositionID = @PositionID,
+                            ManagerID = @ManagerID,
+                            HireDate = @HireDate,
+                            EndDate = @EndDate,
+                            Status = @Status,
+                            UpdatedAt = GETDATE()
+                        WHERE EmployeeID = @EmployeeID";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@EmployeeID", employee.EmployeeID);
+                    command.Parameters.AddWithValue("@FirstName", employee.FirstName);
+                    command.Parameters.AddWithValue("@LastName", employee.LastName);
+                    command.Parameters.AddWithValue("@Gender", employee.Gender);
+                    command.Parameters.AddWithValue("@DateOfBirth", employee.DateOfBirth);
+                    command.Parameters.AddWithValue("@IDCardNumber", employee.IDCardNumber);
+                    command.Parameters.AddWithValue("@Address", employee.Address);
+                    command.Parameters.AddWithValue("@Phone", employee.Phone);
+                    command.Parameters.AddWithValue("@Email", employee.Email);
+                    command.Parameters.AddWithValue("@DepartmentID", employee.DepartmentID);
+                    command.Parameters.AddWithValue("@PositionID", employee.PositionID);
+                    command.Parameters.AddWithValue("@HireDate", employee.HireDate);
+                    command.Parameters.AddWithValue("@Status", employee.Status);
+
+                    // Xử lý các tham số có thể null
+                    if (employee.ManagerID.HasValue)
+                        command.Parameters.AddWithValue("@ManagerID", employee.ManagerID.Value);
+                    else
+                        command.Parameters.AddWithValue("@ManagerID", DBNull.Value);
+
+                    if (employee.EndDate.HasValue)
+                        command.Parameters.AddWithValue("@EndDate", employee.EndDate.Value);
+                    else
+                        command.Parameters.AddWithValue("@EndDate", DBNull.Value);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật nhân viên trong cơ sở dữ liệu: {ex.Message}", ex);
+            }
+        }
+
+        private void DeleteEmployeeFromDatabase(int employeeId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    // Kiểm tra xem nhân viên có thể xóa được hay không
+                    string checkQuery = @"
+                        SELECT 
+                            (SELECT COUNT(*) FROM Employees WHERE ManagerID = @EmployeeID) AS ManagedEmployees,
+                            (SELECT COUNT(*) FROM Projects WHERE ManagerID = @EmployeeID) AS ManagedProjects,
+                            (SELECT COUNT(*) FROM Tasks WHERE AssignedToID = @EmployeeID) AS AssignedTasks,
+                            (SELECT COUNT(*) FROM ProjectEmployees WHERE EmployeeID = @EmployeeID) AS ProjectParticipations";
+
+                    SqlCommand checkCommand = new SqlCommand(checkQuery, connection);
+                    checkCommand.Parameters.AddWithValue("@EmployeeID", employeeId);
+
+                    connection.Open();
+                    using (SqlDataReader reader = checkCommand.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            int managedEmployees = Convert.ToInt32(reader["ManagedEmployees"]);
+                            int managedProjects = Convert.ToInt32(reader["ManagedProjects"]);
+                            int assignedTasks = Convert.ToInt32(reader["AssignedTasks"]);
+                            int projectParticipations = Convert.ToInt32(reader["ProjectParticipations"]);
+
+                            if (managedEmployees > 0 || managedProjects > 0 || assignedTasks > 0 || projectParticipations > 0)
+                            {
+                                StringBuilder errorMessage = new StringBuilder("Không thể xóa nhân viên vì còn liên kết với:\n");
+
+                                if (managedEmployees > 0)
+                                    errorMessage.AppendLine($"- {managedEmployees} nhân viên đang được quản lý bởi người này");
+
+                                if (managedProjects > 0)
+                                    errorMessage.AppendLine($"- {managedProjects} dự án đang được quản lý bởi người này");
+
+                                if (assignedTasks > 0)
+                                    errorMessage.AppendLine($"- {assignedTasks} công việc được giao cho người này");
+
+                                if (projectParticipations > 0)
+                                    errorMessage.AppendLine($"- {projectParticipations} dự án mà người này tham gia");
+
+                                errorMessage.AppendLine("\nVui lòng cập nhật các liên kết trước khi xóa.");
+                                throw new Exception(errorMessage.ToString());
+                            }
+                        }
+                    }
+
+                    // Nếu không có ràng buộc, tiến hành xóa
+                    string deleteQuery = "DELETE FROM Employees WHERE EmployeeID = @EmployeeID";
+                    SqlCommand deleteCommand = new SqlCommand(deleteQuery, connection);
+                    deleteCommand.Parameters.AddWithValue("@EmployeeID", employeeId);
+                    deleteCommand.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi xóa nhân viên: {ex.Message}", ex);
+            }
+        }
+
+        private List<Models.Department> LoadDepartments()
+        {
+            List<Models.Department> departments = new List<Models.Department>();
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = "SELECT DepartmentID, DepartmentName FROM Departments ORDER BY DepartmentName";
+                    SqlCommand command = new SqlCommand(query, connection);
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            departments.Add(new Models.Department
+                            {
+                                DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
+                                DepartmentName = reader["DepartmentName"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải danh sách phòng ban: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            return departments;
+        }
+        #endregion
+
+        #region Data Management
+        private void LoadEmployeesToGrid()
+        {
+            try
+            {
+                var dataSource = filteredEmployees.Select(e => new EmployeeDisplayModel
+                {
+                    EmployeeID = e.EmployeeID,
+                    EmployeeCode = e.EmployeeCode,
+                    FullName = e.FullName,
+                    Gender = e.Gender,
+                    DateOfBirth = e.DateOfBirth,
+                    Phone = e.Phone,
+                    Email = e.Email,
+                    Department = e.Department?.DepartmentName ?? GetDepartmentName(e.DepartmentID),
+                    Position = e.Position?.PositionName ?? GetPositionName(e.PositionID),
+                    Status = GetStatusDisplayText(e.Status),
+                    HireDate = e.HireDate
+                }).ToList();
+
+                employeeDataGridView.DataSource = dataSource;
+                UpdateStatistics();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ApplyFilters()
+        {
+            try
+            {
+                string searchText = searchTextBox.Text == searchPlaceholder ? "" : searchTextBox.Text.ToLower();
+                string statusFilter = statusComboBox.SelectedIndex == 0 ? "" : statusComboBox.Text;
+                string departmentFilter = departmentComboBox.SelectedIndex == 0 ? "" : departmentComboBox.Text;
+
+                filteredEmployees = employees.Where(e =>
+                    (string.IsNullOrEmpty(searchText) ||
+                     e.FullName.ToLower().Contains(searchText) ||
+                     e.EmployeeCode.ToLower().Contains(searchText) ||
+                     e.Email.ToLower().Contains(searchText) ||
+                     e.Phone.ToLower().Contains(searchText)) &&
+                    (string.IsNullOrEmpty(statusFilter) || e.Status == statusFilter) &&
+                    (string.IsNullOrEmpty(departmentFilter) ||
+                     e.Department?.DepartmentName == departmentFilter ||
+                     GetDepartmentName(e.DepartmentID) == departmentFilter)
+                ).ToList();
+
+                LoadEmployeesToGrid();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi lọc dữ liệu: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ClearFilters(object sender, EventArgs e)
+        {
+            searchTextBox.Text = searchPlaceholder;
+            searchTextBox.ForeColor = Color.Gray;
+            statusComboBox.SelectedIndex = 0;
+            departmentComboBox.SelectedIndex = 0;
+            filteredEmployees = new List<Models.Employee>(employees);
+            LoadEmployeesToGrid();
+        }
+
+        private void UpdateStatistics()
+        {
+            var total = filteredEmployees.Count;
+            var active = filteredEmployees.Count(e => e.Status == "Đang làm việc");
+            var onLeave = filteredEmployees.Count(e => e.Status == "Tạm nghỉ");
+            var inactive = filteredEmployees.Count(e => e.Status == "Đã nghỉ việc");
+
+            statisticsLabel.Text = $"📊 Tổng: {total} | 👤 Đang làm việc: {active} | ⏸️ Tạm nghỉ: {onLeave} | 🚫 Đã nghỉ việc: {inactive}";
+        }
+        #endregion
+
+        #region Helper Methods
+        private string GetDepartmentName(int departmentId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = "SELECT DepartmentName FROM Departments WHERE DepartmentID = @DepartmentID";
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@DepartmentID", departmentId);
+
+                    connection.Open();
+                    var result = command.ExecuteScalar();
+                    return result != null ? result.ToString() : "Không xác định";
+                }
+            }
+            catch
+            {
+                return "Không xác định";
+            }
+        }
+
+        private string GetPositionName(int positionId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = "SELECT PositionName FROM Positions WHERE PositionID = @PositionID";
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@PositionID", positionId);
+
+                    connection.Open();
+                    var result = command.ExecuteScalar();
+                    return result != null ? result.ToString() : "Không xác định";
+                }
+            }
+            catch
+            {
+                return "Không xác định";
+            }
+        }
+
+        private string GetStatusDisplayText(string status)
+        {
+            return status switch
+            {
+                "Đang làm việc" => "👤 Đang làm việc",
+                "Tạm nghỉ" => "⏸️ Tạm nghỉ",
+                "Đã nghỉ việc" => "🚫 Đã nghỉ việc",
+                _ => status
+            };
+        }
+
+        private Models.Employee GetSelectedEmployee()
+        {
+            if (employeeDataGridView.SelectedRows.Count > 0)
+            {
+                var selectedRow = employeeDataGridView.SelectedRows[0];
+                if (selectedRow.DataBoundItem is EmployeeDisplayModel displayModel)
+                {
+                    return employees.FirstOrDefault(e => e.EmployeeID == displayModel.EmployeeID);
+                }
+            }
+            return null;
+        }
+        #endregion
+
+        #region Event Handlers
+        private void EmployeeDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            var columnName = employeeDataGridView.Columns[e.ColumnIndex].Name;
+
+            if (columnName == "Status" && e.Value != null)
+            {
+                var status = e.Value.ToString();
+                e.CellStyle.ForeColor = status switch
+                {
+                    string s when s.Contains("Đang làm việc") => Color.FromArgb(76, 175, 80),
+                    string s when s.Contains("Tạm nghỉ") => Color.FromArgb(255, 152, 0),
+                    string s when s.Contains("Đã nghỉ việc") => Color.FromArgb(244, 67, 54),
+                    _ => Color.FromArgb(64, 64, 64)
+                };
+            }
+            else if (columnName == "Gender" && e.Value != null)
+            {
+                var gender = e.Value.ToString();
+                if (gender == "Nam")
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(33, 150, 243);
+                }
+                else if (gender == "Nữ")
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(233, 30, 99);
+                }
+            }
+        }
+
+        private void AddEmployee()
+        {
+            try
+            {
+                using (var form = new EmployeeCreate())
+                {
+                    if (form.ShowDialog() == DialogResult.OK)
+                    {
+                        // Thêm nhân viên mới vào database
+                        var newEmployee = form.CreatedEmployee;
+                        AddEmployeeToDatabase(newEmployee);
+
+                        // Tải lại danh sách nhân viên
+                        LoadEmployeesFromDatabase();
+
+                        MessageBox.Show("Thêm nhân viên thành công!", "Thành công",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi thêm nhân viên: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void EditEmployee()
+        {
+            var employee = GetSelectedEmployee();
+            if (employee == null) return;
+
+            try
+            {
+                using (var form = new EmployeeDetail(employee))
+                {
+                    if (form.ShowDialog() == DialogResult.OK)
+                    {
+                        // Cập nhật nhân viên trong database
+                        UpdateEmployeeInDatabase(employee);
+
+                        // Tải lại danh sách nhân viên
+                        LoadEmployeesFromDatabase();
+
+                        MessageBox.Show("Cập nhật nhân viên thành công!", "Thành công",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi chỉnh sửa nhân viên: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ViewEmployee()
+        {
+            var employee = GetSelectedEmployee();
+            if (employee == null) return;
+
+            try
+            {
+                using (var form = new EmployeeDetail(employee, true))
+                {
+                    form.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xem chi tiết nhân viên: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void DeleteEmployee()
+        {
+            var employee = GetSelectedEmployee();
+            if (employee == null) return;
+
+            try
+            {
+                var result = MessageBox.Show(
+                    $"Bạn có chắc chắn muốn xóa nhân viên '{employee.FullName}'?\nHành động này không thể hoàn tác.",
+                    "Xác nhận xóa",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2);
+
+                if (result == DialogResult.Yes)
+                {
+                    // Xóa nhân viên khỏi database
+                    DeleteEmployeeFromDatabase(employee.EmployeeID);
+
+                    // Tải lại danh sách nhân viên
+                    LoadEmployeesFromDatabase();
+
+                    MessageBox.Show("Xóa nhân viên thành công!", "Thành công",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xóa nhân viên: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         #endregion
 
@@ -161,17 +745,28 @@ namespace EmployeeManagement.GUI.Employee
             statusComboBox.SelectedIndex = 0;
             statusComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
 
-            // Department ComboBox
+            // Department ComboBox - Tải phòng ban từ database
             departmentComboBox = new ComboBox
             {
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 11),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Height = 35,
-                Margin = new Padding(5, 5, 10, 5)
+                Margin = new Padding(5, 5, 10, 5),
+                DisplayMember = "DepartmentName",
+                ValueMember = "DepartmentID"
             };
+
+            // Thêm lựa chọn "Tất cả phòng ban"
             departmentComboBox.Items.Add("Tất cả phòng ban");
-            departmentComboBox.Items.AddRange(new[] { "Ban giám đốc", "Phòng Nhân sự", "Phòng Kế toán", "Phòng IT", "Phòng Kinh doanh" });
+
+            // Thêm phòng ban từ database
+            var departments = LoadDepartments();
+            foreach (var department in departments)
+            {
+                departmentComboBox.Items.Add(department.DepartmentName);
+            }
+
             departmentComboBox.SelectedIndex = 0;
             departmentComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
 
@@ -310,9 +905,7 @@ namespace EmployeeManagement.GUI.Employee
             footerPanel.Controls.Add(footerContainer);
             mainTableLayout.Controls.Add(footerPanel, 0, 3);
         }
-        #endregion
 
-        #region Control Helpers
         private Button CreateStyledButton(string text, Color backColor)
         {
             return new Button
@@ -345,7 +938,8 @@ namespace EmployeeManagement.GUI.Employee
 
         private void SetupSearchTextBoxEvents()
         {
-            searchTextBox.GotFocus += (s, e) => {
+            searchTextBox.GotFocus += (s, e) =>
+            {
                 if (searchTextBox.Text == searchPlaceholder)
                 {
                     searchTextBox.Text = "";
@@ -353,7 +947,8 @@ namespace EmployeeManagement.GUI.Employee
                 }
             };
 
-            searchTextBox.LostFocus += (s, e) => {
+            searchTextBox.LostFocus += (s, e) =>
+            {
                 if (string.IsNullOrWhiteSpace(searchTextBox.Text))
                 {
                     searchTextBox.Text = searchPlaceholder;
@@ -361,7 +956,8 @@ namespace EmployeeManagement.GUI.Employee
                 }
             };
 
-            searchTextBox.TextChanged += (s, e) => {
+            searchTextBox.TextChanged += (s, e) =>
+            {
                 if (searchTextBox.Text != searchPlaceholder)
                     ApplyFilters();
             };
@@ -374,7 +970,7 @@ namespace EmployeeManagement.GUI.Employee
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(64, 64, 64),
                 SelectionBackColor = Color.FromArgb(33, 150, 243, 80),
-                SelectionForeColor = Color.White,
+                SelectionForeColor = Color.Black,
                 Alignment = DataGridViewContentAlignment.MiddleLeft,
                 Padding = new Padding(10, 8, 10, 8),
                 Font = new Font("Segoe UI", 9)
@@ -404,16 +1000,17 @@ namespace EmployeeManagement.GUI.Employee
 
             var columns = new[]
             {
-                new { Name = "EmployeeCode", HeaderText = "Mã nhân viên", Width = 100, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "FullName", HeaderText = "Họ và tên", Width = 200, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Gender", HeaderText = "Giới tính", Width = 80, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "DateOfBirth", HeaderText = "Ngày sinh", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "Phone", HeaderText = "Điện thoại", Width = 120, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Email", HeaderText = "Email", Width = 180, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Department", HeaderText = "Phòng ban", Width = 150, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Position", HeaderText = "Chức vụ", Width = 120, Alignment = DataGridViewContentAlignment.MiddleLeft },
-                new { Name = "Status", HeaderText = "Trạng thái", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter },
-                new { Name = "HireDate", HeaderText = "Ngày vào làm", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter }
+                new { Name = "EmployeeID", HeaderText = "ID", Width = 70, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = false },
+                new { Name = "EmployeeCode", HeaderText = "Mã nhân viên", Width = 100, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "FullName", HeaderText = "Họ và tên", Width = 200, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "Gender", HeaderText = "Giới tính", Width = 80, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "DateOfBirth", HeaderText = "Ngày sinh", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "Phone", HeaderText = "Điện thoại", Width = 120, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "Email", HeaderText = "Email", Width = 180, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "Department", HeaderText = "Phòng ban", Width = 150, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "Position", HeaderText = "Chức vụ", Width = 120, Alignment = DataGridViewContentAlignment.MiddleLeft, Visible = true },
+                new { Name = "Status", HeaderText = "Trạng thái", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true },
+                new { Name = "HireDate", HeaderText = "Ngày vào làm", Width = 120, Alignment = DataGridViewContentAlignment.MiddleCenter, Visible = true }
             };
 
             foreach (var col in columns)
@@ -427,7 +1024,8 @@ namespace EmployeeManagement.GUI.Employee
                     SortMode = DataGridViewColumnSortMode.Automatic,
                     MinimumWidth = 80,
                     Resizable = DataGridViewTriState.True,
-                    DefaultCellStyle = { Alignment = col.Alignment }
+                    DefaultCellStyle = { Alignment = col.Alignment },
+                    Visible = col.Visible
                 };
 
                 if (col.Name == "DateOfBirth" || col.Name == "HireDate")
@@ -439,14 +1037,16 @@ namespace EmployeeManagement.GUI.Employee
 
         private void SetupDataGridEvents()
         {
-            employeeDataGridView.SelectionChanged += (s, e) => {
+            employeeDataGridView.SelectionChanged += (s, e) =>
+            {
                 bool hasSelection = employeeDataGridView.SelectedRows.Count > 0;
                 editButton.Enabled = hasSelection;
                 viewButton.Enabled = hasSelection;
                 deleteButton.Enabled = hasSelection;
             };
 
-            employeeDataGridView.CellDoubleClick += (s, e) => {
+            employeeDataGridView.CellDoubleClick += (s, e) =>
+            {
                 if (e.RowIndex >= 0)
                     ViewEmployee();
             };
@@ -463,372 +1063,13 @@ namespace EmployeeManagement.GUI.Employee
         }
         #endregion
 
-        #region Data Management
-        private void InitializeData()
-        {
-            employees = new List<Models.Employee>
-            {
-                new Models.Employee
-                {
-                    EmployeeID = 1,
-                    EmployeeCode = "NV001",
-                    FirstName = "Nguyễn",
-                    LastName = "Văn A",
-                    Gender = "Nam",
-                    DateOfBirth = new DateTime(1985, 5, 10),
-                    Phone = "0912345678",
-                    Email = "nguyenvana@example.com",
-                    DepartmentID = 1,
-                    PositionID = 1,
-                    Status = "Đang làm việc",
-                    HireDate = new DateTime(2020, 1, 1),
-                    Address = "Hà Nội",
-                    IDCardNumber = "123456789",
-                    CreatedAt = DateTime.Now.AddDays(-500)
-                },
-                new Models.Employee
-                {
-                    EmployeeID = 2,
-                    EmployeeCode = "NV002",
-                    FirstName = "Trần",
-                    LastName = "Thị B",
-                    Gender = "Nữ",
-                    DateOfBirth = new DateTime(1988, 10, 15),
-                    Phone = "0987654321",
-                    Email = "tranthib@example.com",
-                    DepartmentID = 2,
-                    PositionID = 2,
-                    Status = "Đang làm việc",
-                    HireDate = new DateTime(2020, 2, 1),
-                    Address = "Hà Nội",
-                    IDCardNumber = "987654321",
-                    CreatedAt = DateTime.Now.AddDays(-450)
-                },
-                new Models.Employee
-                {
-                    EmployeeID = 3,
-                    EmployeeCode = "NV003",
-                    FirstName = "Lê",
-                    LastName = "Văn C",
-                    Gender = "Nam",
-                    DateOfBirth = new DateTime(1990, 3, 20),
-                    Phone = "0923456789",
-                    Email = "levanc@example.com",
-                    DepartmentID = 3,
-                    PositionID = 2,
-                    Status = "Đang làm việc",
-                    HireDate = new DateTime(2020, 3, 1),
-                    Address = "Hải Phòng",
-                    IDCardNumber = "456789123",
-                    CreatedAt = DateTime.Now.AddDays(-400)
-                },
-                new Models.Employee
-                {
-                    EmployeeID = 4,
-                    EmployeeCode = "NV004",
-                    FirstName = "Phạm",
-                    LastName = "Thị D",
-                    Gender = "Nữ",
-                    DateOfBirth = new DateTime(1992, 7, 25),
-                    Phone = "0934567891",
-                    Email = "phamthid@example.com",
-                    DepartmentID = 4,
-                    PositionID = 2,
-                    Status = "Tạm nghỉ",
-                    HireDate = new DateTime(2020, 4, 1),
-                    Address = "Đà Nẵng",
-                    IDCardNumber = "789123456",
-                    CreatedAt = DateTime.Now.AddDays(-350)
-                },
-                new Models.Employee
-                {
-                    EmployeeID = 5,
-                    EmployeeCode = "NV005",
-                    FirstName = "Hoàng",
-                    LastName = "Văn E",
-                    Gender = "Nam",
-                    DateOfBirth = new DateTime(1995, 12, 30),
-                    Phone = "0945678912",
-                    Email = "hoangvane@example.com",
-                    DepartmentID = 5,
-                    PositionID = 2,
-                    Status = "Đã nghỉ việc",
-                    HireDate = new DateTime(2020, 5, 1),
-                    EndDate = new DateTime(2023, 8, 15),
-                    Address = "Hồ Chí Minh",
-                    IDCardNumber = "321654987",
-                    CreatedAt = DateTime.Now.AddDays(-300)
-                }
-            };
 
-            filteredEmployees = new List<Models.Employee>(employees);
-        }
 
-        private void LoadEmployees()
-        {
-            try
-            {
-                var dataSource = filteredEmployees.Select(e => new EmployeeDisplayModel
-                {
-                    EmployeeCode = e.EmployeeCode,
-                    FullName = $"{e.FirstName} {e.LastName}",
-                    Gender = e.Gender,
-                    DateOfBirth = e.DateOfBirth,
-                    Phone = e.Phone,
-                    Email = e.Email,
-                    Department = GetDepartmentName(e.DepartmentID),
-                    Position = GetPositionName(e.PositionID),
-                    Status = GetStatusDisplayText(e.Status),
-                    HireDate = e.HireDate
-                }).ToList();
-
-                employeeDataGridView.DataSource = dataSource;
-                UpdateStatistics();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void ApplyFilters()
-        {
-            try
-            {
-                string searchText = searchTextBox.Text == searchPlaceholder ? "" : searchTextBox.Text.ToLower();
-                string statusFilter = statusComboBox.SelectedIndex == 0 ? "" : statusComboBox.Text;
-                string departmentFilter = departmentComboBox.SelectedIndex == 0 ? "" : departmentComboBox.Text;
-
-                filteredEmployees = employees.Where(e =>
-                    (string.IsNullOrEmpty(searchText) ||
-                     $"{e.FirstName} {e.LastName}".ToLower().Contains(searchText) ||
-                     e.EmployeeCode.ToLower().Contains(searchText) ||
-                     e.Email.ToLower().Contains(searchText) ||
-                     e.Phone.ToLower().Contains(searchText)) &&
-                    (string.IsNullOrEmpty(statusFilter) || e.Status == statusFilter) &&
-                    (string.IsNullOrEmpty(departmentFilter) || GetDepartmentName(e.DepartmentID) == departmentFilter)
-                ).ToList();
-
-                LoadEmployees();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi lọc dữ liệu: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void ClearFilters(object sender, EventArgs e)
-        {
-            searchTextBox.Text = searchPlaceholder;
-            searchTextBox.ForeColor = Color.Gray;
-            statusComboBox.SelectedIndex = 0;
-            departmentComboBox.SelectedIndex = 0;
-            filteredEmployees = new List<Models.Employee>(employees);
-            LoadEmployees();
-        }
-
-        private void UpdateStatistics()
-        {
-            var total = filteredEmployees.Count;
-            var active = filteredEmployees.Count(e => e.Status == "Đang làm việc");
-            var onLeave = filteredEmployees.Count(e => e.Status == "Tạm nghỉ");
-            var inactive = filteredEmployees.Count(e => e.Status == "Đã nghỉ việc");
-
-            statisticsLabel.Text = $"📊 Tổng: {total} | 👤 Đang làm việc: {active} | ⏸️ Tạm nghỉ: {onLeave} | 🚫 Đã nghỉ việc: {inactive}";
-        }
-        #endregion
-
-        #region Helper Methods
-        private string GetDepartmentName(int departmentId)
-        {
-            return departmentId switch
-            {
-                1 => "Ban giám đốc",
-                2 => "Phòng Nhân sự",
-                3 => "Phòng Kế toán",
-                4 => "Phòng IT",
-                5 => "Phòng Kinh doanh",
-                _ => "Không xác định"
-            };
-        }
-
-        private string GetPositionName(int positionId)
-        {
-            return positionId switch
-            {
-                1 => "Giám đốc",
-                2 => "Trưởng phòng",
-                3 => "Nhân viên cấp cao",
-                4 => "Nhân viên",
-                5 => "Thực tập sinh",
-                _ => "Không xác định"
-            };
-        }
-
-        private string GetStatusDisplayText(string status)
-        {
-            return status switch
-            {
-                "Đang làm việc" => "👤 Đang làm việc",
-                "Tạm nghỉ" => "⏸️ Tạm nghỉ",
-                "Đã nghỉ việc" => "🚫 Đã nghỉ việc",
-                _ => status
-            };
-        }
-
-        private Models.Employee GetSelectedEmployee()
-        {
-            if (employeeDataGridView.SelectedRows.Count > 0)
-            {
-                var selectedRow = employeeDataGridView.SelectedRows[0];
-                if (selectedRow.DataBoundItem is EmployeeDisplayModel displayModel)
-                {
-                    return employees.FirstOrDefault(e => e.EmployeeCode == displayModel.EmployeeCode);
-                }
-            }
-            return null;
-        }
-        #endregion
-
-        #region Event Handlers
-        private void EmployeeDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
-        {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
-
-            var columnName = employeeDataGridView.Columns[e.ColumnIndex].Name;
-
-            if (columnName == "Status" && e.Value != null)
-            {
-                var status = e.Value.ToString();
-                e.CellStyle.ForeColor = status switch
-                {
-                    string s when s.Contains("Đang làm việc") => Color.FromArgb(76, 175, 80),
-                    string s when s.Contains("Tạm nghỉ") => Color.FromArgb(255, 152, 0),
-                    string s when s.Contains("Đã nghỉ việc") => Color.FromArgb(244, 67, 54),
-                    _ => Color.FromArgb(64, 64, 64)
-                };
-            }
-            else if (columnName == "Gender" && e.Value != null)
-            {
-                var gender = e.Value.ToString();
-                if (gender == "Nam")
-                {
-                    e.CellStyle.ForeColor = Color.FromArgb(33, 150, 243);
-                }
-                else if (gender == "Nữ")
-                {
-                    e.CellStyle.ForeColor = Color.FromArgb(233, 30, 99);
-                }
-            }
-        }
-
-        private void AddEmployee()
-        {
-            try
-            {
-                using (var form = new EmployeeCreate())
-                {
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        // Thêm nhân viên mới vào danh sách
-                        var newEmployee = form.CreatedEmployee;
-                        newEmployee.EmployeeID = employees.Count + 1; // Assign new ID
-                        employees.Add(newEmployee);
-
-                        ApplyFilters(); // Refresh grid
-                        MessageBox.Show("Thêm nhân viên thành công!", "Thành công",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi thêm nhân viên: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void EditEmployee()
-        {
-            var employee = GetSelectedEmployee();
-            if (employee == null) return;
-
-            try
-            {
-                using (var form = new EmployeeDetail(employee))
-                {
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        // Refresh data after editing
-                        ApplyFilters();
-                        MessageBox.Show("Cập nhật nhân viên thành công!", "Thành công",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi chỉnh sửa nhân viên: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void ViewEmployee()
-        {
-            var employee = GetSelectedEmployee();
-            if (employee == null) return;
-
-            try
-            {
-                using (var form = new EmployeeDetail(employee, true))
-                {
-                    form.ShowDialog();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi xem chi tiết nhân viên: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void DeleteEmployee()
-        {
-            var employee = GetSelectedEmployee();
-            if (employee == null) return;
-
-            try
-            {
-                var result = MessageBox.Show(
-                    $"Bạn có chắc chắn muốn xóa nhân viên '{employee.FirstName} {employee.LastName}'?\nHành động này không thể hoàn tác.",
-                    "Xác nhận xóa",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning,
-                    MessageBoxDefaultButton.Button2);
-
-                if (result == DialogResult.Yes)
-                {
-                    // Remove the employee
-                    employees.Remove(employee);
-                    ApplyFilters();
-                    MessageBox.Show("Xóa nhân viên thành công!", "Thành công",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi xóa nhân viên: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        #endregion
     }
 
-    #region Display Models
     public class EmployeeDisplayModel
     {
+        public int EmployeeID { get; set; }
         public string EmployeeCode { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Gender { get; set; } = string.Empty;
@@ -840,5 +1081,4 @@ namespace EmployeeManagement.GUI.Employee
         public string Status { get; set; } = string.Empty;
         public DateTime HireDate { get; set; }
     }
-    #endregion
 }
