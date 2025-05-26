@@ -18,6 +18,11 @@
 
   <ItemGroup>
     <Folder Include="GUI\Attendance\" />
+    <Folder Include="GUI\Customer\" />
+    <Folder Include="GUI\Document\" />
+    <Folder Include="GUI\Finance\" />
+    <Folder Include="GUI\Salary\" />
+    <Folder Include="GUI\Task\" />
     <Folder Include="Resources\Images\" />
     <Folder Include="Resources\Database\" />
   </ItemGroup>
