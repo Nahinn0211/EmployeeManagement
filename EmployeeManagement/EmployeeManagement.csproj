@@ -37,6 +37,9 @@
     <Compile Update="GUI\Customer\ListForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GUI\Dashboard\Dashboard.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="GUI\Department\DepartmentCreate.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -55,6 +58,7 @@
     <Compile Update="GUI\Finance\RejectReasonForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GUI\Reports\HRReport.cs" />
     <Compile Update="GUI\Reports\ProjectReport.cs">
       <SubType>Form</SubType>
     </Compile>

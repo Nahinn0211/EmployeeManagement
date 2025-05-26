@@ -608,6 +608,35 @@ namespace EmployeeManagement.BLL
                     throw new ArgumentException("Số CMND/CCCD đã tồn tại", nameof(employeeDTO.IDCardNumber));
             }
         }
+        /// <summary>
+        /// Lấy danh sách tất cả phòng ban từ database
+        /// </summary>
+        public List<Department> GetAllDepartments()
+        {
+            try
+            {
+                return    _employeeDAL.GetAllDepartments();
+            }
+            catch (Exception ex)
+            {
+                 throw new Exception($"Không thể lấy danh sách phòng ban: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách tất cả chức vụ từ database
+        /// </summary>
+        public List<Position> GetAllPositions()
+        {
+            try
+            {
+                 return _employeeDAL.GetAllPositions();
+            }
+            catch (Exception ex)
+            {
+                 throw new Exception($"Không thể lấy danh sách chức vụ: {ex.Message}");
+            }
+        }
         #endregion
     }
 

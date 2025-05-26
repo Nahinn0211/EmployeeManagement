@@ -21,7 +21,162 @@ namespace EmployeeManagement.DAL
         {
             return ConfigurationManager.ConnectionStrings["EmployeeManagement"].ConnectionString;
         }
+        /// <summary>
+        /// Lấy tất cả phòng ban từ database
+        /// </summary>
+        public List<Department> GetAllDepartments()
+        {
+            var departments = new List<Department>();
 
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    connection.Open();
+
+                    string sql = @"
+                        SELECT 
+                            DepartmentID,
+                            DepartmentName,
+                            Description,
+                            ManagerID,
+                            CreatedAt,
+                            UpdatedAt
+                        FROM Departments 
+                        ORDER BY DepartmentName";
+
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                departments.Add(new Department
+                                {
+                                    DepartmentID = reader.GetInt32("DepartmentID"),
+                                    DepartmentName = reader.GetString("DepartmentName"),
+                                    Description = reader.IsDBNull("Description") ? "" : reader.GetString("Description"),
+                                    ManagerID = reader.IsDBNull("ManagerID") ? (int?)null : reader.GetInt32("ManagerID"),
+                                    CreatedAt = reader.GetDateTime("CreatedAt"),
+                                    UpdatedAt = reader.GetDateTime("UpdatedAt")
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách phòng ban: {ex.Message}");
+            }
+
+            return departments;
+        }
+
+        /// <summary>
+        /// Lấy tất cả chức vụ từ database
+        /// </summary>
+        public List<Position> GetAllPositions()
+        {
+            var positions = new List<Position>();
+
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    connection.Open();
+
+                    string sql = @"
+                        SELECT 
+                            PositionID,
+                            PositionName,
+                            Description,
+                            BaseSalary,
+                            CreatedAt,
+                            UpdatedAt
+                        FROM Positions 
+                        ORDER BY PositionName";
+
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                positions.Add(new Position
+                                {
+                                    PositionID = reader.GetInt32("PositionID"),
+                                    PositionName = reader.GetString("PositionName"),
+                                    Description = reader.IsDBNull("Description") ? "" : reader.GetString("Description"),
+                                    BaseSalary = reader.IsDBNull("BaseSalary") ? 0 : reader.GetDecimal("BaseSalary"),
+                                    CreatedAt = reader.GetDateTime("CreatedAt"),
+                                    UpdatedAt = reader.GetDateTime("UpdatedAt")
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách chức vụ: {ex.Message}");
+            }
+
+            return positions;
+        }
+
+        /// <summary>
+        /// Lấy thông tin nhân viên cơ bản để fill ComboBox
+        /// </summary>
+        public List<Employee> GetEmployeesBasicInfo()
+        {
+            var employees = new List<Employee>();
+
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    connection.Open();
+
+                    string sql = @"
+                        SELECT 
+                            EmployeeID,
+                            EmployeeCode,
+                            FullName,
+                            DepartmentID,
+                            PositionID,
+                            Status
+                        FROM Employees 
+                        WHERE Status = N'Đang làm việc'
+                        ORDER BY FullName";
+
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                employees.Add(new Employee
+                                {
+                                    EmployeeID = reader.GetInt32("EmployeeID"),
+                                    EmployeeCode = reader.GetString("EmployeeCode"),
+                                    FullName = reader.GetString("FullName"),
+                                    DepartmentID = reader.GetInt32("DepartmentID"),
+                                    PositionID =reader.GetInt32("PositionID"),
+                                    Status = reader.GetString("Status")
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách nhân viên: {ex.Message}");
+            }
+
+            return employees;
+        }
         /// <summary>
         /// Lấy tất cả nhân viên từ cơ sở dữ liệu
         /// </summary>
