@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
 
 namespace EmployeeManagement.GUI.Document
@@ -13,7 +12,7 @@ namespace EmployeeManagement.GUI.Document
     {
         #region Fields
         private DocumentBLL documentBLL;
-        private Models.Document document;
+        private Models.Entity.Document document;
         private bool isReadOnly;
         private bool isEditMode;
         private string selectedFilePath;
@@ -61,9 +60,9 @@ namespace EmployeeManagement.GUI.Document
         private ErrorProvider errorProvider;
 
         // Data for dropdowns
-        private System.Collections.Generic.List<Models.Project> projects;
-        private System.Collections.Generic.List<Models.Customer> customers;
-        private System.Collections.Generic.List<Models.Employee> employees;
+        private System.Collections.Generic.List<Models.Entity.Project> projects;
+        private System.Collections.Generic.List<Models.Entity.Customer> customers;
+        private System.Collections.Generic.List<Models.Entity.Employee> employees;
         #endregion
 
         #region Constructors
@@ -71,7 +70,7 @@ namespace EmployeeManagement.GUI.Document
         {
             InitializeComponent();
             documentBLL = new DocumentBLL();
-            document = new Models.Document();
+            document = new Models.Entity.Document();
             isEditMode = false;
             isReadOnly = false;
             LoadDropdownData();
@@ -79,7 +78,7 @@ namespace EmployeeManagement.GUI.Document
             SetDefaultValues();
         }
 
-        public DocumentDetailForm(Models.Document existingDocument, bool readOnly = false)
+        public DocumentDetailForm(Models.Entity.Document existingDocument, bool readOnly = false)
         {
             InitializeComponent();
             documentBLL = new DocumentBLL();
@@ -91,7 +90,7 @@ namespace EmployeeManagement.GUI.Document
             LoadDocumentData();
         }
 
-        public Models.Document UpdatedDocument => document;
+        public Models.Entity.Document UpdatedDocument => document;
         #endregion
 
         #region Form Setup

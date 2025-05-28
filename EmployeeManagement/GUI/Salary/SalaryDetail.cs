@@ -3,8 +3,9 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
+
 
 namespace EmployeeManagement.GUI.Salary
 {
@@ -12,7 +13,7 @@ namespace EmployeeManagement.GUI.Salary
     {
         #region Fields
         private SalaryBLL salaryBLL;
-        private Models.Salary salary;
+        private Models.Entity.Salary salary;
         private bool isReadOnly;
         private bool isEditMode;
 
@@ -62,7 +63,7 @@ namespace EmployeeManagement.GUI.Salary
         {
             InitializeComponent();
             salaryBLL = new SalaryBLL();
-            salary = new Models.Salary();
+            salary = new Models.Entity.Salary();
             isEditMode = false;
             isReadOnly = false;
             SetupForm();
@@ -70,7 +71,7 @@ namespace EmployeeManagement.GUI.Salary
             SetDefaultValues();
         }
 
-        public SalaryDetailForm(Models.Salary existingSalary, bool readOnly = false)
+        public SalaryDetailForm(Models.Entity.Salary existingSalary, bool readOnly = false)
         {
             InitializeComponent();
             salaryBLL = new SalaryBLL();
@@ -82,7 +83,7 @@ namespace EmployeeManagement.GUI.Salary
             LoadSalaryData();
         }
 
-        public Models.Salary UpdatedSalary => salary;
+        public Models.Entity.Salary UpdatedSalary => salary;
         #endregion
 
         #region Form Setup

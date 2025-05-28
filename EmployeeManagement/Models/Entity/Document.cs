@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     public class Document
     {

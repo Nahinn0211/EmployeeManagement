@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
 using MaterialSkin.Controls;
 
@@ -14,8 +13,8 @@ namespace EmployeeManagement.GUI.Document
     {
         #region Fields
         private DocumentBLL documentBLL;
-        private List<Models.Document> documents;
-        private List<Models.Document> filteredDocuments;
+        private List<Models.Entity.Document> documents;
+        private List<Models.Entity.Document> filteredDocuments;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên tài liệu, mã tài liệu, mô tả...";
 
         // Layout controls
@@ -50,9 +49,9 @@ namespace EmployeeManagement.GUI.Document
         private Label statisticsLabel;
 
         // Data for dropdowns
-        private List<Models.Project> projects;
-        private List<Models.Customer> customers;
-        private List<Models.Employee> employees;
+        private List<Models.Entity.Project> projects;
+        private List<Models.Entity.Customer> customers;
+        private List<Models.Entity.Employee> employees;
         #endregion
 
         #region Constructor
@@ -87,7 +86,7 @@ namespace EmployeeManagement.GUI.Document
             try
             {
                 documents = documentBLL.GetAllDocuments();
-                filteredDocuments = new List<Models.Document>(documents);
+                filteredDocuments = new List<Models.Entity.Document>(documents);
                 LoadDocumentsToGrid();
                 UpdateStatistics();
             }
@@ -166,7 +165,7 @@ namespace EmployeeManagement.GUI.Document
             projectComboBox.SelectedIndex = 0;
             customerComboBox.SelectedIndex = 0;
             employeeComboBox.SelectedIndex = 0;
-            filteredDocuments = new List<Models.Document>(documents);
+            filteredDocuments = new List<Models.Entity.Document>(documents);
             LoadDocumentsToGrid();
         }
 
@@ -206,7 +205,7 @@ namespace EmployeeManagement.GUI.Document
             return employees[employeeComboBox.SelectedIndex - 1].EmployeeID;
         }
 
-        private Models.Document GetSelectedDocument()
+        private Models.Entity.Document GetSelectedDocument()
         {
             if (documentDataGridView.SelectedRows.Count > 0)
             {

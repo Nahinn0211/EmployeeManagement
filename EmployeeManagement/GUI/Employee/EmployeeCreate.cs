@@ -9,14 +9,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Configuration;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.GUI.Employee
 {
     public partial class EmployeeCreate : Form
     {
         #region Fields
-        private Models.Employee employee;
+        private Models.Entity.Employee employee;
         private TableLayoutPanel mainTableLayout;
         private Panel headerPanel;
         private Panel contentPanel;
@@ -62,9 +62,9 @@ namespace EmployeeManagement.GUI.Employee
         private Button resetButton;
 
         private readonly string[] genders = { "Nam", "Nữ", "Khác" };
-        private List<Models.Department> departments;
-        private List<Models.Position> positions;
-        private List<Models.Employee> managers;
+        private List<Models.Entity.Department> departments;
+        private List<Models.Entity.Position> positions;
+        private List<Models.Entity.Employee> managers;
         private readonly string[] statuses = { "Đang làm việc", "Tạm nghỉ", "Đã nghỉ việc" };
 
         // Validation
@@ -75,12 +75,12 @@ namespace EmployeeManagement.GUI.Employee
         public EmployeeCreate()
         {
             InitializeComponent();
-            this.employee = new Models.Employee();
+            this.employee = new Models.Entity.Employee();
             LoadDataFromDatabase();
             SetupForm();
             SetDefaultValues();
         }
-        public Models.Employee CreatedEmployee => employee;
+        public Models.Entity.Employee CreatedEmployee => employee;
         #endregion
 
         #region Database Methods
@@ -106,7 +106,7 @@ namespace EmployeeManagement.GUI.Employee
 
         private void LoadDepartments()
         {
-            departments = new List<Models.Department>();
+            departments = new List<Models.Entity.Department>();
 
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
@@ -118,7 +118,7 @@ namespace EmployeeManagement.GUI.Employee
                 {
                     while (reader.Read())
                     {
-                        departments.Add(new Models.Department
+                        departments.Add(new Models.Entity.Department
                         {
                             DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
                             DepartmentName = reader["DepartmentName"].ToString()
@@ -130,7 +130,7 @@ namespace EmployeeManagement.GUI.Employee
 
         private void LoadPositions()
         {
-            positions = new List<Models.Position>();
+            positions = new List<Models.Entity.Position>();
 
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
@@ -142,7 +142,7 @@ namespace EmployeeManagement.GUI.Employee
                 {
                     while (reader.Read())
                     {
-                        positions.Add(new Models.Position
+                        positions.Add(new Models.Entity.Position
                         {
                             PositionID = Convert.ToInt32(reader["PositionID"]),
                             PositionName = reader["PositionName"].ToString()
@@ -154,10 +154,10 @@ namespace EmployeeManagement.GUI.Employee
 
         private void LoadManagers()
         {
-            managers = new List<Models.Employee>();
+            managers = new List<Models.Entity.Employee>();
 
             // Thêm tùy chọn "Không có quản lý"
-            managers.Add(new Models.Employee { EmployeeID = 0, FullName = "Không có" });
+            managers.Add(new Models.Entity.Employee { EmployeeID = 0, FullName = "Không có" });
 
             using (SqlConnection connection = new SqlConnection(GetConnectionString()))
             {
@@ -174,7 +174,7 @@ namespace EmployeeManagement.GUI.Employee
                 {
                     while (reader.Read())
                     {
-                        managers.Add(new Models.Employee
+                        managers.Add(new Models.Entity.Employee
                         {
                             EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
                             FullName = reader["FullName"].ToString()

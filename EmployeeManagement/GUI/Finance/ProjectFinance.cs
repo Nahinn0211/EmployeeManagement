@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
 using MaterialSkin.Controls;
 
@@ -15,10 +14,10 @@ namespace EmployeeManagement.GUI.Finance
         #region Fields
         private FinanceBLL financeBLL;
         private ProjectBLL projectBLL;
-        private List<Models.Project> projects;
-        private List<Models.Finance> projectFinances;
-        private List<Models.Finance> filteredFinances;
-        private Models.Project selectedProject;
+        private List<Models.Entity.Project> projects;
+        private List<Models.Entity.Finance> projectFinances;
+        private List<Models.Entity.Finance> filteredFinances;
+        private Models.Entity.Project selectedProject;
         private int currentUserId; // Thêm field này
 
         // Layout controls
@@ -90,7 +89,7 @@ namespace EmployeeManagement.GUI.Finance
             {
                 MessageBox.Show($"Lỗi khi tải danh sách dự án: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                projects = new List<Models.Project>();
+                projects = new List<Models.Entity.Project>();
             }
         }
 
@@ -102,7 +101,7 @@ namespace EmployeeManagement.GUI.Finance
                 if (selectedProject == null) return;
 
                 projectFinances = financeBLL.GetFinancesByProject(projectId);
-                filteredFinances = new List<Models.Finance>(projectFinances);
+                filteredFinances = new List<Models.Entity.Finance>(projectFinances);
 
                 LoadFinancesToGrid();
                 UpdateSummaryCards();
@@ -239,8 +238,8 @@ namespace EmployeeManagement.GUI.Finance
             if (projectComboBox.SelectedIndex <= 0)
             {
                 selectedProject = null;
-                projectFinances = new List<Models.Finance>();
-                filteredFinances = new List<Models.Finance>();
+                projectFinances = new List<Models.Entity.Finance>();
+                filteredFinances = new List<Models.Entity.Finance>();
                 LoadFinancesToGrid();
                 ResetSummaryCards();
                 return;
@@ -458,7 +457,7 @@ namespace EmployeeManagement.GUI.Finance
         #endregion
 
         #region Helper Methods
-        private Models.Finance GetSelectedFinance()
+        private Models.Entity.Finance GetSelectedFinance()
         {
             if (financeDataGridView.SelectedRows.Count > 0)
             {

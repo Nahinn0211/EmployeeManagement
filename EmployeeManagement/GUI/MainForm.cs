@@ -1,9 +1,4 @@
-﻿using System;
-using System.Drawing;
-using System.Windows.Forms;
-using System.Linq;
-using System.Threading.Tasks;
-using EmployeeManagement.GUI.Auth;
+﻿using EmployeeManagement.GUI.Auth;
 using EmployeeManagement.BLL;
 using EmployeeManagement.Utilities;
 using MaterialSkin;
@@ -113,7 +108,7 @@ namespace EmployeeManagement.GUI
 
         private void CreateSidebarMenu()
         {
-            // Header với Material Card
+            // Header với Material Card (giữ nguyên)
             var headerCard = new MaterialCard
             {
                 Height = 120,
@@ -126,6 +121,7 @@ namespace EmployeeManagement.GUI
                 Padding = new Padding(20)
             };
 
+            // Logo và subtitle (giữ nguyên code cũ)
             var logoLabel = new MaterialLabel
             {
                 Text = "EMS",
@@ -162,53 +158,10 @@ namespace EmployeeManagement.GUI
                 Padding = new Padding(10)
             };
 
-            // Menu items với Material Buttons
-            var menuItems = new[]
-           {
-                new { Text = "Bảng điều khiển", Icon = "📊", Key = "Dashboard" },
+            // Tạo menu items với phân quyền
+            CreateMenuItemsWithPermissions(menuContainer);
 
-                // Nhóm Quản lý nhân sự
-                new { Text = "Quản lý Nhân viên", Icon = "👥", Key = "Employee" },
-                new { Text = "Quản lý Phòng ban", Icon = "🏢", Key = "Department" },
-                new { Text = "Quản lý Chức vụ", Icon = "⭐", Key = "Position" },
-        
-                // Nhóm Quản lý dự án
-                new { Text = "Quản lý Dự án", Icon = "📋", Key = "Project" },
-                new { Text = "Quản lý Công việc", Icon = "✅", Key = "Task" },
-                new { Text = "Quản lý Khách hàng", Icon = "🤝", Key = "Customer" },
-        
-                // Nhóm Quản lý tài liệu
-                new { Text = "Quản lý Tài liệu", Icon = "📁", Key = "Document" },
-        
-                // Nhóm Chấm công & Lương
-                new { Text = "Chấm công", Icon = "⏰", Key = "Attendance" },
-                new { Text = "Quản lý Lương", Icon = "💰", Key = "Salary" },
-        
-                // Nhóm Tài chính
-                new { Text = "Quản lý Tài chính", Icon = "💵", Key = "Finance" },
-                new { Text = "Thu chi Dự án", Icon = "📝", Key = "ProjectFinance" },
-        
-                // Nhóm Báo cáo
-                new { Text = "Báo cáo Nhân sự", Icon = "📈", Key = "HRReport" },
-                new { Text = "Báo cáo Dự án", Icon = "📊", Key = "ProjectReport" },
-                new { Text = "Báo cáo Tài chính", Icon = "📉", Key = "FinanceReport" },
-        
-                // Nhóm Quản trị
-                new { Text = "Quản lý Người dùng", Icon = "👤", Key = "UserManagement" },
-                new { Text = "Phân quyền", Icon = "🔒", Key = "Permission" },
-                new { Text = "Cài đặt Hệ thống", Icon = "⚙️", Key = "Settings" }
-            };
-
-            int yPos = 20;
-            foreach (var item in menuItems)
-            {
-                var button = CreateMaterialMenuButton(item.Text, item.Icon, item.Key);
-                button.Location = new Point(10, yPos);
-                menuContainer.Controls.Add(button);
-                yPos += 70;
-            }
-
-            // Footer với user info (sử dụng thông tin từ UserSession)
+            // Footer với user info
             var footerCard = CreateUserInfoFooter();
 
             // Thêm tất cả vào sidebar
@@ -217,11 +170,87 @@ namespace EmployeeManagement.GUI
             sidebarPanel.Controls.Add(footerCard);
         }
 
+
+
+        private void CreateMenuItemsWithPermissions(Panel menuContainer)
+        {
+            // Định nghĩa tất cả menu items
+            var allMenuItems = new[]
+            {
+        new { Text = "Bảng điều khiển", Icon = "📊", Key = "Dashboard", Category = "General" },
+
+        // Nhóm Quản lý nhân sự
+        new { Text = "Quản lý Nhân viên", Icon = "👥", Key = "Employee", Category = "HR" },
+        new { Text = "Quản lý Phòng ban", Icon = "🏢", Key = "Department", Category = "HR" },
+        new { Text = "Quản lý Chức vụ", Icon = "⭐", Key = "Position", Category = "HR" },
+
+        // Nhóm Quản lý dự án
+        new { Text = "Quản lý Dự án", Icon = "📋", Key = "Project", Category = "Project" },
+        new { Text = "Quản lý Công việc", Icon = "✅", Key = "Task", Category = "Project" },
+        new { Text = "Quản lý Khách hàng", Icon = "🤝", Key = "Customer", Category = "Project" },
+
+        // Nhóm Quản lý tài liệu
+        new { Text = "Quản lý Tài liệu", Icon = "📁", Key = "Document", Category = "General" },
+
+        // Nhóm Chấm công & Lương
+        new { Text = "Chấm công", Icon = "⏰", Key = "Attendance", Category = "HR" },
+        new { Text = "Quản lý Lương", Icon = "💰", Key = "Salary", Category = "Finance" },
+
+        // Nhóm Tài chính
+        new { Text = "Quản lý Tài chính", Icon = "💵", Key = "Finance", Category = "Finance" },
+        new { Text = "Thu chi Dự án", Icon = "📝", Key = "ProjectFinance", Category = "Finance" },
+
+        // Nhóm Báo cáo
+        new { Text = "Báo cáo Nhân sự", Icon = "📈", Key = "HRReport", Category = "Report" },
+        new { Text = "Báo cáo Dự án", Icon = "📊", Key = "ProjectReport", Category = "Report" },
+        new { Text = "Báo cáo Tài chính", Icon = "📉", Key = "FinanceReport", Category = "Report" },
+
+        // Nhóm Quản trị
+        new { Text = "Quản lý Người dùng", Icon = "👤", Key = "UserManagement", Category = "Admin" },
+        new { Text = "Phân quyền", Icon = "🔒", Key = "Permission", Category = "Admin" },
+    };
+
+            int yPos = 20;
+            string currentCategory = "";
+
+            foreach (var item in allMenuItems)
+            {
+                // Kiểm tra quyền truy cập
+                if (!UserSession.HasMenuPermission(item.Key))
+                    continue;
+
+                // Thêm header cho category mới
+                if (item.Category != currentCategory && item.Category != "General")
+                {
+                    if (yPos > 20) yPos += 10; // Thêm khoảng cách
+
+                    var categoryLabel = new MaterialLabel
+                    {
+                        Text = GetCategoryTitle(item.Category),
+                        Font = new Font("Roboto", 12, FontStyle.Bold),
+                        FontType = MaterialSkinManager.fontType.Subtitle2,
+                        ForeColor = Color.Gray,
+                        Location = new Point(20, yPos),
+                        Size = new Size(260, 25),
+                        Depth = 0
+                    };
+                    menuContainer.Controls.Add(categoryLabel);
+                    yPos += 35;
+                    currentCategory = item.Category;
+                }
+
+                // Tạo button menu
+                var button = CreateMaterialMenuButton(item.Text, item.Icon, item.Key);
+                button.Location = new Point(10, yPos);
+                menuContainer.Controls.Add(button);
+                yPos += 70;
+            }
+        }
         private MaterialCard CreateUserInfoFooter()
         {
             var footerCard = new MaterialCard
             {
-                Height = 150,
+                Height = 170, 
                 Dock = DockStyle.Bottom,
                 BackColor = Color.White,
                 Depth = 0,
@@ -246,7 +275,19 @@ namespace EmployeeManagement.GUI
                 Location = new Point(70, 20),
                 Size = new Size(200, 25),
                 Depth = 0,
-                Name = "UserNameLabel" // Đặt tên để dễ tìm khi cập nhật
+                Name = "UserNameLabel"
+            };
+
+            var roleLabel = new MaterialLabel
+            {
+                Text = UserSession.IsLoggedIn ? $"Role: {UserSession.UserRole}" : "",
+                Font = new Font("Roboto", 12),
+                FontType = MaterialSkinManager.fontType.Body2,
+                ForeColor = Color.Blue,
+                Location = new Point(70, 45),
+                Size = new Size(200, 20),
+                Depth = 0,
+                Name = "RoleLabel"
             };
 
             var statusLabel = new MaterialLabel
@@ -255,7 +296,7 @@ namespace EmployeeManagement.GUI
                 Font = new Font("Roboto", 12),
                 FontType = MaterialSkinManager.fontType.Body2,
                 ForeColor = UserSession.IsLoggedIn ? Color.Green : Color.Red,
-                Location = new Point(70, 50),
+                Location = new Point(70, 70),
                 Size = new Size(200, 20),
                 Depth = 0,
                 Name = "StatusLabel"
@@ -267,7 +308,7 @@ namespace EmployeeManagement.GUI
                 Font = new Font("Roboto", 10),
                 FontType = MaterialSkinManager.fontType.Caption,
                 ForeColor = Color.Gray,
-                Location = new Point(70, 70),
+                Location = new Point(70, 90),
                 Size = new Size(200, 15),
                 Depth = 0
             };
@@ -276,7 +317,7 @@ namespace EmployeeManagement.GUI
             {
                 Text = "🚪  ĐĂNG XUẤT",
                 Size = new Size(260, 40),
-                Location = new Point(10, 90),
+                Location = new Point(10, 115),
                 Type = MaterialButton.MaterialButtonType.Contained,
                 UseAccentColor = false,
                 BackColor = Color.FromArgb(244, 67, 54),
@@ -287,13 +328,13 @@ namespace EmployeeManagement.GUI
 
             footerCard.Controls.Add(userIcon);
             footerCard.Controls.Add(userLabel);
+            footerCard.Controls.Add(roleLabel);
             footerCard.Controls.Add(statusLabel);
             footerCard.Controls.Add(sessionInfoLabel);
             footerCard.Controls.Add(logoutButton);
 
             return footerCard;
         }
-
         private MaterialButton CreateMaterialMenuButton(string text, string icon, string key)
         {
             var button = new MaterialButton
@@ -335,7 +376,18 @@ namespace EmployeeManagement.GUI
 
             return button;
         }
-
+        private string GetCategoryTitle(string category)
+        {
+            return category switch
+            {
+                "HR" => "── NHÂN SỰ ──",
+                "Project" => "── DỰ ÁN ──",
+                "Finance" => "── TÀI CHÍNH ──",
+                "Report" => "── BÁO CÁO ──",
+                "Admin" => "── QUẢN TRỊ ──",
+                _ => $"── {category.ToUpper()} ──"
+            };
+        }
         private void MenuButton_Click(object sender, EventArgs e)
         {
             var button = sender as MaterialButton;
@@ -369,36 +421,28 @@ namespace EmployeeManagement.GUI
                     // Nhóm Quản lý nhân sự
                     case "Employee":
                         OpenChildForm(new Employee.EmployeeListForm());
-                        ShowUnderDevelopment("Quản lý Nhân viên");
-                        break;
+                         break;
                     case "Department":
                         OpenChildForm(new Department.DepartmentListForm());
-                        ShowUnderDevelopment("Quản lý Phòng ban");
-                        break;
+                         break;
                     case "Position":
                         OpenChildForm(new Position.PositionListForm());
-                        ShowUnderDevelopment("Quản lý Chức vụ");
-                        break;
-
+                         break;
                     // Nhóm Quản lý dự án
                     case "Project":
                         OpenChildForm(new Projects.ProjectListForm());
-                        ShowUnderDevelopment("Quản lý Dự án");
-                        break;
+                         break;
                     case "Task":
                         OpenChildForm(new EmployeeManagement.GUI.Task.TaskListForm());
-                        ShowUnderDevelopment("Quản lý Công việc");
-                        break;
+                         break;
                     case "Customer":
                          OpenChildForm(new Customer.CustomerListForm());
-                        ShowUnderDevelopment("Quản lý Khách hàng");
-                        break;
+                         break;
 
                     // Nhóm Quản lý tài liệu
                     case "Document":
                         OpenChildForm(new Document.DocumentListForm());
-                        ShowUnderDevelopment("Quản lý Tài liệu");
-                        break;
+                         break;
 
                     // Nhóm Chấm công & Lương
                     case "Attendance":
@@ -407,46 +451,34 @@ namespace EmployeeManagement.GUI
                         break;
                     case "Salary":
                          OpenChildForm(new Salary.SalaryListForm());
-                        ShowUnderDevelopment("Quản lý Lương");
-                        break;
+                         break;
 
                     // Nhóm Tài chính
                     case "Finance":
                         OpenChildForm(new Finance.FinanceListForm());
-                        ShowUnderDevelopment("Quản lý Tài chính");
-                        break;
+                         break;
                     case "ProjectFinance":
                          OpenChildForm(new Finance.ProjectFinanceForm());
-                        ShowUnderDevelopment("Thu chi Dự án");
-                        break;
-
+                         break;
                     // Nhóm Báo cáo
                     case "HRReport":
                          OpenChildForm(new Reports.HRReportForm());
-                        ShowUnderDevelopment("Báo cáo Nhân sự");
-                        break;
+                         break;
                     case "ProjectReport":
                         OpenChildForm(new Reports.ProjectReportForm());
-                        ShowUnderDevelopment("Báo cáo Dự án");
-                        break;
+                         break;
                     case "FinanceReport":
                         OpenChildForm(new Reports.FinanceReportForm());
-                        ShowUnderDevelopment("Báo cáo Tài chính");
-                        break;
+                         break;
 
                     // Nhóm Quản trị
                     case "UserManagement":
                         OpenChildForm(new Admin.UserManagementForm());
-                        ShowUnderDevelopment("Quản lý Người dùng");
-                        break;
+                         break;
                     case "Permission":
-                        //OpenChildForm(new Admin.PermissionForm());
-                        ShowUnderDevelopment("Phân quyền");
-                        break;
-                    case "Settings":
-                        //OpenChildForm(new Admin.SettingsForm());
-                        ShowUnderDevelopment("Cài đặt Hệ thống");
-                        break;
+                        OpenChildForm(new Admin.PermissionForm());
+                         break;
+                     
 
                     // Đăng xuất hệ thống
                     case "Logout":
@@ -474,7 +506,6 @@ namespace EmployeeManagement.GUI
         {
             try
             {
-                // Đóng form hiện tại
                 if (currentChildForm != null)
                 {
                     currentChildForm.Close();
@@ -606,7 +637,6 @@ namespace EmployeeManagement.GUI
             Application.Exit();
         }
 
-        // Method để cập nhật thông tin user sau khi đăng nhập
         public void UpdateUserInfo(string username)
         {
             try
@@ -614,6 +644,7 @@ namespace EmployeeManagement.GUI
                 var footerCard = sidebarPanel.Controls.OfType<MaterialCard>().LastOrDefault();
                 if (footerCard != null)
                 {
+                    // Update username
                     var userLabel = footerCard.Controls
                         .OfType<MaterialLabel>()
                         .FirstOrDefault(l => l.Name == "UserNameLabel");
@@ -622,6 +653,16 @@ namespace EmployeeManagement.GUI
                         userLabel.Text = username;
                     }
 
+                    // Update role
+                    var roleLabel = footerCard.Controls
+                        .OfType<MaterialLabel>()
+                        .FirstOrDefault(l => l.Name == "RoleLabel");
+                    if (roleLabel != null)
+                    {
+                        roleLabel.Text = $"Role: {UserSession.UserRole}";
+                    }
+
+                    // Update status
                     var statusLabel = footerCard.Controls
                         .OfType<MaterialLabel>()
                         .FirstOrDefault(l => l.Name == "StatusLabel");
@@ -631,10 +672,33 @@ namespace EmployeeManagement.GUI
                         statusLabel.ForeColor = Color.Green;
                     }
                 }
+
+                // Rebuild menu với quyền mới
+                RebuildMenuWithPermissions();
             }
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi: {ex.Message}", ex);
+            }
+        }
+        private void RebuildMenuWithPermissions()
+        {
+            try
+            {
+                var menuContainer = sidebarPanel.Controls
+                    .OfType<Panel>()
+                    .FirstOrDefault(p => p.Dock == DockStyle.Fill);
+
+                if (menuContainer != null)
+                {
+                    menuContainer.Controls.Clear();
+                    CreateMenuItemsWithPermissions(menuContainer);
+                }
+            }
+            catch (Exception ex)
+            {
+                MaterialSnackBar snackBar = new MaterialSnackBar($"Lỗi rebuild menu: {ex.Message}", "OK", true);
+                snackBar.Show(this);
             }
         }
     }

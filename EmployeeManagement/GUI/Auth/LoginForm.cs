@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using MaterialSkin;
 using MaterialSkin.Controls;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Utilities;
 
 namespace EmployeeManagement.GUI.Auth

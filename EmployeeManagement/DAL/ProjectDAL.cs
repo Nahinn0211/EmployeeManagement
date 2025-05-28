@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
+﻿using System.Data.SqlClient;
 using System.Configuration;
-using EmployeeManagement.Models;
-using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {
@@ -409,9 +405,9 @@ namespace EmployeeManagement.DAL
             return managers;
         }
 
-        public EmployeeManagement.Models.DTO.ProjectStatistics GetProjectStatistics()
+        public ProjectStatistics GetProjectStatistics()
         {
-            EmployeeManagement.Models.DTO.ProjectStatistics stats = new EmployeeManagement.Models.DTO.ProjectStatistics();
+            ProjectStatistics stats = new ProjectStatistics();
 
             try
             {

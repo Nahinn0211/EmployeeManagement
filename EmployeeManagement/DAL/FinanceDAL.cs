@@ -7,6 +7,7 @@ using System.Data.SqlClient;
 using System.Text;
 using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {

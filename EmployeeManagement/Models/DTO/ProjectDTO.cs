@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EmployeeManagement.Models.Entity;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,20 +25,7 @@ namespace EmployeeManagement.Models.DTO
         public string Duration { get; set; } = string.Empty;
     }
 
-    // Class thống kê Project
-    public class ProjectStatistics
-    {
-        public int TotalProjects { get; set; }
-        public int ActiveProjects { get; set; }
-        public int CompletedProjects { get; set; }
-        public int OnHoldProjects { get; set; }
-        public int InitialProjects { get; set; }
-        public int CancelledProjects { get; set; }
-        public decimal TotalBudget { get; set; }
-        public decimal AverageCompletion { get; set; }
-        public decimal AverageBudget { get; set; }
-    }
-
+    
     // Class cho việc tạo mới Project
     public class ProjectCreateModel
     {

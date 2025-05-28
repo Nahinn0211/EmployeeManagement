@@ -17,14 +17,6 @@ namespace EmployeeManagement.Models.DTO
         public int TransactionCount { get; set; }
         public decimal AverageTransaction => TransactionCount > 0 ? (Income + Expense) / TransactionCount : 0;
     }
-    //public class MonthlyFinanceReport
-    //{
-    //    public int Month { get; set; }
-    //    public int Year { get; set; }
-    //    public decimal Income { get; set; }
-    //    public decimal Expense { get; set; }
-    //    public decimal Balance => Income - Expense;
-    //    public string MonthName => new DateTime(Year, Month, 1).ToString("MM/yyyy");
-    //}
+     
 
 }

@@ -4,7 +4,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Text;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity; 
 
 namespace EmployeeManagement.DAL
 {
@@ -30,16 +30,12 @@ namespace EmployeeManagement.DAL
             {
                 using (SqlConnection connection = new SqlConnection(GetConnectionString()))
                 {
+                    // Sửa query: Không có Projects.CustomerID trong schema hiện tại
                     string query = @"
                         SELECT c.CustomerID, c.CustomerCode, c.CompanyName, c.ContactName, 
                                c.ContactTitle, c.Address, c.Phone, c.Email, c.Status, 
-                               c.Notes, c.CreatedAt, c.UpdatedAt,
-                               COUNT(p.ProjectID) as ProjectCount
+                               c.Notes, c.CreatedAt, c.UpdatedAt
                         FROM Customers c
-                        LEFT JOIN Projects p ON c.CustomerID = p.CustomerID
-                        GROUP BY c.CustomerID, c.CustomerCode, c.CompanyName, c.ContactName, 
-                                 c.ContactTitle, c.Address, c.Phone, c.Email, c.Status, 
-                                 c.Notes, c.CreatedAt, c.UpdatedAt
                         ORDER BY c.CompanyName";
 
                     SqlCommand command = new SqlCommand(query, connection);
@@ -290,9 +286,9 @@ namespace EmployeeManagement.DAL
             {
                 using (SqlConnection connection = new SqlConnection(GetConnectionString()))
                 {
+                    // Sửa query để phù hợp với schema thực tế
                     string query = @"
                         SELECT 
-                            (SELECT COUNT(*) FROM Projects WHERE CustomerID = @CustomerID) AS ProjectCount,
                             (SELECT COUNT(*) FROM Documents WHERE CustomerID = @CustomerID) AS DocumentCount,
                             (SELECT COUNT(*) FROM Finance WHERE CustomerID = @CustomerID) AS FinanceCount";
 
@@ -304,16 +300,12 @@ namespace EmployeeManagement.DAL
                     {
                         if (reader.Read())
                         {
-                            int projectCount = Convert.ToInt32(reader["ProjectCount"]);
                             int documentCount = Convert.ToInt32(reader["DocumentCount"]);
                             int financeCount = Convert.ToInt32(reader["FinanceCount"]);
 
-                            if (projectCount > 0 || documentCount > 0 || financeCount > 0)
+                            if (documentCount > 0 || financeCount > 0)
                             {
                                 StringBuilder errorMessage = new StringBuilder("Không thể xóa khách hàng vì còn liên kết với:\n");
-
-                                if (projectCount > 0)
-                                    errorMessage.AppendLine($"- {projectCount} dự án");
 
                                 if (documentCount > 0)
                                     errorMessage.AppendLine($"- {documentCount} tài liệu");
@@ -354,10 +346,8 @@ namespace EmployeeManagement.DAL
                     StringBuilder queryBuilder = new StringBuilder(@"
                         SELECT c.CustomerID, c.CustomerCode, c.CompanyName, c.ContactName, 
                                c.ContactTitle, c.Address, c.Phone, c.Email, c.Status, 
-                               c.Notes, c.CreatedAt, c.UpdatedAt,
-                               COUNT(p.ProjectID) as ProjectCount
+                               c.Notes, c.CreatedAt, c.UpdatedAt
                         FROM Customers c
-                        LEFT JOIN Projects p ON c.CustomerID = p.CustomerID
                         WHERE 1=1");
 
                     List<SqlParameter> parameters = new List<SqlParameter>();
@@ -379,11 +369,7 @@ namespace EmployeeManagement.DAL
                         parameters.Add(new SqlParameter("@Status", status));
                     }
 
-                    queryBuilder.Append(@" 
-                        GROUP BY c.CustomerID, c.CustomerCode, c.CompanyName, c.ContactName, 
-                                 c.ContactTitle, c.Address, c.Phone, c.Email, c.Status, 
-                                 c.Notes, c.CreatedAt, c.UpdatedAt
-                        ORDER BY c.CompanyName");
+                    queryBuilder.Append(" ORDER BY c.CompanyName");
 
                     SqlCommand command = new SqlCommand(queryBuilder.ToString(), connection);
                     command.Parameters.AddRange(parameters.ToArray());

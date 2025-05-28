@@ -7,8 +7,8 @@ using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
 using EmployeeManagement.DAL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Utilities;
 using MaterialSkin.Controls;
 
@@ -18,8 +18,8 @@ namespace EmployeeManagement.GUI.Finance
     {
         #region Fields
         private FinanceBLL financeBLL;
-        private List<Models.Finance> finances;
-        private List<Models.Finance> filteredFinances;
+        private List<Models.Entity.Finance> finances;
+        private List<Models.Entity.Finance> filteredFinances;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo mã giao dịch, mô tả, số tham chiếu...";
 
         // Layout controls
@@ -59,9 +59,9 @@ namespace EmployeeManagement.GUI.Finance
         private Label statisticsLabel;
 
         // Data for dropdowns
-        private List<Models.Project> projects;
-        private List<Models.Customer> customers;
-        private List<Models.Employee> employees;
+        private List<Models.Entity.Project> projects;
+        private List<Models.Entity.Customer> customers;
+        private List<Models.Entity.Employee> employees;
         #endregion
 
         #region Constructor
@@ -90,9 +90,9 @@ namespace EmployeeManagement.GUI.Finance
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 // Initialize empty lists if failed
-                projects = new List<Models.Project>();
-                customers = new List<Models.Customer>();
-                employees = new List<Models.Employee>();
+                projects = new List<Models.Entity.Project>();
+                customers = new List<Models.Entity.Customer>();
+                employees = new List<Models.Entity.Employee>();
             }
         }
 
@@ -101,7 +101,7 @@ namespace EmployeeManagement.GUI.Finance
             try
             {
                 finances = financeBLL.GetAllFinances();
-                filteredFinances = new List<Models.Finance>(finances);
+                filteredFinances = new List<Models.Entity.Finance>(finances);
                 LoadFinancesToGrid();
                 UpdateStatistics();
             }
@@ -111,8 +111,8 @@ namespace EmployeeManagement.GUI.Finance
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 // Initialize empty lists if failed
-                finances = new List<Models.Finance>();
-                filteredFinances = new List<Models.Finance>();
+                finances = new List<Models.Entity.Finance>();
+                filteredFinances = new List<Models.Entity.Finance>();
             }
         }
         #endregion
@@ -198,7 +198,7 @@ namespace EmployeeManagement.GUI.Finance
             employeeComboBox.SelectedIndex = 0;
             fromDatePicker.Checked = false;
             toDatePicker.Checked = false;
-            filteredFinances = new List<Models.Finance>(finances);
+            filteredFinances = new List<Models.Entity.Finance>(finances);
             LoadFinancesToGrid();
         }
 
@@ -270,7 +270,7 @@ namespace EmployeeManagement.GUI.Finance
             return index < employees.Count ? employees[index].EmployeeID : null;
         }
 
-        private Models.Finance GetSelectedFinance()
+        private Models.Entity.Finance GetSelectedFinance()
         {
             if (financeDataGridView.SelectedRows.Count > 0)
             {

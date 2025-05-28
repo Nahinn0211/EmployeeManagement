@@ -2,7 +2,8 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
-using EmployeeManagement.Models;
+using System.Collections.Generic;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {
@@ -32,7 +33,7 @@ namespace EmployeeManagement.DAL
                     using (var command = new SqlCommand(sql, connection))
                     {
                         command.Parameters.AddWithValue("@Username", username);
-                        command.Parameters.AddWithValue("@Password", password); // Trong thực tế nên hash password
+                        command.Parameters.AddWithValue("@Password", password);
 
                         using (var reader = command.ExecuteReader())
                         {
@@ -89,7 +90,42 @@ namespace EmployeeManagement.DAL
             }
         }
 
-        public string GetUserRoles(int userId)
+        public List<string> GetUserRoles(int userId)
+        {
+            var roles = new List<string>();
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    connection.Open();
+
+                    string sql = @"SELECT r.RoleName 
+                                  FROM UserRoles ur 
+                                  INNER JOIN Roles r ON ur.RoleID = r.RoleID 
+                                  WHERE ur.UserID = @UserID";
+
+                    using (var command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@UserID", userId);
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                roles.Add(reader.GetString("RoleName"));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy quyền người dùng: {ex.Message}");
+            }
+
+            return roles.Count > 0 ? roles : new List<string> { "User" };
+        }
+
+        public string GetPrimaryUserRole(int userId)
         {
             try
             {
@@ -100,7 +136,8 @@ namespace EmployeeManagement.DAL
                     string sql = @"SELECT TOP 1 r.RoleName 
                                   FROM UserRoles ur 
                                   INNER JOIN Roles r ON ur.RoleID = r.RoleID 
-                                  WHERE ur.UserID = @UserID";
+                                  WHERE ur.UserID = @UserID
+                                  ORDER BY r.RoleID ASC"; // Admin có RoleID thấp hơn
 
                     using (var command = new SqlCommand(sql, connection))
                     {
@@ -112,7 +149,7 @@ namespace EmployeeManagement.DAL
             }
             catch (Exception ex)
             {
-                throw new Exception($"Lỗi khi lấy quyền người dùng: {ex.Message}");
+                throw new Exception($"Lỗi khi lấy quyền chính của người dùng: {ex.Message}");
             }
         }
     }

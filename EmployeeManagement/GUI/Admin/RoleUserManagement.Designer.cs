@@ -1,9 +1,6 @@
-﻿using System;
-using System.Windows.Forms;
-
-namespace EmployeeManagement.GUI.Task
+﻿namespace EmployeeManagement.GUI.Admin
 {
-    partial class TaskDetail
+    partial class RoleUserManagementForm
     {
         /// <summary>
         /// Required designer variable.
@@ -31,19 +28,23 @@ namespace EmployeeManagement.GUI.Task
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(RoleUserManagementForm));
             this.SuspendLayout();
             // 
-            // TaskDetail
+            // RoleUserManagementForm
             // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(900, 750);
-            this.Name = "TaskDetail";
-            this.Text = "Chi tiết công việc";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.BackColor = System.Drawing.Color.White;
+            this.ClientSize = new System.Drawing.Size(1000, 700);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.BackColor = System.Drawing.Color.White;
+            this.Name = "RoleUserManagementForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.Text = "Quản lý người dùng theo quyền";
             this.ResumeLayout(false);
         }
 

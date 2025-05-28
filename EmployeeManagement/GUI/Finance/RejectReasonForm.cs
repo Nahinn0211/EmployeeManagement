@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Finance
 {
     public partial class RejectReasonForm : Form
     {
         #region Fields
-        private Models.Finance finance;
+        private Models.Entity.Finance finance;
         private TableLayoutPanel mainLayout;
         private Panel headerPanel;
         private Panel contentPanel;
@@ -25,7 +24,7 @@ namespace EmployeeManagement.GUI.Finance
         #endregion
 
         #region Constructor
-        public RejectReasonForm(Models.Finance finance)
+        public RejectReasonForm(Models.Entity.Finance finance)
         {
             this.finance = finance ?? throw new ArgumentNullException(nameof(finance));
             InitializeComponent();
@@ -349,7 +348,7 @@ namespace EmployeeManagement.GUI.Finance
         /// <summary>
         /// Get the finance transaction being rejected
         /// </summary>
-        public Models.Finance GetFinance()
+        public Models.Entity.Finance GetFinance()
         {
             return finance;
         }

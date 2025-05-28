@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EmployeeManagement.DAL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Utilities;
 
 namespace EmployeeManagement.BLL

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
 using EmployeeManagement.DAL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Models.DTO;
 using EmployeeManagement.Utilities;
 

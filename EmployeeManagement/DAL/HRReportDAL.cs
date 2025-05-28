@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
-using EmployeeManagement.Models;
 using EmployeeManagement.Utilities;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {

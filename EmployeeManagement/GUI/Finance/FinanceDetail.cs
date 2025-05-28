@@ -8,8 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
 using MaterialSkin;
 using MaterialSkin.Controls;
 
@@ -19,12 +19,12 @@ namespace EmployeeManagement.GUI.Finance
     {
         #region Fields
         private readonly FinanceBLL financeBLL;
-        private Models.Finance currentFinance;
+        private Models.Entity.Finance currentFinance;
         private int financeId;
         private bool isEditMode;
         private bool isViewOnlyMode;
         private int currentUserId;
-        private Models.Project preSelectedProject; // Thêm field này
+        private Models.Entity.Project preSelectedProject; // Thêm field này
 
         // Controls
         private MaterialTextBox txtTransactionCode;
@@ -61,7 +61,7 @@ namespace EmployeeManagement.GUI.Finance
         }
 
         // Constructor 2: Thêm mới với dự án được chọn trước
-        public FinanceDetailForm(int userId, Models.Project preSelectedProject)
+        public FinanceDetailForm(int userId, Models.Entity.Project preSelectedProject)
         {
             InitializeComponent();
             financeBLL = new FinanceBLL();
@@ -96,7 +96,7 @@ namespace EmployeeManagement.GUI.Finance
         }
 
         // Constructor 4: Cho ProjectFinanceForm - chỉ xem giao dịch
-        public FinanceDetailForm(Models.Finance finance, bool viewOnly)
+        public FinanceDetailForm(Models.Entity.Finance finance, bool viewOnly)
         {
             InitializeComponent();
             currentFinance = finance;
@@ -116,7 +116,7 @@ namespace EmployeeManagement.GUI.Finance
         }
 
         // Constructor 5: Cho ProjectFinanceForm - chỉnh sửa giao dịch
-        public FinanceDetailForm(Models.Finance finance)
+        public FinanceDetailForm(Models.Entity.Finance finance)
         {
             InitializeComponent();
             currentFinance = finance;
@@ -151,7 +151,7 @@ namespace EmployeeManagement.GUI.Finance
         }
 
         // Public method để set project từ bên ngoài
-        public void SetPreSelectedProject(Models.Project project)
+        public void SetPreSelectedProject(Models.Entity.Project project)
         {
             preSelectedProject = project;
             if (cmbProject != null && cmbProject.Items.Count > 0)
@@ -745,9 +745,9 @@ namespace EmployeeManagement.GUI.Finance
             return true;
         }
 
-        private Models.Finance CreateFinanceFromForm()
+        private Models.Entity.Finance CreateFinanceFromForm()
         {
-            var finance = new Models.Finance
+            var finance = new Models.Entity.Finance
             {
                 TransactionCode = txtTransactionCode.Text.Trim(),
                 TransactionType = cmbTransactionType.Text,

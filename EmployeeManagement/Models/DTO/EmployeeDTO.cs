@@ -1,4 +1,5 @@
 ﻿using EmployeeManagement.DAL;
+using EmployeeManagement.Models.Entity;
 using System;
 using System.Collections.Generic;
 

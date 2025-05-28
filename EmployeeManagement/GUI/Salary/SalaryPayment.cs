@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
 
 namespace EmployeeManagement.GUI.Salary
@@ -13,7 +12,7 @@ namespace EmployeeManagement.GUI.Salary
     {
         #region Fields
         private SalaryBLL salaryBLL;
-        private List<Models.Salary> selectedSalaries;
+        private List<Models.Entity.Salary> selectedSalaries;
 
         // Layout controls
         private TableLayoutPanel mainTableLayout;
@@ -39,7 +38,7 @@ namespace EmployeeManagement.GUI.Salary
         #endregion
 
         #region Constructor
-        public SalaryPaymentForm(List<Models.Salary> salaries)
+        public SalaryPaymentForm(List<Models.Entity.Salary> salaries)
         {
             InitializeComponent();
             salaryBLL = new SalaryBLL();

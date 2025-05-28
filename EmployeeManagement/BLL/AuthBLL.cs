@@ -1,6 +1,5 @@
-﻿using System;
-using EmployeeManagement.DAL;
-using EmployeeManagement.Models;
+﻿using EmployeeManagement.DAL;
+using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Utilities;
 
 namespace EmployeeManagement.BLL
@@ -39,7 +38,6 @@ namespace EmployeeManagement.BLL
 
                 // Get user from database
                 var user = authDAL.GetUserByCredentials(request.Username.Trim(), request.Password);
-
                 if (user == null)
                 {
                     return new LoginResponse
@@ -61,13 +59,13 @@ namespace EmployeeManagement.BLL
                 // Update last login time
                 authDAL.UpdateLastLogin(user.UserID);
 
-                // Get user role
-                var userRole = authDAL.GetUserRoles(user.UserID);
+                // Get user roles
+                var userRoles = authDAL.GetUserRoles(user.UserID);
+                var primaryRole = authDAL.GetPrimaryUserRole(user.UserID);
 
-                // Set session
-                UserSession.Login(user.UserID, user.Username);
+                // Set session với role information
+                UserSession.Login(user.UserID, user.Username, primaryRole, userRoles);
 
-              
                 return new LoginResponse
                 {
                     Success = true,
@@ -77,7 +75,7 @@ namespace EmployeeManagement.BLL
             }
             catch (Exception ex)
             {
-                 return new LoginResponse
+                return new LoginResponse
                 {
                     Success = false,
                     Message = "Có lỗi xảy ra trong quá trình đăng nhập. Vui lòng thử lại"
@@ -91,7 +89,7 @@ namespace EmployeeManagement.BLL
             {
                 if (UserSession.IsLoggedIn)
                 {
-                     UserSession.Logout();
+                    UserSession.Logout();
                 }
             }
             catch (Exception ex)

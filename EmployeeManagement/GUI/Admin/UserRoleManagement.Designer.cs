@@ -1,9 +1,6 @@
-﻿using System;
-using System.Windows.Forms;
-
-namespace EmployeeManagement.GUI.Task
+﻿namespace EmployeeManagement.GUI.Admin
 {
-    partial class TaskCreate
+    partial class UserRoleManagementForm
     {
         /// <summary>
         /// Required designer variable.
@@ -33,17 +30,13 @@ namespace EmployeeManagement.GUI.Task
         {
             this.SuspendLayout();
             // 
-            // TaskCreate
+            // UserRoleManagementForm
             // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(900, 700);
-            this.Name = "TaskCreate";
-            this.Text = "Tạo công việc mới";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.BackColor = System.Drawing.Color.White;
+            this.ClientSize = new System.Drawing.Size(600, 500);
+            this.Name = "UserRoleManagementForm";
+            this.Text = "Quản lý Quyền Người dùng";
             this.ResumeLayout(false);
         }
 

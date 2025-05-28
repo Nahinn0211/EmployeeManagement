@@ -9,15 +9,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Configuration;
-using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Employee
 {
     public partial class EmployeeListForm : Form
     {
         #region Fields
-        private List<Models.Employee> employees;
-        private List<Models.Employee> filteredEmployees;
+        private List<Models.Entity.Employee> employees;
+        private List<Models.Entity.Employee> filteredEmployees;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên nhân viên, mã nhân viên...";
         #endregion
 
@@ -40,7 +39,7 @@ namespace EmployeeManagement.GUI.Employee
         {
             try
             {
-                employees = new List<Models.Employee>();
+                employees = new List<Models.Entity.Employee>();
                 using (SqlConnection connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
@@ -62,7 +61,7 @@ namespace EmployeeManagement.GUI.Employee
                     {
                         while (reader.Read())
                         {
-                            Models.Employee employee = new Models.Employee
+                            Models.Entity.Employee employee = new Models.Entity.Employee
                             {
                                 EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
                                 EmployeeCode = reader["EmployeeCode"].ToString(),
@@ -109,10 +108,10 @@ namespace EmployeeManagement.GUI.Employee
 
                             // Thêm thông tin phòng ban và chức vụ
                             if (reader["DepartmentName"] != DBNull.Value)
-                                employee.Department = new Models.Department { DepartmentName = reader["DepartmentName"].ToString() };
+                                employee.Department = new Models.Entity.Department { DepartmentName = reader["DepartmentName"].ToString() };
 
                             if (reader["PositionName"] != DBNull.Value)
-                                employee.Position = new Models.Position { PositionName = reader["PositionName"].ToString() };
+                                employee.Position = new Models.Entity.Position { PositionName = reader["PositionName"].ToString() };
 
                             employees.Add(employee);
                         }
@@ -120,7 +119,7 @@ namespace EmployeeManagement.GUI.Employee
                 }
 
                 // Thiết lập danh sách lọc ban đầu
-                filteredEmployees = new List<Models.Employee>(employees);
+                filteredEmployees = new List<Models.Entity.Employee>(employees);
 
                 // Tải dữ liệu lên DataGridView
                 LoadEmployeesToGrid();
@@ -135,7 +134,7 @@ namespace EmployeeManagement.GUI.Employee
             }
         }
 
-        private void AddEmployeeToDatabase(Models.Employee employee)
+        private void AddEmployeeToDatabase(Models.Entity.Employee employee)
         {
             try
             {
@@ -185,7 +184,7 @@ namespace EmployeeManagement.GUI.Employee
             }
         }
 
-        private void UpdateEmployeeInDatabase(Models.Employee employee)
+        private void UpdateEmployeeInDatabase(Models.Entity.Employee employee)
         {
             try
             {
@@ -308,9 +307,9 @@ namespace EmployeeManagement.GUI.Employee
             }
         }
 
-        private List<Models.Department> LoadDepartments()
+        private List<Models.Entity.Department> LoadDepartments()
         {
-            List<Models.Department> departments = new List<Models.Department>();
+            List<Models.Entity.Department> departments = new List<Models.Entity.Department>();
 
             try
             {
@@ -324,7 +323,7 @@ namespace EmployeeManagement.GUI.Employee
                     {
                         while (reader.Read())
                         {
-                            departments.Add(new Models.Department
+                            departments.Add(new Models.Entity.Department
                             {
                                 DepartmentID = Convert.ToInt32(reader["DepartmentID"]),
                                 DepartmentName = reader["DepartmentName"].ToString()
@@ -408,7 +407,7 @@ namespace EmployeeManagement.GUI.Employee
             searchTextBox.ForeColor = Color.Gray;
             statusComboBox.SelectedIndex = 0;
             departmentComboBox.SelectedIndex = 0;
-            filteredEmployees = new List<Models.Employee>(employees);
+            filteredEmployees = new List<Models.Entity.Employee>(employees);
             LoadEmployeesToGrid();
         }
 
@@ -477,7 +476,7 @@ namespace EmployeeManagement.GUI.Employee
             };
         }
 
-        private Models.Employee GetSelectedEmployee()
+        private Models.Entity.Employee GetSelectedEmployee()
         {
             if (employeeDataGridView.SelectedRows.Count > 0)
             {

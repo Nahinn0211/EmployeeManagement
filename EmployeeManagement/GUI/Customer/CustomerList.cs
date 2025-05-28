@@ -4,9 +4,8 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models; // Sửa namespace
 using EmployeeManagement.Models.DTO;
-using MaterialSkin.Controls;
 
 namespace EmployeeManagement.GUI.Customer
 {
@@ -14,8 +13,8 @@ namespace EmployeeManagement.GUI.Customer
     {
         #region Fields
         private CustomerBLL customerBLL;
-        private List<Models.Customer> customers;
-        private List<Models.Customer> filteredCustomers;
+        private List<Models.Entity.Customer> customers; // Sửa namespace
+        private List<Models.Entity.Customer> filteredCustomers; // Sửa namespace
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên công ty, mã khách hàng, người liên hệ...";
 
         // Layout controls
@@ -62,7 +61,7 @@ namespace EmployeeManagement.GUI.Customer
             try
             {
                 customers = customerBLL.GetAllCustomers();
-                filteredCustomers = new List<Models.Customer>(customers);
+                filteredCustomers = new List<Models.Entity.Customer>(customers); // Sửa namespace
                 LoadCustomersToGrid();
                 UpdateStatistics();
             }
@@ -112,11 +111,11 @@ namespace EmployeeManagement.GUI.Customer
 
                 filteredCustomers = customers.Where(c =>
                     (string.IsNullOrEmpty(searchText) ||
-                     c.CompanyName.ToLower().Contains(searchText) ||
-                     c.CustomerCode.ToLower().Contains(searchText) ||
-                     c.ContactName.ToLower().Contains(searchText) ||
-                     c.Email.ToLower().Contains(searchText) ||
-                     c.Phone.ToLower().Contains(searchText)) &&
+                     (c.CompanyName?.ToLower().Contains(searchText) ?? false) ||
+                     (c.CustomerCode?.ToLower().Contains(searchText) ?? false) ||
+                     (c.ContactName?.ToLower().Contains(searchText) ?? false) ||
+                     (c.Email?.ToLower().Contains(searchText) ?? false) ||
+                     (c.Phone?.ToLower().Contains(searchText) ?? false)) &&
                     (string.IsNullOrEmpty(statusFilter) || c.Status == statusFilter)
                 ).ToList();
 
@@ -134,16 +133,23 @@ namespace EmployeeManagement.GUI.Customer
             searchTextBox.Text = searchPlaceholder;
             searchTextBox.ForeColor = Color.Gray;
             statusComboBox.SelectedIndex = 0;
-            filteredCustomers = new List<Models.Customer>(customers);
+            filteredCustomers = new List<Models.Entity.Customer>(customers); // Sửa namespace
             LoadCustomersToGrid();
         }
 
         private void UpdateStatistics()
         {
-            var stats = customerBLL.GetCustomerStatistics();
-            var filtered = filteredCustomers.Count;
+            try
+            {
+                var stats = customerBLL.GetCustomerStatistics();
+                var filtered = filteredCustomers.Count;
 
-            statisticsLabel.Text = $"📊 Hiển thị: {filtered} | Tổng: {stats.Total} | 🤝 Đang hợp tác: {stats.Active} | ⏸️ Tạm dừng: {stats.Paused} | 🚫 Ngừng hợp tác: {stats.Inactive}";
+                statisticsLabel.Text = $"📊 Hiển thị: {filtered} | Tổng: {stats.Total} | 🤝 Đang hợp tác: {stats.Active} | ⏸️ Tạm dừng: {stats.Paused} | 🚫 Ngừng hợp tác: {stats.Inactive}";
+            }
+            catch (Exception ex)
+            {
+                statisticsLabel.Text = "📊 Lỗi khi tải thống kê";
+            }
         }
         #endregion
 
@@ -159,7 +165,7 @@ namespace EmployeeManagement.GUI.Customer
             };
         }
 
-        private Models.Customer GetSelectedCustomer()
+        private Models.Entity.Customer GetSelectedCustomer() // Sửa namespace
         {
             if (customerDataGridView.SelectedRows.Count > 0)
             {
@@ -170,6 +176,81 @@ namespace EmployeeManagement.GUI.Customer
                 }
             }
             return null;
+        }
+        // Cập nhật các method trong CustomerListForm.cs
+
+        private void AddCustomer()
+        {
+            try
+            {
+                using (var form = new CustomerDetailForm())
+                {
+                    if (form.ShowDialog() == DialogResult.OK)
+                    {
+                        LoadCustomersFromDatabase();
+                        MessageBox.Show("Thêm khách hàng thành công!", "Thành công",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi thêm khách hàng: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void EditCustomer()
+        {
+            var customer = GetSelectedCustomer();
+            if (customer == null)
+            {
+                MessageBox.Show("Vui lòng chọn một khách hàng để chỉnh sửa!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (var form = new CustomerDetailForm(customer))
+                {
+                    if (form.ShowDialog() == DialogResult.OK)
+                    {
+                        LoadCustomersFromDatabase();
+                        MessageBox.Show("Cập nhật khách hàng thành công!", "Thành công",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi chỉnh sửa khách hàng: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ViewCustomer()
+        {
+            var customer = GetSelectedCustomer();
+            if (customer == null)
+            {
+                MessageBox.Show("Vui lòng chọn một khách hàng để xem!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (var form = new CustomerDetailForm(customer, true))
+                {
+                    form.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xem chi tiết khách hàng: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         #endregion
 
@@ -194,74 +275,18 @@ namespace EmployeeManagement.GUI.Customer
             }
         }
 
-        private void AddCustomer()
-        {
-            try
-            {
-                using (var form = new CustomerDetailForm())
-                {
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        LoadCustomersFromDatabase();
-                        MaterialSnackBar snackBar = new MaterialSnackBar("Thêm khách hàng thành công!", "OK", true);
-                        snackBar.Show(this);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi thêm khách hàng: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void EditCustomer()
-        {
-            var customer = GetSelectedCustomer();
-            if (customer == null) return;
-
-            try
-            {
-                using (var form = new CustomerDetailForm(customer))
-                {
-                    if (form.ShowDialog() == DialogResult.OK)
-                    {
-                        LoadCustomersFromDatabase();
-                        MaterialSnackBar snackBar = new MaterialSnackBar("Cập nhật khách hàng thành công!", "OK", true);
-                        snackBar.Show(this);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi chỉnh sửa khách hàng: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void ViewCustomer()
-        {
-            var customer = GetSelectedCustomer();
-            if (customer == null) return;
-
-            try
-            {
-                using (var form = new CustomerDetailForm(customer, true))
-                {
-                    form.ShowDialog();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi xem chi tiết khách hàng: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
+     
+      
+    
         private void DeleteCustomer()
         {
             var customer = GetSelectedCustomer();
-            if (customer == null) return;
+            if (customer == null)
+            {
+                MessageBox.Show("Vui lòng chọn một khách hàng để xóa!", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             try
             {
@@ -285,8 +310,8 @@ namespace EmployeeManagement.GUI.Customer
                     if (customerBLL.DeleteCustomer(customer.CustomerID))
                     {
                         LoadCustomersFromDatabase();
-                        MaterialSnackBar snackBar = new MaterialSnackBar("Xóa khách hàng thành công!", "OK", true);
-                        snackBar.Show(this);
+                        MessageBox.Show("Xóa khách hàng thành công!", "Thành công",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
             }
@@ -301,9 +326,8 @@ namespace EmployeeManagement.GUI.Customer
         {
             try
             {
-                // Implementation for export functionality
-                MaterialSnackBar snackBar = new MaterialSnackBar("Chức năng xuất dữ liệu đang được phát triển", "OK", true);
-                snackBar.Show(this);
+                MessageBox.Show("Chức năng xuất dữ liệu đang được phát triển", "Thông báo",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {

@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Models.DTO;
 
 namespace EmployeeManagement.GUI.Salary
@@ -893,7 +893,7 @@ namespace EmployeeManagement.GUI.Salary
                             continue;
                         }
 
-                        var salary = new Models.Salary
+                        var salary = new Models.Entity.Salary
                         {
                             EmployeeID = employee.EmployeeID,
                             Month = month,

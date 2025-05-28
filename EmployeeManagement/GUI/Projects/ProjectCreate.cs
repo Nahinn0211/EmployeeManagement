@@ -7,17 +7,17 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.GUI.Projects
 {
     public partial class ProjectCreate : Form
     {
         #region Fields
-        private Models.Project project;
+        private Models.Entity.Project project;
         private ProjectBLL projectBLL;
         private ErrorProvider errorProvider;
-        private List<Models.Employee> managers;
+        private List<Models.Entity.Employee> managers;
 
         // UI Controls
         private TableLayoutPanel mainTableLayout;
@@ -59,7 +59,7 @@ namespace EmployeeManagement.GUI.Projects
             InitializeComponent();
 
             projectBLL = new ProjectBLL();
-            project = new Models.Project();
+            project = new Models.Entity.Project();
 
             errorProvider = new ErrorProvider();
             errorProvider.ContainerControl = this;
@@ -69,7 +69,7 @@ namespace EmployeeManagement.GUI.Projects
             SetDefaultValues();
         }
 
-        public Models.Project CreatedProject => project;
+        public Models.Entity.Project CreatedProject => project;
         #endregion
 
         #region Data Methods

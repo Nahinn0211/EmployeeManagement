@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     /// <summary>
     /// Model báo cáo chi tiết nhân viên
@@ -29,7 +29,7 @@ namespace EmployeeManagement.Models
         // Tính toán
         public int WorkingYears => WorkingDays / 365;
         public string WorkingDuration => WorkingDays >= 365 ?
-            $"{WorkingYears} năm {(WorkingDays % 365) / 30} tháng" :
+            $"{WorkingYears} năm {WorkingDays % 365 / 30} tháng" :
             $"{WorkingDays / 30} tháng";
         public string StatusColor => Status switch
         {

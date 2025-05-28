@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     /// <summary>
     /// Model hiển thị báo cáo chi tiết dự án
@@ -60,8 +60,11 @@ namespace EmployeeManagement.Models
         public int TotalTasks { get; set; }
         public int CompletedTasks { get; set; }
         public int TotalEmployees { get; set; }
+                public int OnHoldProjects { get; set; }
+        public int InitialProjects { get; set; }
+        public decimal AverageBudget { get; set; }
 
-        // Tính toán các chỉ số
+        // Calculated properties
         public decimal ProjectCompletionRate => TotalProjects > 0 ? (decimal)CompletedProjects / TotalProjects * 100 : 0;
         public decimal TaskCompletionRate => TotalTasks > 0 ? (decimal)CompletedTasks / TotalTasks * 100 : 0;
         public decimal BudgetVariance => TotalBudget > 0 ? (TotalActualCost - TotalBudget) / TotalBudget * 100 : 0;

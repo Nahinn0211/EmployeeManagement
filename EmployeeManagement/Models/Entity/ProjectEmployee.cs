@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     public class ProjectEmployee
     {

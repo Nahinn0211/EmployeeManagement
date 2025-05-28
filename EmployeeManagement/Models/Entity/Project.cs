@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
      public class Project
     {

@@ -198,8 +198,15 @@ namespace EmployeeManagement.Models.DTO
         public decimal BudgetUtilization => Budget > 0 ? ActualCost / Budget * 100 : 0;
         public string ProjectDuration => StartDate.HasValue && EndDate.HasValue ?
             $"{(EndDate.Value - StartDate.Value).Days} ngày" : "Chưa xác định";
+        public string StatusColor => Status switch
+        {
+            "Hoàn thành" => "#4CAF50",
+            "Đang thực hiện" => "#2196F3",
+            "Tạm dừng" => "#FF9800",
+            "Hủy bỏ" => "#F44336",
+            _ => "#757575"
+        };
     }
-
     /// <summary>
     /// DTO cho export data
     /// </summary>

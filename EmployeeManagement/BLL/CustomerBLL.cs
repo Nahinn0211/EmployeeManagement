@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using EmployeeManagement.DAL;
-using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity; 
 
 namespace EmployeeManagement.BLL
 {

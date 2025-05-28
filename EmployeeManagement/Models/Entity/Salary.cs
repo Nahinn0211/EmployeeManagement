@@ -1,7 +1,7 @@
 ﻿using System;
 using EmployeeManagement.Models.DTO;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     public class Salary
     {

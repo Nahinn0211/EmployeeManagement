@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     public class User
     {
         public int UserID { get; set; }
         public string Username { get; set; }
-        public string Password { get; set; } // Trong thực tế, nên lưu mật khẩu đã được hash
+        public string Password { get; set; } 
+        // Trong thực tế, nên lưu mật khẩu đã được hash
         public string Email { get; set; }
         public string FullName { get; set; }
         public int? EmployeeID { get; set; }

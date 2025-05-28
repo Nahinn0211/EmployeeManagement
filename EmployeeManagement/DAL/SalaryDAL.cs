@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
 using System.Configuration;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {

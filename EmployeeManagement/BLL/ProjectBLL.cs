@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
 using EmployeeManagement.DAL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.BLL
 {
@@ -72,7 +72,7 @@ namespace EmployeeManagement.BLL
             return projectDAL.GetAvailableManagers();
         }
 
-         public EmployeeManagement.Models.DTO.ProjectStatistics GetProjectStatistics()
+         public ProjectStatistics GetProjectStatistics()
         {
             return projectDAL.GetProjectStatistics();
         }

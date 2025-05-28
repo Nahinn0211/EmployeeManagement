@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EmployeeManagement.Models
+namespace EmployeeManagement.Models.Entity
 {
     public class WorkTask // Đổi tên từ Task thành WorkTask
     {

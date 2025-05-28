@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Projects
 {
@@ -15,8 +14,8 @@ namespace EmployeeManagement.GUI.Projects
     {
         #region Fields
         private ProjectBLL projectBLL;
-        private List<Models.Project> projects;
-        private List<Models.Project> filteredProjects;
+        private List<Models.Entity.Project> projects;
+        private List<Models.Entity.Project> filteredProjects;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên dự án, mã dự án...";
 
         // UI Controls
@@ -55,7 +54,7 @@ namespace EmployeeManagement.GUI.Projects
             try
             {
                 projects = projectBLL.GetAllProjects();
-                filteredProjects = new List<Models.Project>(projects);
+                filteredProjects = new List<Models.Entity.Project>(projects);
                 LoadProjectsToGrid();
                 LoadManagersToComboBox();
                 UpdateStatistics();
@@ -150,7 +149,7 @@ namespace EmployeeManagement.GUI.Projects
             searchTextBox.ForeColor = Color.Gray;
             statusComboBox.SelectedIndex = 0;
             managerComboBox.SelectedIndex = 0;
-            filteredProjects = new List<Models.Project>(projects);
+            filteredProjects = new List<Models.Entity.Project>(projects);
             LoadProjectsToGrid();
         }
 
@@ -206,7 +205,7 @@ namespace EmployeeManagement.GUI.Projects
                 return $"{budget:N0}";
         }
 
-        private Models.Project GetSelectedProject()
+        private Models.Entity.Project GetSelectedProject()
         {
             if (projectDataGridView.SelectedRows.Count > 0)
             {

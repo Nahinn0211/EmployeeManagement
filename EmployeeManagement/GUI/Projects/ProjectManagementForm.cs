@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Projects
 {
@@ -21,10 +20,10 @@ namespace EmployeeManagement.GUI.Projects
     public partial class ProjectManagementForm : Form
     {
         #region Fields
-        private Models.Project project;
+        private Models.Entity.Project project;
         private ProjectBLL projectBLL;
         private ErrorProvider errorProvider;
-        private List<Models.Employee> managers;
+        private List<Models.Entity.Employee> managers;
         private FormMode currentMode;
         private int? projectId;
 
@@ -90,8 +89,8 @@ namespace EmployeeManagement.GUI.Projects
             InitializeForm(mode, projectId);
         }
 
-        public Models.Project CreatedProject => project;
-        public Models.Project UpdatedProject => project;
+        public Models.Entity.Project CreatedProject => project;
+        public Models.Entity.Project UpdatedProject => project;
         #endregion
 
         #region Initialization
@@ -101,13 +100,13 @@ namespace EmployeeManagement.GUI.Projects
             this.projectId = projectId;
 
             projectBLL = new ProjectBLL();
-            project = new Models.Project();
+            project = new Models.Entity.Project();
 
             errorProvider = new ErrorProvider();
             errorProvider.ContainerControl = this;
 
             // Initialize managers list first
-            managers = new List<Models.Employee>();
+            managers = new List<Models.Entity.Employee>();
 
             SetupForm();
             LoadDataFromDatabase();
@@ -224,7 +223,7 @@ namespace EmployeeManagement.GUI.Projects
 
                 // Initialize empty managers list if error occurs
                 if (managers == null)
-                    managers = new List<Models.Employee>();
+                    managers = new List<Models.Entity.Employee>();
 
                 PopulateManagerComboBox();
             }

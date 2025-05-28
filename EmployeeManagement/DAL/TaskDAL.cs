@@ -4,80 +4,105 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
 using EmployeeManagement.Models;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {
     public class TaskDAL
     {
-        private string GetConnectionString()
+        private static string GetConnectionString()
         {
-            return ConfigurationManager.ConnectionStrings["EmployeeManagement"].ConnectionString;
+            try
+            {
+                return ConfigurationManager.ConnectionStrings["EmployeeManagement"].ConnectionString;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy connection string: {ex.Message}", ex);
+            }
         }
 
         public List<WorkTask> GetAllTasks()
         {
-            List<WorkTask> tasks = new List<WorkTask>();
+            var tasks = new List<WorkTask>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
                         SELECT t.TaskID, t.TaskCode, t.TaskName, t.Description, 
                                t.ProjectID, t.AssignedToID, t.StartDate, t.DueDate, 
                                t.CompletedDate, t.Status, t.Priority, t.CompletionPercentage, 
                                t.Notes, t.CreatedAt, t.UpdatedAt,
-                               p.ProjectName, e.FullName as AssignedToName
+                               p.ProjectName, p.ProjectCode, 
+                               e.FullName as AssignedToName, e.EmployeeCode
                         FROM Tasks t
                         LEFT JOIN Projects p ON t.ProjectID = p.ProjectID
                         LEFT JOIN Employees e ON t.AssignedToID = e.EmployeeID
                         ORDER BY t.CreatedAt DESC";
 
-                    SqlCommand command = new SqlCommand(query, connection);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        while (reader.Read())
+                        connection.Open();
+
+                        using (var reader = command.ExecuteReader())
                         {
-                            WorkTask task = new WorkTask
+                            while (reader.Read())
                             {
-                                TaskID = Convert.ToInt32(reader["TaskID"]),
-                                TaskCode = reader["TaskCode"].ToString(),
-                                TaskName = reader["TaskName"].ToString(),
-                                Description = reader["Description"].ToString(),
-                                ProjectID = Convert.ToInt32(reader["ProjectID"]),
-                                Status = reader["Status"].ToString(),
-                                Priority = reader["Priority"].ToString(),
-                                CompletionPercentage = Convert.ToDecimal(reader["CompletionPercentage"]),
-                                CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                                UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"])
-                            };
+                                var task = new WorkTask
+                                {
+                                    TaskID = Convert.ToInt32(reader["TaskID"]),
+                                    TaskCode = reader["TaskCode"]?.ToString() ?? "",
+                                    TaskName = reader["TaskName"]?.ToString() ?? "",
+                                    Description = reader["Description"]?.ToString() ?? "",
+                                    ProjectID = Convert.ToInt32(reader["ProjectID"]),
+                                    Status = reader["Status"]?.ToString() ?? "Chưa bắt đầu",
+                                    Priority = reader["Priority"]?.ToString() ?? "Trung bình",
+                                    CompletionPercentage = reader["CompletionPercentage"] != DBNull.Value ?
+                                        Convert.ToDecimal(reader["CompletionPercentage"]) : 0,
+                                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                                    UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"]),
+                                    Notes = reader["Notes"]?.ToString() ?? ""
+                                };
 
-                            // Xử lý các trường nullable
-                            if (reader["AssignedToID"] != DBNull.Value)
-                                task.AssignedToID = Convert.ToInt32(reader["AssignedToID"]);
+                                // Handle nullable fields
+                                if (reader["AssignedToID"] != DBNull.Value)
+                                    task.AssignedToID = Convert.ToInt32(reader["AssignedToID"]);
 
-                            if (reader["StartDate"] != DBNull.Value)
-                                task.StartDate = Convert.ToDateTime(reader["StartDate"]);
+                                if (reader["StartDate"] != DBNull.Value)
+                                    task.StartDate = Convert.ToDateTime(reader["StartDate"]);
 
-                            if (reader["DueDate"] != DBNull.Value)
-                                task.DueDate = Convert.ToDateTime(reader["DueDate"]);
+                                if (reader["DueDate"] != DBNull.Value)
+                                    task.DueDate = Convert.ToDateTime(reader["DueDate"]);
 
-                            if (reader["CompletedDate"] != DBNull.Value)
-                                task.CompletedDate = Convert.ToDateTime(reader["CompletedDate"]);
+                                if (reader["CompletedDate"] != DBNull.Value)
+                                    task.CompletedDate = Convert.ToDateTime(reader["CompletedDate"]);
 
-                            if (reader["Notes"] != DBNull.Value)
-                                task.Notes = reader["Notes"].ToString();
+                                // Navigation properties - Project
+                                if (reader["ProjectName"] != DBNull.Value)
+                                {
+                                    task.Project = new Project
+                                    {
+                                        ProjectID = task.ProjectID,
+                                        ProjectName = reader["ProjectName"].ToString() ?? "",
+                                        ProjectCode = reader["ProjectCode"]?.ToString() ?? ""
+                                    };
+                                }
 
-                            // Thông tin liên kết
-                            if (reader["ProjectName"] != DBNull.Value)
-                                task.Project = new Project { ProjectName = reader["ProjectName"].ToString() };
+                                // Navigation properties - Employee
+                                if (reader["AssignedToName"] != DBNull.Value && task.AssignedToID.HasValue)
+                                {
+                                    task.AssignedTo = new Employee
+                                    {
+                                        EmployeeID = task.AssignedToID.Value,
+                                        FullName = reader["AssignedToName"].ToString() ?? "",
+                                        EmployeeCode = reader["EmployeeCode"]?.ToString() ?? ""
+                                    };
+                                }
 
-                            if (reader["AssignedToName"] != DBNull.Value)
-                                task.AssignedTo = new Employee { FullName = reader["AssignedToName"].ToString() };
-
-                            tasks.Add(task);
+                                tasks.Add(task);
+                            }
                         }
                     }
                 }
@@ -90,110 +115,129 @@ namespace EmployeeManagement.DAL
             return tasks;
         }
 
-        public WorkTask GetTaskById(int taskId)
+        public WorkTask? GetTaskById(int taskId)
         {
-            WorkTask task = null;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
                         SELECT t.TaskID, t.TaskCode, t.TaskName, t.Description, 
                                t.ProjectID, t.AssignedToID, t.StartDate, t.DueDate, 
                                t.CompletedDate, t.Status, t.Priority, t.CompletionPercentage, 
                                t.Notes, t.CreatedAt, t.UpdatedAt,
-                               p.ProjectName, e.FullName as AssignedToName
+                               p.ProjectName, p.ProjectCode,
+                               e.FullName as AssignedToName, e.EmployeeCode
                         FROM Tasks t
                         LEFT JOIN Projects p ON t.ProjectID = p.ProjectID
                         LEFT JOIN Employees e ON t.AssignedToID = e.EmployeeID
                         WHERE t.TaskID = @TaskID";
 
-                    SqlCommand command = new SqlCommand(query, connection);
-                    command.Parameters.AddWithValue("@TaskID", taskId);
-
-                    connection.Open();
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        if (reader.Read())
+                        command.Parameters.AddWithValue("@TaskID", taskId);
+
+                        connection.Open();
+                        using (var reader = command.ExecuteReader())
                         {
-                            task = new WorkTask
+                            if (reader.Read())
                             {
-                                TaskID = Convert.ToInt32(reader["TaskID"]),
-                                TaskCode = reader["TaskCode"].ToString(),
-                                TaskName = reader["TaskName"].ToString(),
-                                Description = reader["Description"].ToString(),
-                                ProjectID = Convert.ToInt32(reader["ProjectID"]),
-                                Status = reader["Status"].ToString(),
-                                Priority = reader["Priority"].ToString(),
-                                CompletionPercentage = Convert.ToDecimal(reader["CompletionPercentage"]),
-                                CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                                UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"])
-                            };
+                                var task = new WorkTask
+                                {
+                                    TaskID = Convert.ToInt32(reader["TaskID"]),
+                                    TaskCode = reader["TaskCode"]?.ToString() ?? "",
+                                    TaskName = reader["TaskName"]?.ToString() ?? "",
+                                    Description = reader["Description"]?.ToString() ?? "",
+                                    ProjectID = Convert.ToInt32(reader["ProjectID"]),
+                                    Status = reader["Status"]?.ToString() ?? "Chưa bắt đầu",
+                                    Priority = reader["Priority"]?.ToString() ?? "Trung bình",
+                                    CompletionPercentage = reader["CompletionPercentage"] != DBNull.Value ?
+                                        Convert.ToDecimal(reader["CompletionPercentage"]) : 0,
+                                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                                    UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"]),
+                                    Notes = reader["Notes"]?.ToString() ?? ""
+                                };
 
-                            // Xử lý các trường nullable
-                            if (reader["AssignedToID"] != DBNull.Value)
-                                task.AssignedToID = Convert.ToInt32(reader["AssignedToID"]);
+                                // Handle nullable fields
+                                if (reader["AssignedToID"] != DBNull.Value)
+                                    task.AssignedToID = Convert.ToInt32(reader["AssignedToID"]);
 
-                            if (reader["StartDate"] != DBNull.Value)
-                                task.StartDate = Convert.ToDateTime(reader["StartDate"]);
+                                if (reader["StartDate"] != DBNull.Value)
+                                    task.StartDate = Convert.ToDateTime(reader["StartDate"]);
 
-                            if (reader["DueDate"] != DBNull.Value)
-                                task.DueDate = Convert.ToDateTime(reader["DueDate"]);
+                                if (reader["DueDate"] != DBNull.Value)
+                                    task.DueDate = Convert.ToDateTime(reader["DueDate"]);
 
-                            if (reader["CompletedDate"] != DBNull.Value)
-                                task.CompletedDate = Convert.ToDateTime(reader["CompletedDate"]);
+                                if (reader["CompletedDate"] != DBNull.Value)
+                                    task.CompletedDate = Convert.ToDateTime(reader["CompletedDate"]);
 
-                            if (reader["Notes"] != DBNull.Value)
-                                task.Notes = reader["Notes"].ToString();
+                                // Navigation properties - Project
+                                if (reader["ProjectName"] != DBNull.Value)
+                                {
+                                    task.Project = new Project
+                                    {
+                                        ProjectID = task.ProjectID,
+                                        ProjectName = reader["ProjectName"].ToString() ?? "",
+                                        ProjectCode = reader["ProjectCode"]?.ToString() ?? ""
+                                    };
+                                }
 
-                            // Thông tin liên kết
-                            if (reader["ProjectName"] != DBNull.Value)
-                                task.Project = new Project { ProjectName = reader["ProjectName"].ToString() };
+                                // Navigation properties - Employee
+                                if (reader["AssignedToName"] != DBNull.Value && task.AssignedToID.HasValue)
+                                {
+                                    task.AssignedTo = new Employee
+                                    {
+                                        EmployeeID = task.AssignedToID.Value,
+                                        FullName = reader["AssignedToName"].ToString() ?? "",
+                                        EmployeeCode = reader["EmployeeCode"]?.ToString() ?? ""
+                                    };
+                                }
 
-                            if (reader["AssignedToName"] != DBNull.Value)
-                                task.AssignedTo = new Employee { FullName = reader["AssignedToName"].ToString() };
+                                return task;
+                            }
                         }
                     }
                 }
+
+                return null;
             }
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi tải thông tin công việc: {ex.Message}", ex);
             }
-
-            return task;
         }
 
         public string GenerateTaskCode()
         {
-            string prefix = "TASK";
+            const string prefix = "TASK";
             int nextNumber = 1;
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
                         SELECT TOP 1 SUBSTRING(TaskCode, 5, LEN(TaskCode)) AS CodeNumber
                         FROM Tasks 
-                        WHERE TaskCode LIKE 'TASK%'
-                        ORDER BY LEN(TaskCode) DESC, TaskCode DESC";
+                        WHERE TaskCode LIKE 'TASK%' AND LEN(TaskCode) > 4
+                        AND ISNUMERIC(SUBSTRING(TaskCode, 5, LEN(TaskCode))) = 1
+                        ORDER BY CAST(SUBSTRING(TaskCode, 5, LEN(TaskCode)) AS INT) DESC";
 
-                    SqlCommand command = new SqlCommand(query, connection);
-
-                    connection.Open();
-                    var result = command.ExecuteScalar();
-
-                    if (result != null && int.TryParse(result.ToString(), out int lastNumber))
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        nextNumber = lastNumber + 1;
+                        connection.Open();
+                        var result = command.ExecuteScalar();
+
+                        if (result != null && int.TryParse(result.ToString(), out int lastNumber))
+                        {
+                            nextNumber = lastNumber + 1;
+                        }
                     }
                 }
             }
             catch
             {
-                // Nếu có lỗi, sử dụng timestamp
+                // If error, use timestamp
                 return prefix + DateTime.Now.ToString("yyyyMMddHHmm");
             }
 
@@ -204,7 +248,7 @@ namespace EmployeeManagement.DAL
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
                         INSERT INTO Tasks (
@@ -218,36 +262,28 @@ namespace EmployeeManagement.DAL
                         );
                         SELECT SCOPE_IDENTITY();";
 
-                    SqlCommand command = new SqlCommand(query, connection);
-                    command.Parameters.AddWithValue("@TaskCode", task.TaskCode);
-                    command.Parameters.AddWithValue("@TaskName", task.TaskName);
-                    command.Parameters.AddWithValue("@Description", task.Description ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@ProjectID", task.ProjectID);
-                    command.Parameters.AddWithValue("@Status", task.Status);
-                    command.Parameters.AddWithValue("@Priority", task.Priority);
-                    command.Parameters.AddWithValue("@CompletionPercentage", task.CompletionPercentage);
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@TaskCode", task.TaskCode ?? "");
+                        command.Parameters.AddWithValue("@TaskName", task.TaskName ?? "");
+                        command.Parameters.AddWithValue("@Description", task.Description ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@ProjectID", task.ProjectID);
+                        command.Parameters.AddWithValue("@Status", task.Status ?? "Chưa bắt đầu");
+                        command.Parameters.AddWithValue("@Priority", task.Priority ?? "Trung bình");
+                        command.Parameters.AddWithValue("@CompletionPercentage", task.CompletionPercentage);
 
-                    // Xử lý các trường nullable
-                    if (task.AssignedToID.HasValue)
-                        command.Parameters.AddWithValue("@AssignedToID", task.AssignedToID.Value);
-                    else
-                        command.Parameters.AddWithValue("@AssignedToID", DBNull.Value);
+                        // Handle nullable fields
+                        command.Parameters.AddWithValue("@AssignedToID",
+                            task.AssignedToID.HasValue ? task.AssignedToID.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@StartDate",
+                            task.StartDate.HasValue ? task.StartDate.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@DueDate",
+                            task.DueDate.HasValue ? task.DueDate.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Notes", task.Notes ?? (object)DBNull.Value);
 
-                    if (task.StartDate.HasValue)
-                        command.Parameters.AddWithValue("@StartDate", task.StartDate.Value);
-                    else
-                        command.Parameters.AddWithValue("@StartDate", DBNull.Value);
-
-                    if (task.DueDate.HasValue)
-                        command.Parameters.AddWithValue("@DueDate", task.DueDate.Value);
-                    else
-                        command.Parameters.AddWithValue("@DueDate", DBNull.Value);
-
-                    command.Parameters.AddWithValue("@Notes", task.Notes ?? (object)DBNull.Value);
-
-                    connection.Open();
-                    int newTaskId = Convert.ToInt32(command.ExecuteScalar());
-                    return newTaskId;
+                        connection.Open();
+                        return Convert.ToInt32(command.ExecuteScalar());
+                    }
                 }
             }
             catch (Exception ex)
@@ -260,7 +296,7 @@ namespace EmployeeManagement.DAL
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
                         UPDATE Tasks SET
@@ -278,40 +314,30 @@ namespace EmployeeManagement.DAL
                             UpdatedAt = GETDATE()
                         WHERE TaskID = @TaskID";
 
-                    SqlCommand command = new SqlCommand(query, connection);
-                    command.Parameters.AddWithValue("@TaskID", task.TaskID);
-                    command.Parameters.AddWithValue("@TaskName", task.TaskName);
-                    command.Parameters.AddWithValue("@Description", task.Description ?? (object)DBNull.Value);
-                    command.Parameters.AddWithValue("@ProjectID", task.ProjectID);
-                    command.Parameters.AddWithValue("@Status", task.Status);
-                    command.Parameters.AddWithValue("@Priority", task.Priority);
-                    command.Parameters.AddWithValue("@CompletionPercentage", task.CompletionPercentage);
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@TaskID", task.TaskID);
+                        command.Parameters.AddWithValue("@TaskName", task.TaskName ?? "");
+                        command.Parameters.AddWithValue("@Description", task.Description ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@ProjectID", task.ProjectID);
+                        command.Parameters.AddWithValue("@Status", task.Status ?? "Chưa bắt đầu");
+                        command.Parameters.AddWithValue("@Priority", task.Priority ?? "Trung bình");
+                        command.Parameters.AddWithValue("@CompletionPercentage", task.CompletionPercentage);
 
-                    // Xử lý các trường nullable
-                    if (task.AssignedToID.HasValue)
-                        command.Parameters.AddWithValue("@AssignedToID", task.AssignedToID.Value);
-                    else
-                        command.Parameters.AddWithValue("@AssignedToID", DBNull.Value);
+                        // Handle nullable fields
+                        command.Parameters.AddWithValue("@AssignedToID",
+                            task.AssignedToID.HasValue ? task.AssignedToID.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@StartDate",
+                            task.StartDate.HasValue ? task.StartDate.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@DueDate",
+                            task.DueDate.HasValue ? task.DueDate.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@CompletedDate",
+                            task.CompletedDate.HasValue ? task.CompletedDate.Value : (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@Notes", task.Notes ?? (object)DBNull.Value);
 
-                    if (task.StartDate.HasValue)
-                        command.Parameters.AddWithValue("@StartDate", task.StartDate.Value);
-                    else
-                        command.Parameters.AddWithValue("@StartDate", DBNull.Value);
-
-                    if (task.DueDate.HasValue)
-                        command.Parameters.AddWithValue("@DueDate", task.DueDate.Value);
-                    else
-                        command.Parameters.AddWithValue("@DueDate", DBNull.Value);
-
-                    if (task.CompletedDate.HasValue)
-                        command.Parameters.AddWithValue("@CompletedDate", task.CompletedDate.Value);
-                    else
-                        command.Parameters.AddWithValue("@CompletedDate", DBNull.Value);
-
-                    command.Parameters.AddWithValue("@Notes", task.Notes ?? (object)DBNull.Value);
-
-                    connection.Open();
-                    command.ExecuteNonQuery();
+                        connection.Open();
+                        command.ExecuteNonQuery();
+                    }
                 }
             }
             catch (Exception ex)
@@ -324,14 +350,19 @@ namespace EmployeeManagement.DAL
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = "DELETE FROM Tasks WHERE TaskID = @TaskID";
-                    SqlCommand command = new SqlCommand(query, connection);
-                    command.Parameters.AddWithValue("@TaskID", taskId);
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@TaskID", taskId);
 
-                    connection.Open();
-                    command.ExecuteNonQuery();
+                        connection.Open();
+                        int rowsAffected = command.ExecuteNonQuery();
+
+                        if (rowsAffected == 0)
+                            throw new Exception("Không tìm thấy công việc để xóa");
+                    }
                 }
             }
             catch (Exception ex)
@@ -342,27 +373,50 @@ namespace EmployeeManagement.DAL
 
         public List<Project> GetAllProjects()
         {
-            List<Project> projects = new List<Project>();
+            var projects = new List<Project>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
-                    string query = "SELECT ProjectID, ProjectCode, ProjectName, Status FROM Projects ORDER BY ProjectName";
-                    SqlCommand command = new SqlCommand(query, connection);
+                    string query = @"
+                        SELECT ProjectID, ProjectCode, ProjectName, Status, 
+                               StartDate, EndDate, Budget, CompletionPercentage
+                        FROM Projects 
+                        WHERE Status NOT IN (N'Hủy bỏ', N'Đã hoàn thành')
+                        ORDER BY ProjectName";
 
-                    connection.Open();
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        while (reader.Read())
+                        connection.Open();
+
+                        using (var reader = command.ExecuteReader())
                         {
-                            projects.Add(new Project
+                            while (reader.Read())
                             {
-                                ProjectID = Convert.ToInt32(reader["ProjectID"]),
-                                ProjectCode = reader["ProjectCode"].ToString(),
-                                ProjectName = reader["ProjectName"].ToString(),
-                                Status = reader["Status"].ToString()
-                            });
+                                var project = new Project
+                                {
+                                    ProjectID = Convert.ToInt32(reader["ProjectID"]),
+                                    ProjectCode = reader["ProjectCode"]?.ToString() ?? "",
+                                    ProjectName = reader["ProjectName"]?.ToString() ?? "",
+                                    Status = reader["Status"]?.ToString() ?? ""
+                                };
+
+                                // Add other properties if needed
+                                if (reader["StartDate"] != DBNull.Value)
+                                    project.StartDate = Convert.ToDateTime(reader["StartDate"]);
+
+                                if (reader["EndDate"] != DBNull.Value)
+                                    project.EndDate = Convert.ToDateTime(reader["EndDate"]);
+
+                                if (reader["Budget"] != DBNull.Value)
+                                    project.Budget = Convert.ToDecimal(reader["Budget"]);
+
+                                if (reader["CompletionPercentage"] != DBNull.Value)
+                                    project.CompletionPercentage = Convert.ToDecimal(reader["CompletionPercentage"]);
+
+                                projects.Add(project);
+                            }
                         }
                     }
                 }
@@ -377,32 +431,58 @@ namespace EmployeeManagement.DAL
 
         public List<Employee> GetAvailableEmployees()
         {
-            List<Employee> employees = new List<Employee>();
+            var employees = new List<Employee>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                using (var connection = new SqlConnection(GetConnectionString()))
                 {
                     string query = @"
-                        SELECT EmployeeID, EmployeeCode, FullName, DepartmentID
-                        FROM Employees
-                        WHERE Status = N'Đang làm việc'
-                        ORDER BY FullName";
+                        SELECT e.EmployeeID, e.EmployeeCode, e.FullName, e.DepartmentID,
+                               d.DepartmentName, p.PositionName
+                        FROM Employees e
+                        LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                        LEFT JOIN Positions p ON e.PositionID = p.PositionID
+                        WHERE e.Status = N'Đang làm việc'
+                        ORDER BY e.FullName";
 
-                    SqlCommand command = new SqlCommand(query, connection);
-
-                    connection.Open();
-                    using (SqlDataReader reader = command.ExecuteReader())
+                    using (var command = new SqlCommand(query, connection))
                     {
-                        while (reader.Read())
+                        connection.Open();
+
+                        using (var reader = command.ExecuteReader())
                         {
-                            employees.Add(new Employee
+                            while (reader.Read())
                             {
-                                EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
-                                EmployeeCode = reader["EmployeeCode"].ToString(),
-                                FullName = reader["FullName"].ToString(),
-                                DepartmentID = Convert.ToInt32(reader["DepartmentID"])
-                            });
+                                var employee = new Employee
+                                {
+                                    EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
+                                    EmployeeCode = reader["EmployeeCode"]?.ToString() ?? "",
+                                    FullName = reader["FullName"]?.ToString() ?? "",
+                                    DepartmentID = reader["DepartmentID"] != DBNull.Value ?
+                                        Convert.ToInt32(reader["DepartmentID"]) : 0
+                                };
+
+                                // Add department and position info if available
+                                if (reader["DepartmentName"] != DBNull.Value)
+                                {
+                                    employee.Department = new Department
+                                    {
+                                        DepartmentID = employee.DepartmentID,
+                                        DepartmentName = reader["DepartmentName"].ToString() ?? ""
+                                    };
+                                }
+
+                                if (reader["PositionName"] != DBNull.Value)
+                                {
+                                    employee.Position = new Position
+                                    {
+                                        PositionName = reader["PositionName"].ToString() ?? ""
+                                    };
+                                }
+
+                                employees.Add(employee);
+                            }
                         }
                     }
                 }
@@ -413,6 +493,232 @@ namespace EmployeeManagement.DAL
             }
 
             return employees;
+        }
+
+        public List<WorkTask> GetTasksByProject(int projectId)
+        {
+            var tasks = new List<WorkTask>();
+
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                        SELECT t.TaskID, t.TaskCode, t.TaskName, t.Description, 
+                               t.ProjectID, t.AssignedToID, t.StartDate, t.DueDate, 
+                               t.CompletedDate, t.Status, t.Priority, t.CompletionPercentage, 
+                               t.Notes, t.CreatedAt, t.UpdatedAt,
+                               p.ProjectName, p.ProjectCode,
+                               e.FullName as AssignedToName, e.EmployeeCode
+                        FROM Tasks t
+                        LEFT JOIN Projects p ON t.ProjectID = p.ProjectID
+                        LEFT JOIN Employees e ON t.AssignedToID = e.EmployeeID
+                        WHERE t.ProjectID = @ProjectID
+                        ORDER BY t.CreatedAt DESC";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@ProjectID", projectId);
+                        connection.Open();
+
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var task = new WorkTask
+                                {
+                                    TaskID = Convert.ToInt32(reader["TaskID"]),
+                                    TaskCode = reader["TaskCode"]?.ToString() ?? "",
+                                    TaskName = reader["TaskName"]?.ToString() ?? "",
+                                    ProjectID = Convert.ToInt32(reader["ProjectID"]),
+                                    Status = reader["Status"]?.ToString() ?? "Chưa bắt đầu",
+                                    Priority = reader["Priority"]?.ToString() ?? "Trung bình",
+                                    CompletionPercentage = reader["CompletionPercentage"] != DBNull.Value ?
+                                        Convert.ToDecimal(reader["CompletionPercentage"]) : 0,
+                                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                                    UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"])
+                                };
+
+                                // Handle nullable fields and navigation properties
+                                if (reader["Description"] != DBNull.Value)
+                                    task.Description = reader["Description"].ToString();
+
+                                if (reader["AssignedToID"] != DBNull.Value)
+                                    task.AssignedToID = Convert.ToInt32(reader["AssignedToID"]);
+
+                                if (reader["StartDate"] != DBNull.Value)
+                                    task.StartDate = Convert.ToDateTime(reader["StartDate"]);
+
+                                if (reader["DueDate"] != DBNull.Value)
+                                    task.DueDate = Convert.ToDateTime(reader["DueDate"]);
+
+                                if (reader["CompletedDate"] != DBNull.Value)
+                                    task.CompletedDate = Convert.ToDateTime(reader["CompletedDate"]);
+
+                                if (reader["Notes"] != DBNull.Value)
+                                    task.Notes = reader["Notes"].ToString();
+
+                                // Navigation properties
+                                if (reader["ProjectName"] != DBNull.Value)
+                                {
+                                    task.Project = new Project
+                                    {
+                                        ProjectID = task.ProjectID,
+                                        ProjectName = reader["ProjectName"].ToString() ?? "",
+                                        ProjectCode = reader["ProjectCode"]?.ToString() ?? ""
+                                    };
+                                }
+
+                                if (reader["AssignedToName"] != DBNull.Value && task.AssignedToID.HasValue)
+                                {
+                                    task.AssignedTo = new Employee
+                                    {
+                                        EmployeeID = task.AssignedToID.Value,
+                                        FullName = reader["AssignedToName"].ToString() ?? "",
+                                        EmployeeCode = reader["EmployeeCode"]?.ToString() ?? ""
+                                    };
+                                }
+
+                                tasks.Add(task);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tải công việc theo dự án: {ex.Message}", ex);
+            }
+
+            return tasks;
+        }
+
+        public List<WorkTask> GetTasksByEmployee(int employeeId)
+        {
+            var tasks = new List<WorkTask>();
+
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                        SELECT t.TaskID, t.TaskCode, t.TaskName, t.Description, 
+                               t.ProjectID, t.AssignedToID, t.StartDate, t.DueDate, 
+                               t.CompletedDate, t.Status, t.Priority, t.CompletionPercentage, 
+                               t.Notes, t.CreatedAt, t.UpdatedAt,
+                               p.ProjectName, p.ProjectCode,
+                               e.FullName as AssignedToName, e.EmployeeCode
+                        FROM Tasks t
+                        LEFT JOIN Projects p ON t.ProjectID = p.ProjectID
+                        LEFT JOIN Employees e ON t.AssignedToID = e.EmployeeID
+                        WHERE t.AssignedToID = @EmployeeID
+                        ORDER BY t.CreatedAt DESC";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@EmployeeID", employeeId);
+                        connection.Open();
+
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var task = new WorkTask
+                                {
+                                    TaskID = Convert.ToInt32(reader["TaskID"]),
+                                    TaskCode = reader["TaskCode"]?.ToString() ?? "",
+                                    TaskName = reader["TaskName"]?.ToString() ?? "",
+                                    ProjectID = Convert.ToInt32(reader["ProjectID"]),
+                                    Status = reader["Status"]?.ToString() ?? "Chưa bắt đầu",
+                                    Priority = reader["Priority"]?.ToString() ?? "Trung bình",
+                                    CompletionPercentage = reader["CompletionPercentage"] != DBNull.Value ?
+                                        Convert.ToDecimal(reader["CompletionPercentage"]) : 0,
+                                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                                    UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"])
+                                };
+
+                                // Handle nullable fields similar to GetTasksByProject
+                                if (reader["Description"] != DBNull.Value)
+                                    task.Description = reader["Description"].ToString();
+
+                                if (reader["AssignedToID"] != DBNull.Value)
+                                    task.AssignedToID = Convert.ToInt32(reader["AssignedToID"]);
+
+                                if (reader["StartDate"] != DBNull.Value)
+                                    task.StartDate = Convert.ToDateTime(reader["StartDate"]);
+
+                                if (reader["DueDate"] != DBNull.Value)
+                                    task.DueDate = Convert.ToDateTime(reader["DueDate"]);
+
+                                if (reader["CompletedDate"] != DBNull.Value)
+                                    task.CompletedDate = Convert.ToDateTime(reader["CompletedDate"]);
+
+                                if (reader["Notes"] != DBNull.Value)
+                                    task.Notes = reader["Notes"].ToString();
+
+                                // Navigation properties
+                                if (reader["ProjectName"] != DBNull.Value)
+                                {
+                                    task.Project = new Project
+                                    {
+                                        ProjectID = task.ProjectID,
+                                        ProjectName = reader["ProjectName"].ToString() ?? "",
+                                        ProjectCode = reader["ProjectCode"]?.ToString() ?? ""
+                                    };
+                                }
+
+                                if (reader["AssignedToName"] != DBNull.Value && task.AssignedToID.HasValue)
+                                {
+                                    task.AssignedTo = new Employee
+                                    {
+                                        EmployeeID = task.AssignedToID.Value,
+                                        FullName = reader["AssignedToName"].ToString() ?? "",
+                                        EmployeeCode = reader["EmployeeCode"]?.ToString() ?? ""
+                                    };
+                                }
+
+                                tasks.Add(task);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi tải công việc theo nhân viên: {ex.Message}", ex);
+            }
+
+            return tasks;
+        }
+
+        public bool TaskCodeExists(string taskCode, int? excludeTaskId = null)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = "SELECT COUNT(*) FROM Tasks WHERE TaskCode = @TaskCode";
+
+                    if (excludeTaskId.HasValue)
+                        query += " AND TaskID != @TaskID";
+
+                    using (var command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@TaskCode", taskCode ?? "");
+
+                        if (excludeTaskId.HasValue)
+                            command.Parameters.AddWithValue("@TaskID", excludeTaskId.Value);
+
+                        connection.Open();
+                        int count = Convert.ToInt32(command.ExecuteScalar());
+                        return count > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi kiểm tra mã công việc: {ex.Message}", ex);
+            }
         }
     }
 }

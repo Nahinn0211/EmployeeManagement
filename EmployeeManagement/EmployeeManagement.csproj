@@ -28,6 +28,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="GUI\Admin\RoleUserManagement.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Admin\RoleDetail.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Admin\UserRoleManagement.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Admin\PasswordReset.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Admin\UserDetail.cs" />
     <Compile Update="GUI\Customer\CustomerDetail.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -56,6 +69,9 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Finance\RejectReasonForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Permission\Permission.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Reports\HRReport.cs" />
@@ -106,12 +122,6 @@
     </Compile>
     <Compile Update="GUI\Salary\SalaryList.cs" />
     <Compile Update="GUI\Salary\ListForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="GUI\Task\TaskDetail.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="GUI\Task\TaskCreate.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Task\TaskList.cs">

@@ -4,21 +4,21 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
-using MaterialSkin.Controls;
 using EmployeeManagement.BLL;
+using EmployeeManagement.Models.DTO;
 using EmployeeManagement.Models;
-using EmployeeManagement.Utilities;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.GUI.Reports
 {
     public partial class ProjectReportForm : Form
     {
         private readonly ProjectReportBLL projectReportBLL;
-        private List<ProjectReportModel> allProjects;
+        private List<ProjectReportDTO> allProjects;
         private ProjectReportFilter currentFilter;
 
         // Controls
-        private MaterialTabControl tabControl;
+        private TabControl tabControl;
         private TabPage tabOverview;
         private TabPage tabDetails;
         private TabPage tabCharts;
@@ -37,8 +37,8 @@ namespace EmployeeManagement.GUI.Reports
         private DateTimePicker dtpEndDate;
         private ComboBox cmbStatus;
         private TextBox txtSearchKeyword;
-        private MaterialButton btnFilter;
-        private MaterialButton btnClearFilter;
+        private Button btnFilter;
+        private Button btnClearFilter;
         private DataGridView dgvProjects;
 
         // Charts tab controls
@@ -47,8 +47,8 @@ namespace EmployeeManagement.GUI.Reports
         private Chart chartBudget;
 
         // Export tab controls
-        private MaterialButton btnExportExcel;
-        private MaterialButton btnExportPDF;
+        private Button btnExportExcel;
+        private Button btnExportPDF;
         private ProgressBar progressExport;
 
         public ProjectReportForm()
@@ -68,16 +68,18 @@ namespace EmployeeManagement.GUI.Reports
             this.Size = new Size(1400, 900);
             this.StartPosition = FormStartPosition.CenterParent;
             this.BackColor = Color.White;
-            this.WindowState = FormWindowState.Maximized;
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.Dock = DockStyle.Fill;
         }
 
         private void CreateControls()
         {
             // Main tab control
-            tabControl = new MaterialTabControl
+            tabControl = new TabControl
             {
                 Dock = DockStyle.Fill,
-                SelectedIndex = 0
+                SelectedIndex = 0,
+                Font = new Font("Segoe UI", 10)
             };
 
             // Create tabs
@@ -91,7 +93,7 @@ namespace EmployeeManagement.GUI.Reports
 
         private void CreateOverviewTab()
         {
-            tabOverview = new TabPage("Tổng quan");
+            tabOverview = new TabPage("📊 Tổng quan");
             tabOverview.BackColor = Color.White;
 
             // Stats panel
@@ -99,7 +101,8 @@ namespace EmployeeManagement.GUI.Reports
             {
                 Dock = DockStyle.Top,
                 Height = 200,
-                Padding = new Padding(20)
+                Padding = new Padding(20),
+                BackColor = Color.FromArgb(248, 249, 250)
             };
 
             CreateStatsCards();
@@ -108,23 +111,26 @@ namespace EmployeeManagement.GUI.Reports
             // Recent projects grid
             var lblRecent = new Label
             {
-                Text = "Dự án gần đây",
-                Font = new Font("Roboto", 16, FontStyle.Bold),
+                Text = "📋 Dự án gần đây",
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
                 Location = new Point(20, 220),
-                AutoSize = true
+                AutoSize = true,
+                ForeColor = Color.FromArgb(64, 64, 64)
             };
 
             var dgvRecent = new DataGridView
             {
                 Location = new Point(20, 250),
-                Size = new Size(1300, 300),
+                Size = new Size(1300, 350),
                 AutoGenerateColumns = false,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 ReadOnly = true,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.Fixed3D
+                BorderStyle = BorderStyle.Fixed3D,
+                GridColor = Color.FromArgb(230, 230, 230),
+                RowHeadersVisible = false
             };
 
             SetupRecentProjectsGrid(dgvRecent);
@@ -138,15 +144,15 @@ namespace EmployeeManagement.GUI.Reports
         {
             var cards = new[]
             {
-                new { Title = "Tổng dự án", Value = "0", Color = Color.FromArgb(33, 150, 243), Control = (Label)null },
-                new { Title = "Đang thực hiện", Value = "0", Color = Color.FromArgb(76, 175, 80), Control = (Label)null },
-                new { Title = "Hoàn thành", Value = "0", Color = Color.FromArgb(156, 39, 176), Control = (Label)null },
-                new { Title = "Quá hạn", Value = "0", Color = Color.FromArgb(244, 67, 54), Control = (Label)null }
+                new { Title = "Tổng dự án", Icon = "📊", Color = Color.FromArgb(33, 150, 243) },
+                new { Title = "Đang thực hiện", Icon = "⚡", Color = Color.FromArgb(76, 175, 80) },
+                new { Title = "Hoàn thành", Icon = "✅", Color = Color.FromArgb(156, 39, 176) },
+                new { Title = "Quá hạn", Icon = "⚠️", Color = Color.FromArgb(244, 67, 54) }
             };
 
             for (int i = 0; i < cards.Length; i++)
             {
-                var card = CreateStatsCard(cards[i].Title, cards[i].Value, cards[i].Color);
+                var card = CreateStatsCard(cards[i].Title, "0", cards[i].Icon, cards[i].Color);
                 card.Location = new Point(20 + i * 320, 20);
                 statsPanel.Controls.Add(card);
 
@@ -162,7 +168,7 @@ namespace EmployeeManagement.GUI.Reports
             }
         }
 
-        private Panel CreateStatsCard(string title, string value, Color color)
+        private Panel CreateStatsCard(string title, string value, string icon, Color color)
         {
             var card = new Panel
             {
@@ -174,7 +180,7 @@ namespace EmployeeManagement.GUI.Reports
             var titleLabel = new Label
             {
                 Text = title,
-                Font = new Font("Roboto", 12),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 ForeColor = Color.FromArgb(100, 100, 100),
                 Location = new Point(20, 20),
                 AutoSize = true
@@ -183,7 +189,7 @@ namespace EmployeeManagement.GUI.Reports
             var valueLabel = new Label
             {
                 Text = value,
-                Font = new Font("Roboto", 32, FontStyle.Bold),
+                Font = new Font("Segoe UI", 32, FontStyle.Bold),
                 ForeColor = color,
                 Location = new Point(20, 50),
                 AutoSize = true
@@ -191,7 +197,7 @@ namespace EmployeeManagement.GUI.Reports
 
             var iconLabel = new Label
             {
-                Text = "📊",
+                Text = icon,
                 Font = new Font("Segoe UI", 24),
                 ForeColor = color,
                 Location = new Point(220, 50),
@@ -203,21 +209,16 @@ namespace EmployeeManagement.GUI.Reports
             card.Controls.Add(valueLabel);
             card.Controls.Add(iconLabel);
 
-            // Add shadow effect
-            card.Paint += (s, e) =>
-            {
-                var rect = card.ClientRectangle;
-                rect.Width -= 1;
-                rect.Height -= 1;
-                e.Graphics.DrawRectangle(new Pen(Color.FromArgb(200, 200, 200)), rect);
-            };
+            // Add hover effect
+            card.MouseEnter += (s, e) => card.BackColor = Color.FromArgb(250, 250, 250);
+            card.MouseLeave += (s, e) => card.BackColor = Color.White;
 
             return card;
         }
 
         private void CreateDetailsTab()
         {
-            tabDetails = new TabPage("Chi tiết");
+            tabDetails = new TabPage("📝 Chi tiết");
             tabDetails.BackColor = Color.White;
 
             // Filter panel
@@ -234,7 +235,9 @@ namespace EmployeeManagement.GUI.Reports
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.Fixed3D,
-                Margin = new Padding(0, 120, 0, 0)
+                GridColor = Color.FromArgb(230, 230, 230),
+                RowHeadersVisible = false,
+                Font = new Font("Segoe UI", 9)
             };
 
             SetupProjectsGrid();
@@ -253,7 +256,7 @@ namespace EmployeeManagement.GUI.Reports
             {
                 Dock = DockStyle.Top,
                 Height = 120,
-                BackColor = Color.FromArgb(250, 250, 250),
+                BackColor = Color.FromArgb(248, 249, 250),
                 Padding = new Padding(20)
             };
 
@@ -262,13 +265,14 @@ namespace EmployeeManagement.GUI.Reports
             {
                 Text = "Khoảng thời gian:",
                 Location = new Point(20, 20),
-                AutoSize = true
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
 
             dtpStartDate = new DateTimePicker
             {
                 Location = new Point(150, 17),
-                Size = new Size(150, 23),
+                Size = new Size(150, 25),
                 Format = DateTimePickerFormat.Short,
                 Checked = false,
                 ShowCheckBox = true
@@ -284,7 +288,7 @@ namespace EmployeeManagement.GUI.Reports
             dtpEndDate = new DateTimePicker
             {
                 Location = new Point(340, 17),
-                Size = new Size(150, 23),
+                Size = new Size(150, 25),
                 Format = DateTimePickerFormat.Short,
                 Checked = false,
                 ShowCheckBox = true
@@ -294,14 +298,16 @@ namespace EmployeeManagement.GUI.Reports
             {
                 Text = "Trạng thái:",
                 Location = new Point(520, 20),
-                AutoSize = true
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
 
             cmbStatus = new ComboBox
             {
                 Location = new Point(600, 17),
-                Size = new Size(150, 23),
-                DropDownStyle = ComboBoxStyle.DropDownList
+                Size = new Size(150, 25),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 9)
             };
             cmbStatus.Items.AddRange(new[] { "Tất cả", "Khởi tạo", "Đang thực hiện", "Tạm dừng", "Hoàn thành", "Hủy bỏ" });
             cmbStatus.SelectedIndex = 0;
@@ -311,31 +317,38 @@ namespace EmployeeManagement.GUI.Reports
             {
                 Text = "Tìm kiếm:",
                 Location = new Point(20, 60),
-                AutoSize = true
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
 
             txtSearchKeyword = new TextBox
             {
                 Location = new Point(100, 57),
-                Size = new Size(300, 23),
-                PlaceholderText = "Nhập tên hoặc mã dự án..."
+                Size = new Size(300, 25),
+                Font = new Font("Segoe UI", 9)
             };
 
-            btnFilter = new MaterialButton
+            btnFilter = new Button
             {
-                Text = "LỌC",
+                Text = "🔍 LỌC",
                 Location = new Point(420, 55),
-                Size = new Size(80, 30),
-                Type = MaterialButton.MaterialButtonType.Contained
+                Size = new Size(100, 30),
+                BackColor = Color.FromArgb(33, 150, 243),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
             btnFilter.Click += BtnFilter_Click;
 
-            btnClearFilter = new MaterialButton
+            btnClearFilter = new Button
             {
-                Text = "XÓA BỘ LỌC",
-                Location = new Point(510, 55),
+                Text = "🗑️ XÓA BỘ LỌC",
+                Location = new Point(530, 55),
                 Size = new Size(120, 30),
-                Type = MaterialButton.MaterialButtonType.Outlined
+                BackColor = Color.FromArgb(108, 117, 125),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
             btnClearFilter.Click += BtnClearFilter_Click;
 
@@ -347,7 +360,7 @@ namespace EmployeeManagement.GUI.Reports
 
         private void CreateChartsTab()
         {
-            tabCharts = new TabPage("Biểu đồ");
+            tabCharts = new TabPage("📈 Biểu đồ");
             tabCharts.BackColor = Color.White;
 
             var chartsPanel = new TableLayoutPanel
@@ -368,11 +381,11 @@ namespace EmployeeManagement.GUI.Reports
             chartsPanel.Controls.Add(chartProjectStatus, 0, 0);
 
             // Completion Chart
-            chartCompletion = CreateChart("Tiến độ Dự án", SeriesChartType.Column);
+            chartCompletion = CreateChart("Phân bố Tiến độ", SeriesChartType.Column);
             chartsPanel.Controls.Add(chartCompletion, 1, 0);
 
             // Budget Chart
-            chartBudget = CreateChart("Ngân sách Dự án", SeriesChartType.Bar);
+            chartBudget = CreateChart("Top Dự án theo Ngân sách", SeriesChartType.Bar);
             chartsPanel.Controls.Add(chartBudget, 0, 1);
 
             tabCharts.Controls.Add(chartsPanel);
@@ -381,7 +394,7 @@ namespace EmployeeManagement.GUI.Reports
 
         private void CreateExportTab()
         {
-            tabExport = new TabPage("Xuất báo cáo");
+            tabExport = new TabPage("📤 Xuất báo cáo");
             tabExport.BackColor = Color.White;
 
             var exportPanel = new Panel
@@ -392,34 +405,42 @@ namespace EmployeeManagement.GUI.Reports
 
             var lblTitle = new Label
             {
-                Text = "Xuất báo cáo dự án",
-                Font = new Font("Roboto", 18, FontStyle.Bold),
+                Text = "📊 Xuất báo cáo dự án",
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 Location = new Point(20, 20),
-                AutoSize = true
+                AutoSize = true,
+                ForeColor = Color.FromArgb(64, 64, 64)
             };
 
             var lblDescription = new Label
             {
                 Text = "Chọn định dạng để xuất báo cáo:",
                 Location = new Point(20, 60),
-                AutoSize = true
+                AutoSize = true,
+                Font = new Font("Segoe UI", 10)
             };
 
-            btnExportExcel = new MaterialButton
+            btnExportExcel = new Button
             {
                 Text = "📊  XUẤT EXCEL",
                 Location = new Point(20, 100),
                 Size = new Size(200, 50),
-                Type = MaterialButton.MaterialButtonType.Contained
+                BackColor = Color.FromArgb(40, 167, 69),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 11, FontStyle.Bold)
             };
             btnExportExcel.Click += BtnExportExcel_Click;
 
-            btnExportPDF = new MaterialButton
+            btnExportPDF = new Button
             {
                 Text = "📄  XUẤT PDF",
                 Location = new Point(20, 170),
                 Size = new Size(200, 50),
-                Type = MaterialButton.MaterialButtonType.Contained
+                BackColor = Color.FromArgb(220, 53, 69),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 11, FontStyle.Bold)
             };
             btnExportPDF.Click += BtnExportPDF_Click;
 
@@ -458,13 +479,14 @@ namespace EmployeeManagement.GUI.Reports
             var series = new Series("Data")
             {
                 ChartType = chartType,
-                IsValueShownAsLabel = true
+                IsValueShownAsLabel = true,
+                Font = new Font("Segoe UI", 9)
             };
             chart.Series.Add(series);
 
             var chartTitle = new Title(title)
             {
-                Font = new Font("Roboto", 12, FontStyle.Bold),
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 Docking = Docking.Top
             };
             chart.Titles.Add(chartTitle);
@@ -474,20 +496,22 @@ namespace EmployeeManagement.GUI.Reports
 
         private void SetupProjectsGrid()
         {
+            dgvProjects.Columns.Clear();
+
             dgvProjects.Columns.AddRange(new DataGridViewColumn[]
             {
-                new DataGridViewTextBoxColumn { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 100 },
-                new DataGridViewTextBoxColumn { Name = "ProjectName", HeaderText = "Tên dự án", Width = 200 },
-                new DataGridViewTextBoxColumn { Name = "ManagerName", HeaderText = "Quản lý", Width = 150 },
-                new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "Trạng thái", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "CompletionPercentage", HeaderText = "Tiến độ (%)", Width = 100 },
-                new DataGridViewTextBoxColumn { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "EndDate", HeaderText = "Ngày kết thúc", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "Budget", HeaderText = "Ngân sách", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "ActualCost", HeaderText = "Chi phí thực tế", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "TotalTasks", HeaderText = "Tổng CV", Width = 80 },
-                new DataGridViewTextBoxColumn { Name = "CompletedTasks", HeaderText = "CV hoàn thành", Width = 100 },
-                new DataGridViewTextBoxColumn { Name = "TotalEmployees", HeaderText = "Số NV", Width = 80 }
+                new DataGridViewTextBoxColumn { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 100, DataPropertyName = "ProjectCode" },
+                new DataGridViewTextBoxColumn { Name = "ProjectName", HeaderText = "Tên dự án", Width = 200, DataPropertyName = "ProjectName" },
+                new DataGridViewTextBoxColumn { Name = "ManagerName", HeaderText = "Quản lý", Width = 150, DataPropertyName = "ManagerName" },
+                new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "Trạng thái", Width = 120, DataPropertyName = "Status" },
+                new DataGridViewTextBoxColumn { Name = "CompletionPercentage", HeaderText = "Tiến độ (%)", Width = 100, DataPropertyName = "CompletionPercentage" },
+                new DataGridViewTextBoxColumn { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120, DataPropertyName = "StartDate" },
+                new DataGridViewTextBoxColumn { Name = "EndDate", HeaderText = "Ngày kết thúc", Width = 120, DataPropertyName = "EndDate" },
+                new DataGridViewTextBoxColumn { Name = "Budget", HeaderText = "Ngân sách", Width = 120, DataPropertyName = "Budget" },
+                new DataGridViewTextBoxColumn { Name = "ActualCost", HeaderText = "Chi phí thực tế", Width = 120, DataPropertyName = "ActualCost" },
+                new DataGridViewTextBoxColumn { Name = "TotalTasks", HeaderText = "Tổng CV", Width = 80, DataPropertyName = "TotalTasks" },
+                new DataGridViewTextBoxColumn { Name = "CompletedTasks", HeaderText = "CV hoàn thành", Width = 100, DataPropertyName = "CompletedTasks" },
+                new DataGridViewTextBoxColumn { Name = "TotalEmployees", HeaderText = "Số NV", Width = 80, DataPropertyName = "TotalEmployees" }
             });
 
             // Format columns
@@ -496,6 +520,15 @@ namespace EmployeeManagement.GUI.Reports
             dgvProjects.Columns["EndDate"].DefaultCellStyle.Format = "dd/MM/yyyy";
             dgvProjects.Columns["Budget"].DefaultCellStyle.Format = "N0";
             dgvProjects.Columns["ActualCost"].DefaultCellStyle.Format = "N0";
+
+            // Style header
+            dgvProjects.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(33, 150, 243),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Alignment = DataGridViewContentAlignment.MiddleCenter
+            };
 
             // Color coding for status
             dgvProjects.CellFormatting += (s, e) =>
@@ -507,35 +540,51 @@ namespace EmployeeManagement.GUI.Reports
                     {
                         case "Hoàn thành":
                             e.CellStyle.BackColor = Color.FromArgb(200, 255, 200);
+                            e.CellStyle.ForeColor = Color.FromArgb(0, 100, 0);
                             break;
                         case "Đang thực hiện":
                             e.CellStyle.BackColor = Color.FromArgb(200, 220, 255);
+                            e.CellStyle.ForeColor = Color.FromArgb(0, 0, 139);
                             break;
                         case "Tạm dừng":
                             e.CellStyle.BackColor = Color.FromArgb(255, 240, 200);
+                            e.CellStyle.ForeColor = Color.FromArgb(139, 69, 0);
                             break;
                         case "Hủy bỏ":
                             e.CellStyle.BackColor = Color.FromArgb(255, 200, 200);
+                            e.CellStyle.ForeColor = Color.FromArgb(139, 0, 0);
                             break;
                     }
+                    e.CellStyle.Font = new Font("Segoe UI", 9, FontStyle.Bold);
                 }
             };
         }
 
         private void SetupRecentProjectsGrid(DataGridView dgv)
         {
+            dgv.Columns.Clear();
+
             dgv.Columns.AddRange(new DataGridViewColumn[]
             {
-                new DataGridViewTextBoxColumn { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "ProjectName", HeaderText = "Tên dự án", Width = 300 },
-                new DataGridViewTextBoxColumn { Name = "ManagerName", HeaderText = "Quản lý", Width = 150 },
-                new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "Trạng thái", Width = 120 },
-                new DataGridViewTextBoxColumn { Name = "CompletionPercentage", HeaderText = "Tiến độ (%)", Width = 100 },
-                new DataGridViewTextBoxColumn { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120 }
+                new DataGridViewTextBoxColumn { Name = "ProjectCode", HeaderText = "Mã dự án", Width = 120, DataPropertyName = "ProjectCode" },
+                new DataGridViewTextBoxColumn { Name = "ProjectName", HeaderText = "Tên dự án", Width = 300, DataPropertyName = "ProjectName" },
+                new DataGridViewTextBoxColumn { Name = "ManagerName", HeaderText = "Quản lý", Width = 150, DataPropertyName = "ManagerName" },
+                new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "Trạng thái", Width = 120, DataPropertyName = "Status" },
+                new DataGridViewTextBoxColumn { Name = "CompletionPercentage", HeaderText = "Tiến độ (%)", Width = 100, DataPropertyName = "CompletionPercentage" },
+                new DataGridViewTextBoxColumn { Name = "StartDate", HeaderText = "Ngày bắt đầu", Width = 120, DataPropertyName = "StartDate" }
             });
 
             dgv.Columns["CompletionPercentage"].DefaultCellStyle.Format = "N1";
             dgv.Columns["StartDate"].DefaultCellStyle.Format = "dd/MM/yyyy";
+
+            // Style header
+            dgv.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(33, 150, 243),
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Alignment = DataGridViewContentAlignment.MiddleCenter
+            };
         }
 
         private void LoadData()
@@ -553,17 +602,22 @@ namespace EmployeeManagement.GUI.Reports
                 // Load charts
                 UpdateCharts();
 
-                Logger.LogInfo("Đã tải dữ liệu báo cáo dự án");
+                // Log success
+                Console.WriteLine($"Đã tải {allProjects?.Count ?? 0} dự án");
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Logger.LogError($"Lỗi tải dữ liệu ProjectReportForm: {ex.Message}");
+                Console.WriteLine($"Lỗi tải dữ liệu ProjectReportForm: {ex.Message}");
+
+                // Initialize empty data to prevent crashes
+                allProjects = new List<ProjectReportDTO>();
+                UpdateStatsCards(new ProjectStatistics());
             }
         }
 
-        private void UpdateStatsCards(EmployeeManagement.Models.ProjectStatistics stats)
+        private void UpdateStatsCards(ProjectStatistics stats)
         {
             if (lblTotalProjects != null) lblTotalProjects.Text = stats.TotalProjects.ToString();
             if (lblActiveProjects != null) lblActiveProjects.Text = stats.ActiveProjects.ToString();
@@ -573,11 +627,15 @@ namespace EmployeeManagement.GUI.Reports
 
         private void UpdateProjectsGrid()
         {
-            var filteredProjects = ApplyFilter(allProjects);
+            var filteredProjects = ApplyFilter(allProjects ?? new List<ProjectReportDTO>());
             dgvProjects.DataSource = filteredProjects;
 
             // Update recent projects in overview tab
-            var recentProjects = allProjects.OrderByDescending(p => p.StartDate).Take(10).ToList();
+            var recentProjects = (allProjects ?? new List<ProjectReportDTO>())
+                .OrderByDescending(p => p.StartDate)
+                .Take(10)
+                .ToList();
+
             var recentGrid = tabOverview.Controls.OfType<DataGridView>().FirstOrDefault();
             if (recentGrid != null)
             {
@@ -589,13 +647,15 @@ namespace EmployeeManagement.GUI.Reports
         {
             try
             {
+                if (allProjects == null || !allProjects.Any()) return;
+
                 UpdateStatusChart();
                 UpdateCompletionChart();
                 UpdateBudgetChart();
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Lỗi cập nhật biểu đồ: {ex.Message}");
+                Console.WriteLine($"Lỗi cập nhật biểu đồ: {ex.Message}");
             }
         }
 
@@ -603,7 +663,8 @@ namespace EmployeeManagement.GUI.Reports
         {
             chartProjectStatus.Series["Data"].Points.Clear();
 
-            var statusGroups = allProjects.GroupBy(p => p.Status)
+            var statusGroups = allProjects
+                .GroupBy(p => p.Status)
                 .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToList();
 
@@ -636,7 +697,9 @@ namespace EmployeeManagement.GUI.Reports
         {
             chartBudget.Series["Data"].Points.Clear();
 
-            var topProjects = allProjects.OrderByDescending(p => p.Budget).Take(10);
+            var topProjects = allProjects
+                .OrderByDescending(p => p.Budget)
+                .Take(10);
 
             foreach (var project in topProjects)
             {
@@ -645,24 +708,60 @@ namespace EmployeeManagement.GUI.Reports
             }
         }
 
-        private List<ProjectReportModel> ApplyFilter(List<ProjectReportModel> projects)
+        // FIXED: Sửa lỗi null propagating operator trong LINQ expression
+        private List<ProjectReportDTO> ApplyFilter(List<ProjectReportDTO> projects)
         {
-            var filtered = projects.AsQueryable();
+            if (projects == null) return new List<ProjectReportDTO>();
 
-            if (dtpStartDate.Checked && currentFilter.StartDate.HasValue)
-                filtered = filtered.Where(p => p.StartDate >= currentFilter.StartDate);
+            var filtered = new List<ProjectReportDTO>();
 
-            if (dtpEndDate.Checked && currentFilter.EndDate.HasValue)
-                filtered = filtered.Where(p => p.EndDate <= currentFilter.EndDate);
+            foreach (var project in projects)
+            {
+                bool matchesFilter = true;
 
-            if (!string.IsNullOrEmpty(currentFilter.Status) && currentFilter.Status != "Tất cả")
-                filtered = filtered.Where(p => p.Status == currentFilter.Status);
+                // Check date filters
+                if (dtpStartDate.Checked && currentFilter.StartDate.HasValue)
+                {
+                    if (project.StartDate == null || project.StartDate < currentFilter.StartDate)
+                        matchesFilter = false;
+                }
 
-            if (!string.IsNullOrEmpty(currentFilter.SearchKeyword))
-                filtered = filtered.Where(p => p.ProjectName.Contains(currentFilter.SearchKeyword) ||
-                                             p.ProjectCode.Contains(currentFilter.SearchKeyword));
+                if (dtpEndDate.Checked && currentFilter.EndDate.HasValue)
+                {
+                    if (project.EndDate == null || project.EndDate > currentFilter.EndDate)
+                        matchesFilter = false;
+                }
 
-            return filtered.ToList();
+                // Check status filter
+                if (!string.IsNullOrEmpty(currentFilter.Status) && currentFilter.Status != "Tất cả")
+                {
+                    if (project.Status != currentFilter.Status)
+                        matchesFilter = false;
+                }
+
+                // Check search keyword
+                if (!string.IsNullOrEmpty(currentFilter.SearchKeyword))
+                {
+                    bool containsKeyword = false;
+                    if (!string.IsNullOrEmpty(project.ProjectName) &&
+                        project.ProjectName.Contains(currentFilter.SearchKeyword))
+                        containsKeyword = true;
+
+                    if (!string.IsNullOrEmpty(project.ProjectCode) &&
+                        project.ProjectCode.Contains(currentFilter.SearchKeyword))
+                        containsKeyword = true;
+
+                    if (!containsKeyword)
+                        matchesFilter = false;
+                }
+
+                if (matchesFilter)
+                {
+                    filtered.Add(project);
+                }
+            }
+
+            return filtered;
         }
 
         #region Event Handlers
@@ -753,7 +852,7 @@ namespace EmployeeManagement.GUI.Reports
 
                 MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Logger.LogError($"Lỗi xuất Excel ProjectReport: {ex.Message}");
+                Console.WriteLine($"Lỗi xuất Excel ProjectReport: {ex.Message}");
             }
         }
 
@@ -764,7 +863,5 @@ namespace EmployeeManagement.GUI.Reports
         }
 
         #endregion
-
-
     }
 }

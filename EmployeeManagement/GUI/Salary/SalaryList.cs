@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
 using MaterialSkin.Controls;
 
@@ -14,8 +13,8 @@ namespace EmployeeManagement.GUI.Salary
     {
         #region Fields
         private SalaryBLL salaryBLL;
-        private List<Models.Salary> salaries;
-        private List<Models.Salary> filteredSalaries;
+        private List<Models.Entity.Salary> salaries;
+        private List<Models.Entity.Salary> filteredSalaries;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên, mã nhân viên, phòng ban...";
 
         // Layout controls
@@ -66,7 +65,7 @@ namespace EmployeeManagement.GUI.Salary
             try
             {
                 salaries = salaryBLL.GetAllSalaries();
-                filteredSalaries = new List<Models.Salary>(salaries);
+                filteredSalaries = new List<Models.Entity.Salary>(salaries);
                 LoadSalariesToGrid();
                 UpdateStatistics();
             }
@@ -154,7 +153,7 @@ namespace EmployeeManagement.GUI.Salary
             monthComboBox.SelectedIndex = 0;
             yearComboBox.SelectedIndex = 0;
             statusComboBox.SelectedIndex = 0;
-            filteredSalaries = new List<Models.Salary>(salaries);
+            filteredSalaries = new List<Models.Entity.Salary>(salaries);
             LoadSalariesToGrid();
         }
 
@@ -183,7 +182,7 @@ namespace EmployeeManagement.GUI.Salary
             };
         }
 
-        private Models.Salary GetSelectedSalary()
+        private Models.Entity.Salary GetSelectedSalary()
         {
             if (salaryDataGridView.SelectedRows.Count > 0)
             {
@@ -390,9 +389,9 @@ namespace EmployeeManagement.GUI.Salary
             }
         }
 
-        private List<Models.Salary> GetSelectedSalaries()
+        private List<Models.Entity.Salary> GetSelectedSalaries()
         {
-            var selectedSalaries = new List<Models.Salary>();
+            var selectedSalaries = new List<Models.Entity.Salary>();
             foreach (DataGridViewRow row in salaryDataGridView.SelectedRows)
             {
                 var salaryId = (int)row.Cells["SalaryID"].Value;

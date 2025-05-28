@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EmployeeManagement.Models.Entity;
+using System;
 using System.Collections.Generic;
 
 namespace EmployeeManagement.Models.DTO
