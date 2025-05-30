@@ -446,7 +446,7 @@ namespace EmployeeManagement.GUI
 
                     // Nhóm Chấm công & Lương
                     case "Attendance":
-                        // OpenChildForm(new Attendance.AttendanceForm());
+                        OpenChildForm(new Attendance.FaceAttendanceForm());
                         ShowUnderDevelopment("Chấm công");
                         break;
                     case "Salary":
