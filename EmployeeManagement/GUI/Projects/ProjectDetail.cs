@@ -7,14 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Projects
 {
     public partial class ProjectDetail : Form
     {
         #region Fields
-        private Models.Project project;
+        private Models.Entity.Project project;
         private bool isReadOnly;
         private TableLayoutPanel mainTableLayout;
         private Panel headerPanel;
@@ -61,9 +60,9 @@ namespace EmployeeManagement.GUI.Projects
         #endregion
 
         #region Constructor
-        public ProjectDetail(Models.Project project = null, bool readOnly = false)
+        public ProjectDetail(Models.Entity.Project project = null, bool readOnly = false)
         {
-            this.project = project ?? new Models.Project();
+            this.project = project ?? new Models.Entity.Project();
             this.isReadOnly = readOnly;
             InitializeComponent();
             SetupForm();

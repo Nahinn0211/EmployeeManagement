@@ -7,13 +7,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using EmployeeManagement.Models;
 
 namespace EmployeeManagement.GUI.Employee
 {
     public partial class EmployeeDetail : Form
     {
-        private Models.Employee employee;
+        private Models.Entity.Employee employee;
         private bool viewOnly;
         private TableLayoutPanel mainTableLayout;
         private Panel headerPanel;
@@ -68,7 +67,7 @@ namespace EmployeeManagement.GUI.Employee
         // Validation
         private ErrorProvider errorProvider;
  
-         public EmployeeDetail(Models.Employee employee, bool viewOnly = false)
+         public EmployeeDetail(Models.Entity.Employee employee, bool viewOnly = false)
         {
              this.employee = employee;
             this.viewOnly = viewOnly;

@@ -4,8 +4,8 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Text;
 using System.Configuration;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.DTO;
+using EmployeeManagement.Models.Entity;
 
 namespace EmployeeManagement.DAL
 {

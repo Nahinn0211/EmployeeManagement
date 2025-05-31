@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Windows.Forms;
-using EmployeeManagement.GUI;
 using EmployeeManagement.GUI.Auth;
+using EmployeeManagement.Utilities;
 
 namespace EmployeeManagement
 {
     internal static class Program
     {
         /// <summary>
-        /// Điểm vào chính của ứng dụng.
+        /// The main entry point for the application.
         /// </summary>
         [STAThread]
         static void Main()
@@ -16,17 +16,29 @@ namespace EmployeeManagement
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+          
             try
             {
-                var loginForm = new LoginForm();
-                Application.Run(loginForm);
-
+                // Chạy LoginForm làm form chính
+                Application.Run(new LoginForm());
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi ứng dụng: {ex.Message}\n\nStack trace: {ex.StackTrace}",
-                    "Lỗi nghiêm trọng", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                 MessageBox.Show(
+                    $"Có lỗi nghiêm trọng xảy ra:\n{ex.Message}\n\nVui lòng khởi động lại ứng dụng.",
+                    "Lỗi hệ thống",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
+            finally
+            {
+                // Đảm bảo đăng xuất session khi thoát
+                if (UserSession.IsLoggedIn)
+                {
+                    UserSession.Logout();
+                }
+
+             }
         }
     }
 }

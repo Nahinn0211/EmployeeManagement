@@ -1,20 +1,44 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Threading.Tasks;
 using MaterialSkin;
 using MaterialSkin.Controls;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using EmployeeManagement.BLL;
+using EmployeeManagement.Models.Entity;
+using EmployeeManagement.Utilities;
 
 namespace EmployeeManagement.GUI.Auth
 {
     public partial class LoginForm : MaterialForm
     {
         private readonly MaterialSkinManager materialSkinManager;
-        private bool isLoginSuccessful = false; // Flag để theo dõi trạng thái đăng nhập
+        private readonly AuthBLL authBLL;
+        private bool isLoginSuccessful = false;
+
+        // Controls
+        private MaterialCard mainCard;
+        private PictureBox logoIcon;
+        private MaterialLabel titleLabel;
+        private MaterialLabel subtitleLabel;
+        private MaterialTextBox txtUsername;
+        private MaterialTextBox txtPassword;
+        private MaterialCheckbox chkRememberMe;
+        private MaterialButton btnLogin;
+        private MaterialButton btnForgotPassword;
+        private MaterialButton btnExit;
+        private MaterialDivider divider;
+        private ProgressBar progressBar;
+        private MaterialButton btnLightTheme;
+        private MaterialButton btnDarkTheme;
+        private MaterialButton btnBlueScheme;
+        private MaterialButton btnGreenScheme;
+        private MaterialButton btnOrangeScheme;
 
         public LoginForm()
         {
+            authBLL = new AuthBLL();
+
             // Khởi tạo Material Skin trước
             materialSkinManager = MaterialSkinManager.Instance;
             materialSkinManager.AddFormToManage(this);
@@ -372,7 +396,8 @@ namespace EmployeeManagement.GUI.Auth
             return logo;
         }
 
-        // Xử lý sự kiện
+        // Xử lý sự kiện đăng nhập
+        // Xử lý sự kiện đăng nhập - THAY THẾ TOÀN BỘ METHOD NÀY
         private async void BtnLogin_Click(object sender, EventArgs e)
         {
             var username = txtUsername.Text.Trim();
@@ -396,29 +421,41 @@ namespace EmployeeManagement.GUI.Auth
 
             try
             {
-                await System.Threading.Tasks.Task.Delay(1500); // Mô phỏng quá trình xác thực
-
-                if (await AuthenticateAsync(username, password))
+                // Tạo request đăng nhập
+                var loginRequest = new LoginRequest
                 {
+                    Username = username,
+                    Password = password,
+                    RememberMe = chkRememberMe.Checked
+                };
+
+                // Gọi BLL để xử lý đăng nhập
+                var response = await System.Threading.Tasks.Task.Run(() => authBLL.Login(loginRequest));
+
+                if (response.Success)
+                {
+                    // Lưu thông tin ghi nhớ
                     if (chkRememberMe.Checked)
                         SaveUsername(username);
                     else
                         ClearSavedUsername();
 
-                    ShowMessage("Đăng nhập thành công! Chào mừng bạn trở lại.", "Thành công");
+                    ShowMessage($"Đăng nhập thành công!\nChào mừng {response.User.FullName ?? response.User.Username}!", "Thành công");
+
+                    // Delay một chút để người dùng thấy thông báo
                     await System.Threading.Tasks.Task.Delay(1500);
 
                     // Đánh dấu đăng nhập thành công
                     isLoginSuccessful = true;
 
-                    // Ẩn LoginForm trước
+                    // Ẩn LoginForm
                     this.Hide();
 
                     // Dispose MaterialSkin của LoginForm trước khi hiển thị MainForm
                     materialSkinManager.RemoveFormToManage(this);
 
                     // Tạo và hiển thị MainForm
-                    var mainForm = new MainForm();
+                    var mainForm = new EmployeeManagement.GUI.MainForm();
                     mainForm.WindowState = FormWindowState.Maximized;
 
                     // Hiển thị MainForm và chạy như form chính
@@ -429,21 +466,20 @@ namespace EmployeeManagement.GUI.Auth
                 }
                 else
                 {
-                    ShowMessage("Tên đăng nhập hoặc mật khẩu không chính xác", "Lỗi");
+                    ShowMessage(response.Message, "Lỗi đăng nhập");
                     txtPassword.Clear();
                     txtPassword.Focus();
                 }
             }
             catch (Exception ex)
             {
-                ShowMessage($"Đăng nhập thất bại: {ex.Message}", "Lỗi");
+                ShowMessage($"Có lỗi xảy ra: {ex.Message}", "Lỗi");
             }
             finally
             {
                 SetControlsEnabled(true);
             }
         }
-
         private void BtnExit_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Bạn có chắc chắn muốn thoát?", "Xác nhận thoát",
@@ -502,23 +538,10 @@ namespace EmployeeManagement.GUI.Auth
             {
                 "Thành công" => MessageBoxIcon.Information,
                 "Cảnh báo" => MessageBoxIcon.Warning,
-                "Lỗi" => MessageBoxIcon.Error,
+                "Lỗi đăng nhập" or "Lỗi" => MessageBoxIcon.Error,
                 _ => MessageBoxIcon.Information
             };
             MessageBox.Show(message, "Hệ thống Quản lý Nhân viên", MessageBoxButtons.OK, icon);
-        }
-
-        private async Task<bool> AuthenticateAsync(string username, string password)
-        {
-            await System.Threading.Tasks.Task.Delay(1000);
-            var validCredentials = new Dictionary<string, string>
-            {
-                { "admin", "123456" },
-                { "user", "password" },
-                { "manager", "manager123" }
-            };
-            return validCredentials.ContainsKey(username.ToLower()) &&
-                   validCredentials[username.ToLower()] == password;
         }
 
         // Quản lý cài đặt
@@ -590,5 +613,7 @@ namespace EmployeeManagement.GUI.Auth
 
             base.OnFormClosing(e);
         }
+
+
     }
 }

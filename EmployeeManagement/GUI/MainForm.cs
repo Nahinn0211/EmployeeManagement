@@ -1,8 +1,6 @@
-﻿using System;
-using System.Drawing;
-using System.Windows.Forms;
-using EmployeeManagement.GUI.Auth;
-using EmployeeManagement.GUI.Projects; // THÊM USING CHO PROJECTS
+﻿using EmployeeManagement.GUI.Auth;
+using EmployeeManagement.BLL;
+using EmployeeManagement.Utilities;
 using MaterialSkin;
 using MaterialSkin.Controls;
 
@@ -14,10 +12,13 @@ namespace EmployeeManagement.GUI
         private Panel sidebarPanel;
         private Panel contentPanel;
         private readonly MaterialSkinManager materialSkinManager;
+        private readonly AuthBLL authBLL;
         private Button selectedButton = null;
 
         public MainForm()
         {
+            authBLL = new AuthBLL();
+
             // Khởi tạo Material Skin
             materialSkinManager = MaterialSkinManager.Instance;
             materialSkinManager.AddFormToManage(this);
@@ -37,6 +38,36 @@ namespace EmployeeManagement.GUI
 
             // Hiển thị Dashboard mặc định
             this.Load += (s, e) => OpenChildForm(new DashboardForm());
+        }
+
+        private void ShowLoginForm()
+        {
+            var loginForm = new LoginForm();
+
+            loginForm.FormClosed += (sender, e) =>
+            {
+                var form = sender as LoginForm;
+                if (UserSession.IsLoggedIn)
+                {
+                    // Nếu đăng nhập thành công, khởi tạo lại MainForm
+                    this.Show();
+                    this.WindowState = FormWindowState.Maximized;
+                    this.BringToFront();
+
+                    // Cập nhật thông tin user
+                    UpdateUserInfo(UserSession.Username);
+
+                    // Reset về Dashboard
+                    OpenChildForm(new DashboardForm());
+                }
+                else
+                {
+                    // Nếu không đăng nhập, thoát ứng dụng
+                    Application.Exit();
+                }
+            };
+
+            loginForm.Show();
         }
 
         private void SetupForm()
@@ -77,7 +108,7 @@ namespace EmployeeManagement.GUI
 
         private void CreateSidebarMenu()
         {
-            // Header với Material Card
+            // Header với Material Card (giữ nguyên)
             var headerCard = new MaterialCard
             {
                 Height = 120,
@@ -90,6 +121,7 @@ namespace EmployeeManagement.GUI
                 Padding = new Padding(20)
             };
 
+            // Logo và subtitle (giữ nguyên code cũ)
             var logoLabel = new MaterialLabel
             {
                 Text = "EMS",
@@ -126,57 +158,99 @@ namespace EmployeeManagement.GUI
                 Padding = new Padding(10)
             };
 
-            // Menu items với Material Buttons
-            var menuItems = new[]
-           {
-                 new { Text = "Bảng điều khiển", Icon = "📊", Key = "Dashboard" },
+            // Tạo menu items với phân quyền
+            CreateMenuItemsWithPermissions(menuContainer);
 
-                // Nhóm Quản lý nhân sự
-                new { Text = "Quản lý Nhân viên", Icon = "👥", Key = "Employee" },
-                new { Text = "Quản lý Phòng ban", Icon = "🏢", Key = "Department" },
-                new { Text = "Quản lý Chức vụ", Icon = "⭐", Key = "Position" },
-        
-                // Nhóm Quản lý dự án
-                new { Text = "Quản lý Dự án", Icon = "📋", Key = "Project" },
-                new { Text = "Quản lý Công việc", Icon = "✅", Key = "Task" },
-                new { Text = "Quản lý Khách hàng", Icon = "🤝", Key = "Customer" },
-        
-                // Nhóm Quản lý tài liệu
-                new { Text = "Quản lý Tài liệu", Icon = "📁", Key = "Document" },
-        
-                // Nhóm Chấm công & Lương
-                new { Text = "Chấm công", Icon = "⏰", Key = "Attendance" },
-                new { Text = "Quản lý Lương", Icon = "💰", Key = "Salary" },
-        
-                // Nhóm Tài chính
-                new { Text = "Quản lý Tài chính", Icon = "💵", Key = "Finance" },
-                new { Text = "Thu chi Dự án", Icon = "📝", Key = "ProjectFinance" },
-        
-                // Nhóm Báo cáo
-                new { Text = "Báo cáo Nhân sự", Icon = "📈", Key = "HRReport" },
-                new { Text = "Báo cáo Dự án", Icon = "📊", Key = "ProjectReport" },
-                new { Text = "Báo cáo Tài chính", Icon = "📉", Key = "FinanceReport" },
-        
-                // Nhóm Quản trị
-                new { Text = "Quản lý Người dùng", Icon = "👤", Key = "UserManagement" },
-                new { Text = "Phân quyền", Icon = "🔒", Key = "Permission" },
-                new { Text = "Cài đặt Hệ thống", Icon = "⚙️", Key = "Settings" }
-            };
+            // Footer với user info
+            var footerCard = CreateUserInfoFooter();
 
+            // Thêm tất cả vào sidebar
+            sidebarPanel.Controls.Add(menuContainer);
+            sidebarPanel.Controls.Add(headerCard);
+            sidebarPanel.Controls.Add(footerCard);
+        }
+
+
+
+        private void CreateMenuItemsWithPermissions(Panel menuContainer)
+        {
+            // Định nghĩa tất cả menu items
+            var allMenuItems = new[]
+            {
+        new { Text = "Bảng điều khiển", Icon = "📊", Key = "Dashboard", Category = "General" },
+
+        // Nhóm Quản lý nhân sự
+        new { Text = "Quản lý Nhân viên", Icon = "👥", Key = "Employee", Category = "HR" },
+        new { Text = "Quản lý Phòng ban", Icon = "🏢", Key = "Department", Category = "HR" },
+        new { Text = "Quản lý Chức vụ", Icon = "⭐", Key = "Position", Category = "HR" },
+
+        // Nhóm Quản lý dự án
+        new { Text = "Quản lý Dự án", Icon = "📋", Key = "Project", Category = "Project" },
+        new { Text = "Quản lý Công việc", Icon = "✅", Key = "Task", Category = "Project" },
+        new { Text = "Quản lý Khách hàng", Icon = "🤝", Key = "Customer", Category = "Project" },
+
+        // Nhóm Quản lý tài liệu
+        new { Text = "Quản lý Tài liệu", Icon = "📁", Key = "Document", Category = "General" },
+
+        // Nhóm Chấm công & Lương
+        new { Text = "Chấm công", Icon = "⏰", Key = "Attendance", Category = "HR" },
+        new { Text = "Quản lý Lương", Icon = "💰", Key = "Salary", Category = "Finance" },
+
+        // Nhóm Tài chính
+        new { Text = "Quản lý Tài chính", Icon = "💵", Key = "Finance", Category = "Finance" },
+        new { Text = "Thu chi Dự án", Icon = "📝", Key = "ProjectFinance", Category = "Finance" },
+
+        // Nhóm Báo cáo
+        new { Text = "Báo cáo Nhân sự", Icon = "📈", Key = "HRReport", Category = "Report" },
+        new { Text = "Báo cáo Dự án", Icon = "📊", Key = "ProjectReport", Category = "Report" },
+        new { Text = "Báo cáo Tài chính", Icon = "📉", Key = "FinanceReport", Category = "Report" },
+
+        // Nhóm Quản trị
+        new { Text = "Quản lý Người dùng", Icon = "👤", Key = "UserManagement", Category = "Admin" },
+        new { Text = "Phân quyền", Icon = "🔒", Key = "Permission", Category = "Admin" },
+    };
 
             int yPos = 20;
-            foreach (var item in menuItems)
+            string currentCategory = "";
+
+            foreach (var item in allMenuItems)
             {
+                // Kiểm tra quyền truy cập
+                if (!UserSession.HasMenuPermission(item.Key))
+                    continue;
+
+                // Thêm header cho category mới
+                if (item.Category != currentCategory && item.Category != "General")
+                {
+                    if (yPos > 20) yPos += 10; // Thêm khoảng cách
+
+                    var categoryLabel = new MaterialLabel
+                    {
+                        Text = GetCategoryTitle(item.Category),
+                        Font = new Font("Roboto", 12, FontStyle.Bold),
+                        FontType = MaterialSkinManager.fontType.Subtitle2,
+                        ForeColor = Color.Gray,
+                        Location = new Point(20, yPos),
+                        Size = new Size(260, 25),
+                        Depth = 0
+                    };
+                    menuContainer.Controls.Add(categoryLabel);
+                    yPos += 35;
+                    currentCategory = item.Category;
+                }
+
+                // Tạo button menu
                 var button = CreateMaterialMenuButton(item.Text, item.Icon, item.Key);
                 button.Location = new Point(10, yPos);
                 menuContainer.Controls.Add(button);
                 yPos += 70;
             }
-
-            // Footer với user info
+        }
+        private MaterialCard CreateUserInfoFooter()
+        {
             var footerCard = new MaterialCard
             {
-                Height = 150,
+                Height = 170, 
                 Dock = DockStyle.Bottom,
                 BackColor = Color.White,
                 Depth = 0,
@@ -195,22 +269,47 @@ namespace EmployeeManagement.GUI
 
             var userLabel = new MaterialLabel
             {
-                Text = "Admin",
+                Text = UserSession.IsLoggedIn ? UserSession.Username : "Guest",
                 Font = new Font("Roboto", 16, FontStyle.Bold),
                 FontType = MaterialSkinManager.fontType.H6,
                 Location = new Point(70, 20),
                 Size = new Size(200, 25),
-                Depth = 0
+                Depth = 0,
+                Name = "UserNameLabel"
+            };
+
+            var roleLabel = new MaterialLabel
+            {
+                Text = UserSession.IsLoggedIn ? $"Role: {UserSession.UserRole}" : "",
+                Font = new Font("Roboto", 12),
+                FontType = MaterialSkinManager.fontType.Body2,
+                ForeColor = Color.Blue,
+                Location = new Point(70, 45),
+                Size = new Size(200, 20),
+                Depth = 0,
+                Name = "RoleLabel"
             };
 
             var statusLabel = new MaterialLabel
             {
-                Text = "● Trực tuyến",
+                Text = UserSession.IsLoggedIn ? "● Trực tuyến" : "● Ngoại tuyến",
                 Font = new Font("Roboto", 12),
                 FontType = MaterialSkinManager.fontType.Body2,
-                ForeColor = Color.Green,
-                Location = new Point(70, 50),
+                ForeColor = UserSession.IsLoggedIn ? Color.Green : Color.Red,
+                Location = new Point(70, 70),
                 Size = new Size(200, 20),
+                Depth = 0,
+                Name = "StatusLabel"
+            };
+
+            var sessionInfoLabel = new MaterialLabel
+            {
+                Text = UserSession.IsLoggedIn ? $"Đăng nhập: {UserSession.LoginTime:HH:mm}" : "",
+                Font = new Font("Roboto", 10),
+                FontType = MaterialSkinManager.fontType.Caption,
+                ForeColor = Color.Gray,
+                Location = new Point(70, 90),
+                Size = new Size(200, 15),
                 Depth = 0
             };
 
@@ -218,7 +317,7 @@ namespace EmployeeManagement.GUI
             {
                 Text = "🚪  ĐĂNG XUẤT",
                 Size = new Size(260, 40),
-                Location = new Point(10, 90),
+                Location = new Point(10, 115),
                 Type = MaterialButton.MaterialButtonType.Contained,
                 UseAccentColor = false,
                 BackColor = Color.FromArgb(244, 67, 54),
@@ -229,15 +328,13 @@ namespace EmployeeManagement.GUI
 
             footerCard.Controls.Add(userIcon);
             footerCard.Controls.Add(userLabel);
+            footerCard.Controls.Add(roleLabel);
             footerCard.Controls.Add(statusLabel);
+            footerCard.Controls.Add(sessionInfoLabel);
             footerCard.Controls.Add(logoutButton);
 
-            // Thêm tất cả vào sidebar
-            sidebarPanel.Controls.Add(menuContainer);
-            sidebarPanel.Controls.Add(headerCard);
-            sidebarPanel.Controls.Add(footerCard);
+            return footerCard;
         }
-
         private MaterialButton CreateMaterialMenuButton(string text, string icon, string key)
         {
             var button = new MaterialButton
@@ -279,7 +376,18 @@ namespace EmployeeManagement.GUI
 
             return button;
         }
-
+        private string GetCategoryTitle(string category)
+        {
+            return category switch
+            {
+                "HR" => "── NHÂN SỰ ──",
+                "Project" => "── DỰ ÁN ──",
+                "Finance" => "── TÀI CHÍNH ──",
+                "Report" => "── BÁO CÁO ──",
+                "Admin" => "── QUẢN TRỊ ──",
+                _ => $"── {category.ToUpper()} ──"
+            };
+        }
         private void MenuButton_Click(object sender, EventArgs e)
         {
             var button = sender as MaterialButton;
@@ -305,32 +413,79 @@ namespace EmployeeManagement.GUI
             {
                 switch (menuKey)
                 {
+                    // Nhóm Chung
                     case "Dashboard":
                         OpenChildForm(new DashboardForm());
                         break;
+
+                    // Nhóm Quản lý nhân sự
                     case "Employee":
                         OpenChildForm(new Employee.EmployeeListForm());
-                        break;
+                         break;
                     case "Department":
-                        OpenChildForm(new DepartmentForm());
-                        break;
-                    case "Projects":
+                        OpenChildForm(new Department.DepartmentListForm());
+                         break;
+                    case "Position":
+                        OpenChildForm(new Position.PositionListForm());
+                         break;
+                    // Nhóm Quản lý dự án
+                    case "Project":
                         OpenChildForm(new Projects.ProjectListForm());
-                        break;
+                         break;
+                    case "Task":
+                        OpenChildForm(new EmployeeManagement.GUI.Task.TaskListForm());
+                         break;
+                    case "Customer":
+                         OpenChildForm(new Customer.CustomerListForm());
+                         break;
+
+                    // Nhóm Quản lý tài liệu
+                    case "Document":
+                        OpenChildForm(new Document.DocumentListForm());
+                         break;
+
+                    // Nhóm Chấm công & Lương
                     case "Attendance":
-                        OpenChildForm(new AttendanceForm());
+                        OpenChildForm(new Attendance.FaceAttendanceForm());
+                        ShowUnderDevelopment("Chấm công");
                         break;
-                    case "Payroll":
-                        OpenChildForm(new PayrollForm());
-                        break;
-                    case "Reports":
-                        OpenChildForm(new ReportsForm());
-                        break;
-                    case "Settings":
-                        OpenChildForm(new SettingsForm());
-                        break;
+                    case "Salary":
+                         OpenChildForm(new Salary.SalaryListForm());
+                         break;
+
+                    // Nhóm Tài chính
+                    case "Finance":
+                        OpenChildForm(new Finance.FinanceListForm());
+                         break;
+                    case "ProjectFinance":
+                         OpenChildForm(new Finance.ProjectFinanceForm());
+                         break;
+                    // Nhóm Báo cáo
+                    case "HRReport":
+                         OpenChildForm(new Reports.HRReportForm());
+                         break;
+                    case "ProjectReport":
+                        OpenChildForm(new Reports.ProjectReportForm());
+                         break;
+                    case "FinanceReport":
+                        OpenChildForm(new Reports.FinanceReportForm());
+                         break;
+
+                    // Nhóm Quản trị
+                    case "UserManagement":
+                        OpenChildForm(new Admin.UserManagementForm());
+                         break;
+                    case "Permission":
+                        OpenChildForm(new Admin.PermissionForm());
+                         break;
+                     
+
+                    // Đăng xuất hệ thống
                     case "Logout":
                         PerformLogout();
+                        break;
+                    default:
+                        ShowUnderDevelopment(menuKey);
                         break;
                 }
             }
@@ -338,14 +493,19 @@ namespace EmployeeManagement.GUI
             {
                 MaterialSnackBar snackBar = new MaterialSnackBar($"Lỗi: {ex.Message}", "OK", true);
                 snackBar.Show(this);
-            }
+             }
+        }
+
+        private void ShowUnderDevelopment(string featureName)
+        {
+            MaterialSnackBar snackBar = new MaterialSnackBar($"Chức năng '{featureName}' đang được phát triển", "OK", true);
+            snackBar.Show(this);
         }
 
         private void OpenChildForm(Form childForm)
         {
             try
             {
-                // Đóng form hiện tại
                 if (currentChildForm != null)
                 {
                     currentChildForm.Close();
@@ -385,10 +545,10 @@ namespace EmployeeManagement.GUI
             {
                 MaterialSnackBar snackBar = new MaterialSnackBar($"Lỗi khi mở form: {ex.Message}", "OK", true);
                 snackBar.Show(this);
-            }
+             }
         }
 
-        // CẬP NHẬT CHỨC NĂNG LOGOUT ĐỂ HIỂN THỊ LOGINFORM
+        // CHỨC NĂNG LOGOUT ĐÃ CẬP NHẬT
         private void PerformLogout()
         {
             var result = MessageBox.Show(
@@ -401,6 +561,7 @@ namespace EmployeeManagement.GUI
             {
                 try
                 {
+                    
                     // Đóng form con hiện tại
                     if (currentChildForm != null)
                     {
@@ -409,61 +570,20 @@ namespace EmployeeManagement.GUI
                         currentChildForm = null;
                     }
 
+                    // Đăng xuất qua AuthBLL
+                    authBLL.Logout();
+
                     // Ẩn MainForm
                     this.Hide();
 
-                    // Tạo và hiển thị LoginForm
-                    var loginForm = new LoginForm();
-
-                    // Đăng ký sự kiện để xử lý khi LoginForm đóng
-                    loginForm.FormClosed += (sender, e) =>
-                    {
-                        var form = sender as LoginForm;
-
-                        if (form?.DialogResult == DialogResult.OK)
-                        {
-                            // Nếu đăng nhập thành công, hiển thị lại MainForm
-                            this.Show();
-                            this.BringToFront();
-                            this.WindowState = FormWindowState.Maximized;
-
-                            // Reset về Dashboard
-                            selectedButton = null;
-                            OpenChildForm(new DashboardForm());
-
-                            // Reset button selection
-                            foreach (Control control in sidebarPanel.Controls)
-                            {
-                                if (control is Panel panel)
-                                {
-                                    foreach (Control btn in panel.Controls)
-                                    {
-                                        if (btn is MaterialButton materialBtn && materialBtn.Tag?.ToString() == "Dashboard")
-                                        {
-                                            materialBtn.BackColor = Color.FromArgb(33, 150, 243, 100);
-                                            materialBtn.ForeColor = materialSkinManager.ColorScheme.PrimaryColor;
-                                            selectedButton = materialBtn;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Nếu không đăng nhập hoặc hủy, thoát ứng dụng
-                            Application.Exit();
-                        }
-                    };
-
-                    // Hiển thị LoginForm
-                    loginForm.Show();
+                    // Hiển thị lại LoginForm
+                    ShowLoginForm();
                 }
                 catch (Exception ex)
                 {
                     MaterialSnackBar snackBar = new MaterialSnackBar($"Lỗi khi đăng xuất: {ex.Message}", "OK", true);
                     snackBar.Show(this);
-                    this.Show(); // Hiển thị lại MainForm nếu có lỗi
+                     this.Show(); // Hiển thị lại MainForm nếu có lỗi
                 }
             }
         }
@@ -495,6 +615,12 @@ namespace EmployeeManagement.GUI
                 return;
             }
 
+            // Đăng xuất trước khi thoát
+            if (UserSession.IsLoggedIn)
+            {
+                authBLL.Logout();
+            }
+
             base.OnFormClosing(e);
         }
 
@@ -511,7 +637,6 @@ namespace EmployeeManagement.GUI
             Application.Exit();
         }
 
-        // Method để cập nhật thông tin user sau khi đăng nhập
         public void UpdateUserInfo(string username)
         {
             try
@@ -519,382 +644,64 @@ namespace EmployeeManagement.GUI
                 var footerCard = sidebarPanel.Controls.OfType<MaterialCard>().LastOrDefault();
                 if (footerCard != null)
                 {
-                    var userLabel = footerCard.Controls.OfType<MaterialLabel>()
-                                   .FirstOrDefault(l => l.Font.Bold);
+                    // Update username
+                    var userLabel = footerCard.Controls
+                        .OfType<MaterialLabel>()
+                        .FirstOrDefault(l => l.Name == "UserNameLabel");
                     if (userLabel != null)
                     {
                         userLabel.Text = username;
                     }
+
+                    // Update role
+                    var roleLabel = footerCard.Controls
+                        .OfType<MaterialLabel>()
+                        .FirstOrDefault(l => l.Name == "RoleLabel");
+                    if (roleLabel != null)
+                    {
+                        roleLabel.Text = $"Role: {UserSession.UserRole}";
+                    }
+
+                    // Update status
+                    var statusLabel = footerCard.Controls
+                        .OfType<MaterialLabel>()
+                        .FirstOrDefault(l => l.Name == "StatusLabel");
+                    if (statusLabel != null)
+                    {
+                        statusLabel.Text = "● Trực tuyến";
+                        statusLabel.ForeColor = Color.Green;
+                    }
+                }
+
+                // Rebuild menu với quyền mới
+                RebuildMenuWithPermissions();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi: {ex.Message}", ex);
+            }
+        }
+        private void RebuildMenuWithPermissions()
+        {
+            try
+            {
+                var menuContainer = sidebarPanel.Controls
+                    .OfType<Panel>()
+                    .FirstOrDefault(p => p.Dock == DockStyle.Fill);
+
+                if (menuContainer != null)
+                {
+                    menuContainer.Controls.Clear();
+                    CreateMenuItemsWithPermissions(menuContainer);
                 }
             }
             catch (Exception ex)
             {
-                MaterialSnackBar snackBar = new MaterialSnackBar($"Lỗi cập nhật thông tin user: {ex.Message}", "OK", true);
+                MaterialSnackBar snackBar = new MaterialSnackBar($"Lỗi rebuild menu: {ex.Message}", "OK", true);
                 snackBar.Show(this);
             }
         }
     }
 
-    // Các form con được cải thiện với Material Design (giữ nguyên như code gốc)
-    public partial class DashboardForm : Form
-    {
-        public DashboardForm()
-        {
-            InitializeComponent();
-            this.Text = "Bảng điều khiển";
-            this.BackColor = Color.White;
-            CreateDashboardContent();
-        }
-
-        private void CreateDashboardContent()
-        {
-            // Main title
-            var titleLabel = new Label
-            {
-                Text = "Bảng điều khiển",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            // Stats cards container
-            var statsPanel = new Panel
-            {
-                Location = new Point(30, 100),
-                Size = new Size(1000, 200),
-                BackColor = Color.Transparent
-            };
-
-            // Create stat cards
-            var statCards = new[]
-            {
-                new { Title = "Tổng nhân viên", Value = "150", Icon = "👥", Color = Color.FromArgb(33, 150, 243) },
-                new { Title = "Có mặt hôm nay", Value = "142", Icon = "✅", Color = Color.FromArgb(76, 175, 80) },
-                new { Title = "Nghỉ phép", Value = "5", Icon = "🏖️", Color = Color.FromArgb(255, 152, 0) },
-                new { Title = "Vắng mặt", Value = "3", Icon = "❌", Color = Color.FromArgb(244, 67, 54) }
-            };
-
-            for (int i = 0; i < statCards.Length; i++)
-            {
-                var card = CreateStatCard(statCards[i].Title, statCards[i].Value, statCards[i].Icon, statCards[i].Color);
-                card.Location = new Point(i * 240, 0);
-                statsPanel.Controls.Add(card);
-            }
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(statsPanel);
-        }
-
-        private Panel CreateStatCard(string title, string value, string icon, Color color)
-        {
-            var card = new Panel
-            {
-                Size = new Size(220, 150),
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-
-            var iconLabel = new Label
-            {
-                Text = icon,
-                Font = new Font("Segoe UI", 36),
-                ForeColor = color,
-                Location = new Point(20, 20),
-                Size = new Size(60, 60),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-
-            var valueLabel = new Label
-            {
-                Text = value,
-                Font = new Font("Roboto", 24, FontStyle.Bold),
-                ForeColor = color,
-                Location = new Point(100, 20),
-                Size = new Size(100, 40),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-
-            var titleLabel = new Label
-            {
-                Text = title,
-                Font = new Font("Roboto", 12),
-                ForeColor = Color.FromArgb(100, 100, 100),
-                Location = new Point(20, 100),
-                Size = new Size(180, 30),
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-
-            card.Controls.Add(iconLabel);
-            card.Controls.Add(valueLabel);
-            card.Controls.Add(titleLabel);
-
-            // Add shadow effect
-            card.Paint += (s, e) =>
-            {
-                var rect = card.ClientRectangle;
-                rect.Width -= 1;
-                rect.Height -= 1;
-                e.Graphics.DrawRectangle(new Pen(Color.FromArgb(200, 200, 200)), rect);
-            };
-
-            return card;
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "DashboardForm";
-            this.ResumeLayout(false);
-        }
-    }
-
-    public partial class EmployeeForm : Form
-    {
-        public EmployeeForm()
-        {
-            InitializeComponent();
-            this.Text = "Quản lý Nhân viên";
-            this.BackColor = Color.White;
-
-            var titleLabel = new Label
-            {
-                Text = "Quản lý Nhân viên",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            var subtitleLabel = new Label
-            {
-                Text = "Quản lý thông tin và hồ sơ nhân viên",
-                Font = new Font("Roboto", 14),
-                ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(30, 80),
-                AutoSize = true
-            };
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(subtitleLabel);
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "EmployeeForm";
-            this.ResumeLayout(false);
-        }
-    }
-
-    public partial class DepartmentForm : Form
-    {
-        public DepartmentForm()
-        {
-            InitializeComponent();
-            this.Text = "Quản lý Phòng ban";
-            this.BackColor = Color.White;
-
-            var titleLabel = new Label
-            {
-                Text = "Quản lý Phòng ban",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            var subtitleLabel = new Label
-            {
-                Text = "Quản lý cơ cấu tổ chức và phòng ban",
-                Font = new Font("Roboto", 14),
-                ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(30, 80),
-                AutoSize = true
-            };
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(subtitleLabel);
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "DepartmentForm";
-            this.ResumeLayout(false);
-        }
-    }
-
-    public partial class AttendanceForm : Form
-    {
-        public AttendanceForm()
-        {
-            InitializeComponent();
-            this.Text = "Chấm công";
-            this.BackColor = Color.White;
-
-            var titleLabel = new Label
-            {
-                Text = "Quản lý Chấm công",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            var subtitleLabel = new Label
-            {
-                Text = "Theo dõi giờ làm việc và chấm công nhân viên",
-                Font = new Font("Roboto", 14),
-                ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(30, 80),
-                AutoSize = true
-            };
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(subtitleLabel);
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "AttendanceForm";
-            this.ResumeLayout(false);
-        }
-    }
-
-    public partial class PayrollForm : Form
-    {
-        public PayrollForm()
-        {
-            InitializeComponent();
-            this.Text = "Tính lương";
-            this.BackColor = Color.White;
-
-            var titleLabel = new Label
-            {
-                Text = "Quản lý Tính lương",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            var subtitleLabel = new Label
-            {
-                Text = "Tính toán và quản lý lương nhân viên",
-                Font = new Font("Roboto", 14),
-                ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(30, 80),
-                AutoSize = true
-            };
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(subtitleLabel);
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "PayrollForm";
-            this.ResumeLayout(false);
-        }
-    }
-
-    public partial class ReportsForm : Form
-    {
-        public ReportsForm()
-        {
-            InitializeComponent();
-            this.Text = "Báo cáo";
-            this.BackColor = Color.White;
-
-            var titleLabel = new Label
-            {
-                Text = "Báo cáo và Thống kê",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            var subtitleLabel = new Label
-            {
-                Text = "Tạo báo cáo và phân tích dữ liệu",
-                Font = new Font("Roboto", 14),
-                ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(30, 80),
-                AutoSize = true
-            };
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(subtitleLabel);
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "ReportsForm";
-            this.ResumeLayout(false);
-        }
-    }
-
-    public partial class SettingsForm : Form
-    {
-        public SettingsForm()
-        {
-            InitializeComponent();
-            this.Text = "Cài đặt";
-            this.BackColor = Color.White;
-
-            var titleLabel = new Label
-            {
-                Text = "Cài đặt Hệ thống",
-                Font = new Font("Roboto", 28, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(30, 30),
-                AutoSize = true
-            };
-
-            var subtitleLabel = new Label
-            {
-                Text = "Cấu hình và tùy chỉnh hệ thống",
-                Font = new Font("Roboto", 14),
-                ForeColor = Color.FromArgb(120, 120, 120),
-                Location = new Point(30, 80),
-                AutoSize = true
-            };
-
-            this.Controls.Add(titleLabel);
-            this.Controls.Add(subtitleLabel);
-        }
-
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            this.AutoScaleDimensions = new SizeF(7F, 15F);
-            this.AutoScaleMode = AutoScaleMode.Font;
-            this.ClientSize = new Size(1200, 800);
-            this.Name = "SettingsForm";
-            this.ResumeLayout(false);
-        }
-    }
+   
 }

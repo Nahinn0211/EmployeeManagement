@@ -1,5 +1,4 @@
-﻿
-namespace EmployeeManagement.GUI.Projects
+﻿namespace EmployeeManagement.GUI.Projects
 {
     partial class ProjectListForm
     {
@@ -29,13 +28,13 @@ namespace EmployeeManagement.GUI.Projects
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.SuspendLayout();
             // 
             // ProjectListForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(1400, 900);
             this.Name = "ProjectListForm";
             this.Text = "Quản lý Dự án";
