@@ -194,6 +194,8 @@ namespace EmployeeManagement.GUI
 
         // Nhóm Chấm công & Lương
         new { Text = "Chấm công", Icon = "⏰", Key = "Attendance", Category = "HR" },
+                new { Text = "Đăng ký khuôn mặt", Icon = "⏰", Key = "FaceRegistration", Category = "HR" },
+
         new { Text = "Quản lý Lương", Icon = "💰", Key = "Salary", Category = "Finance" },
 
         // Nhóm Tài chính
@@ -445,8 +447,12 @@ namespace EmployeeManagement.GUI
                          break;
 
                     // Nhóm Chấm công & Lương
+                    case "FaceRegistration":
+                        OpenChildForm(new Attendance.FaceRegistrationForm());
+                        ShowUnderDevelopment("Đăng ký khuôn mặt");
+                        break;
                     case "Attendance":
-                        OpenChildForm(new Attendance.FaceAttendanceForm());
+                        OpenChildForm(new Attendance.FaceRecognitionForm());
                         ShowUnderDevelopment("Chấm công");
                         break;
                     case "Salary":

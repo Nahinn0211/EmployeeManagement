@@ -1,0 +1,41 @@
+﻿# requirements.txt
+# Face Recognition Dependencies
+face_recognition==1.3.0
+opencv-python==4.8.1.78
+numpy==1.24.3
+Pillow==10.0.1
+
+# Additional utilities
+dlib==19.24.2
+
+# For JSON handling (usually included in Python)
+# json - built-in module
+
+# For base64 encoding/decoding (usually included in Python)  
+# base64 - built-in module
+
+# For argument parsing (usually included in Python)
+# argparse - built-in module
+
+# For datetime operations (usually included in Python)
+# datetime - built-in module
+
+# For file operations (usually included in Python)
+# os - built-in module
+
+# For system operations (usually included in Python)  
+# sys - built-in module
+
+# For time operations (usually included in Python)
+# time - built-in module
+
+# For pickle operations (usually included in Python)
+# pickle - built-in module
+
+# Installation instructions:
+# pip install -r requirements.txt
+
+# Note: 
+# - dlib có thể cần Visual Studio Build Tools trên Windows
+# - Có thể cần cài đặt CMake trước khi cài dlib
+# - Trên Linux có thể cần: sudo apt-get install python3-dev build-essential

@@ -409,7 +409,64 @@ namespace EmployeeManagement.BLL
                 throw new Exception($"Lỗi khi tạo báo cáo biến động nhân sự: {ex.Message}", ex);
             }
         }
+        // Thêm vào class EmployeeBLL
 
+        /// <summary>
+        /// Lấy tất cả nhân viên async
+        /// </summary>
+        public async Task<List<EmployeeDTO>> GetAllEmployeesAsync()
+        {
+            try
+            {
+                return await Task.Run(() => _employeeDAL.GetAllEmployees());
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách nhân viên: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin nhân viên theo ID async
+        /// </summary>
+        public async Task<EmployeeDTO> GetEmployeeByIdAsync(int employeeId)
+        {
+            try
+            {
+                return await Task.Run(() => _employeeDAL.GetEmployeeById(employeeId));
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy thông tin nhân viên: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Lấy nhân viên theo phòng ban async
+        /// </summary>
+        public async Task<List<EmployeeDTO>> GetEmployeesByDepartmentAsync(int? departmentId)
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    if (departmentId.HasValue && departmentId.Value > 0)
+                    {
+                        return _employeeDAL.GetEmployeesByDepartment(departmentId.Value);
+                    }
+                    else
+                    {
+                        return _employeeDAL.GetAllEmployees();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách nhân viên theo phòng ban: {ex.Message}", ex);
+            }
+        }
+
+     
         /// <summary>
         /// Kiểm tra danh sách nhân viên sắp đến hạn kỷ niệm ngày làm việc
         /// </summary>
@@ -464,6 +521,62 @@ namespace EmployeeManagement.BLL
             }
         }
 
+
+
+
+
+        // Thêm method này vào EmployeeBLL class
+
+        /// <summary>
+        /// Lấy thông tin nhân viên theo mã nhân viên async
+        /// </summary>
+        /// <param name="employeeCode">Mã nhân viên</param>
+        /// <returns>Thông tin nhân viên hoặc null nếu không tìm thấy</returns>
+        public async Task<EmployeeDTO?> GetEmployeeByCodeAsync(string employeeCode)
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    if (string.IsNullOrEmpty(employeeCode))
+                        return null;
+
+                    var allEmployees = _employeeDAL.GetAllEmployees();
+                    return allEmployees.FirstOrDefault(e => e.EmployeeCode.Equals(employeeCode, StringComparison.OrdinalIgnoreCase));
+                });
+            }
+            catch (Exception ex)
+            {
+                 throw new Exception($"Lỗi lấy thông tin nhân viên: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Lấy danh sách phòng ban async (sử dụng DepartmentDAL)
+        /// </summary>
+        public async Task<List<DepartmentDTO>> GetAllDepartmentsAsync()
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var departments = _departmentDAL.GetAllDepartments();
+                    return departments.Select(d => new DepartmentDTO
+                    {
+                        DepartmentID = d.DepartmentID,
+                        DepartmentName = d.DepartmentName,
+                        Description = d.Description,
+                        ManagerID = d.ManagerID,
+                        CreatedAt = d.CreatedAt,
+                        UpdatedAt = d.UpdatedAt
+                    }).ToList();
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách phòng ban: {ex.Message}", ex);
+            }
+        }
         #region Helper Methods
         /// <summary>
         /// Tạo mã nhân viên mới tự động

@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using EmployeeManagement.DAL;
 using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Models.DTO;
 using EmployeeManagement.Utilities;
+using EmployeeManagement.GUI.Attendance;
+using static EmployeeManagement.DAL.AttendanceDAL;
 
 namespace EmployeeManagement.BLL
 {
@@ -215,6 +218,187 @@ namespace EmployeeManagement.BLL
                 return new List<AttendanceDisplayModel>();
             }
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /// <summary>
+        /// Lấy báo cáo chấm công hàng ngày
+        /// </summary>
+        public async Task<List<DailyAttendanceReportItem>> GetDailyAttendanceReportAsync(AttendanceSearchCriteria criteria)
+        {
+            try
+            {
+                // Sử dụng method có sẵn với một số điều chỉnh
+                var attendances = attendanceDAL.GetAllAttendanceInDateRange(criteria.FromDate, criteria.ToDate);
+                var result = new List<DailyAttendanceReportItem>();
+
+                foreach (var attendance in attendances)
+                {
+                    var employee = employeeDAL.GetEmployeeById(attendance.EmployeeID);
+                    if (employee == null) continue;
+
+                    // Lọc theo criteria
+                    if (criteria.DepartmentId.HasValue && employee.DepartmentID != criteria.DepartmentId.Value)
+                        continue;
+
+                    if (criteria.EmployeeId.HasValue && employee.EmployeeID != criteria.EmployeeId.Value)
+                        continue;
+
+                    if (!string.IsNullOrEmpty(criteria.Status) && attendance.Status != criteria.Status)
+                        continue;
+
+                    result.Add(new DailyAttendanceReportItem
+                    {
+                        EmployeeCode = employee.EmployeeCode,
+                        EmployeeName = employee.FullName,
+                        DepartmentName = employee.DepartmentName ?? "Chưa phân bổ",
+                        CheckInTime = attendance.CheckInTime,
+                        CheckOutTime = attendance.CheckOutTime,
+                        WorkingHours = attendance.WorkingHours,
+                        Status = attendance.Status,
+                        CheckInMethod = attendance.CheckInMethod ?? "Thủ công",
+                        Notes = attendance.Notes ?? ""
+                    });
+                }
+
+                return result.OrderByDescending(x => x.CheckInTime).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in GetDailyAttendanceReportAsync: {ex.Message}");
+                return new List<DailyAttendanceReportItem>();
+            }
+        }
+
+        /// <summary>
+        /// Lấy báo cáo tổng hợp chấm công
+        /// </summary>
+        public async Task<List<AttendanceSummaryReportItem>> GetAttendanceSummaryReportAsync(AttendanceSearchCriteria criteria)
+        {
+            try
+            {
+                var allEmployees = employeeDAL.GetAllEmployees();
+                var attendances = attendanceDAL.GetAllAttendanceInDateRange(criteria.FromDate, criteria.ToDate);
+                var result = new List<AttendanceSummaryReportItem>();
+
+                // Lọc nhân viên theo criteria
+                var filteredEmployees = allEmployees.Where(e => e.Status == "Đang làm việc");
+
+                if (criteria.DepartmentId.HasValue)
+                    filteredEmployees = filteredEmployees.Where(e => e.DepartmentID == criteria.DepartmentId.Value);
+
+                if (criteria.EmployeeId.HasValue)
+                    filteredEmployees = filteredEmployees.Where(e => e.EmployeeID == criteria.EmployeeId.Value);
+
+                foreach (var employee in filteredEmployees)
+                {
+                    var employeeAttendances = attendances.Where(a => a.EmployeeID == employee.EmployeeID).ToList();
+
+                    int totalDays = (criteria.ToDate - criteria.FromDate).Days + 1;
+                    int presentDays = employeeAttendances.Count;
+                    int absentDays = totalDays - presentDays;
+                    int lateDays = employeeAttendances.Count(a => a.CheckInTime.TimeOfDay > new TimeSpan(8, 0, 0));
+                    decimal totalWorkingHours = employeeAttendances.Sum(a => a.WorkingHours);
+                    decimal averageWorkingHours = presentDays > 0 ? totalWorkingHours / presentDays : 0;
+                    decimal attendanceRate = totalDays > 0 ? (decimal)presentDays / totalDays * 100 : 0;
+
+                    result.Add(new AttendanceSummaryReportItem
+                    {
+                        EmployeeCode = employee.EmployeeCode,
+                        EmployeeName = employee.FullName,
+                        DepartmentName = employee.DepartmentName ?? "Chưa phân bổ",
+                        TotalDays = totalDays,
+                        PresentDays = presentDays,
+                        AbsentDays = absentDays,
+                        LateDays = lateDays,
+                        TotalWorkingHours = totalWorkingHours,
+                        AverageWorkingHours = averageWorkingHours,
+                        AttendanceRate = attendanceRate
+                    });
+                }
+
+                return result.OrderBy(x => x.EmployeeName).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in GetAttendanceSummaryReportAsync: {ex.Message}");
+                return new List<AttendanceSummaryReportItem>();
+            }
+        }
+
+        /// <summary>
+        /// Lấy báo cáo chấm công bằng nhận diện khuôn mặt
+        /// </summary>
+        public async Task<List<FaceRecognitionAttendanceReportItem>> GetFaceRecognitionAttendanceReportAsync(AttendanceSearchCriteria criteria)
+        {
+            try
+            {
+                var attendances = attendanceDAL.GetAllAttendanceInDateRange(criteria.FromDate, criteria.ToDate);
+                var result = new List<FaceRecognitionAttendanceReportItem>();
+
+                // Lọc chỉ lấy chấm công bằng nhận diện khuôn mặt
+                var faceAttendances = attendances.Where(a =>
+                    a.CheckInMethod != null &&
+                    a.CheckInMethod.Contains("Face", StringComparison.OrdinalIgnoreCase));
+
+                foreach (var attendance in faceAttendances)
+                {
+                    var employee = employeeDAL.GetEmployeeById(attendance.EmployeeID);
+                    if (employee == null) continue;
+
+                    // Lọc theo criteria
+                    if (criteria.DepartmentId.HasValue && employee.DepartmentID != criteria.DepartmentId.Value)
+                        continue;
+
+                    if (criteria.EmployeeId.HasValue && employee.EmployeeID != criteria.EmployeeId.Value)
+                        continue;
+
+                    result.Add(new FaceRecognitionAttendanceReportItem
+                    {
+                        EmployeeCode = employee.EmployeeCode,
+                        EmployeeName = employee.FullName,
+                        DepartmentName = employee.DepartmentName ?? "Chưa phân bổ",
+                        CheckInTime = attendance.CheckInTime,
+                        Confidence = 95.0m, // Giả định confidence, có thể lưu trong database
+                        ImagePath = attendance.CheckInImage ?? "",
+                        Status = attendance.Status
+                    });
+                }
+
+                return result.OrderByDescending(x => x.CheckInTime).ToList();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in GetFaceRecognitionAttendanceReportAsync: {ex.Message}");
+                return new List<FaceRecognitionAttendanceReportItem>();
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
 
         /// <summary>
         /// Lấy tất cả chấm công trong khoảng thời gian
@@ -428,6 +612,128 @@ namespace EmployeeManagement.BLL
                 };
             }
         }
+
+        /// <summary>
+        /// Tạo bản ghi chấm công từ face recognition
+        /// </summary>
+        public async Task<AttendanceCreateResult> CreateAttendanceRecordAsync(string employeeId, string checkInMethod, string imagePath)
+        {
+            try
+            {
+                int empId = int.Parse(employeeId);
+
+                // Kiểm tra nhân viên có tồn tại không
+                var employee = employeeDAL.GetEmployeeById(empId);
+                if (employee == null)
+                {
+                    return new AttendanceCreateResult
+                    {
+                        Success = false,
+                        Message = "Nhân viên không tồn tại"
+                    };
+                }
+
+                // Kiểm tra trạng thái nhân viên
+                if (employee.Status != "Đang làm việc")
+                {
+                    return new AttendanceCreateResult
+                    {
+                        Success = false,
+                        Message = "Nhân viên không trong trạng thái làm việc"
+                    };
+                }
+
+                // Kiểm tra đã chấm công hôm nay chưa
+                var todayAttendance = GetEmployeeTodayAttendance(empId);
+
+                if (todayAttendance == null)
+                {
+                    // Chấm công vào
+                    var attendance = new Attendance
+                    {
+                        EmployeeID = empId,
+                        CheckInTime = DateTime.Now,
+                        CheckInMethod = checkInMethod,
+                        CheckInImage = imagePath,
+                        Status = "Đã chấm công vào",
+                        CreatedAt = DateTime.Now,
+                        WorkingHours = 0
+                    };
+
+                    bool success = attendanceDAL.Insert(attendance);
+
+                    return new AttendanceCreateResult
+                    {
+                        Success = success,
+                        Message = success ? "Chấm công vào thành công" : "Lỗi khi lưu chấm công",
+                        AttendanceType = "CheckIn"
+                    };
+                }
+                else if (todayAttendance.CheckOutTime == null)
+                {
+                    // Chấm công ra
+                    bool success = CheckOut(empId, DateTime.Now);
+
+                    return new AttendanceCreateResult
+                    {
+                        Success = success,
+                        Message = success ? "Chấm công ra thành công" : "Lỗi khi chấm công ra",
+                        AttendanceType = "CheckOut"
+                    };
+                }
+                else
+                {
+                    return new AttendanceCreateResult
+                    {
+                        Success = false,
+                        Message = "Đã chấm công đầy đủ hôm nay"
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in CreateAttendanceRecordAsync: {ex.Message}");
+                return new AttendanceCreateResult
+                {
+                    Success = false,
+                    Message = $"Lỗi hệ thống: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật đường dẫn dữ liệu khuôn mặt cho nhân viên
+        /// </summary>
+        public async Task<bool> UpdateEmployeeFaceDataAsync(int employeeId, string faceDataPath)
+        {
+            try
+            {
+                return await Task.Run(() => attendanceDAL.UpdateEmployeeFaceData(employeeId, faceDataPath));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in UpdateEmployeeFaceDataAsync: {ex.Message}");
+                return false;
+            }
+        }
+
+
+
+        /// <summary>
+        /// Lấy thông tin nhân viên theo ID
+        /// </summary>
+        public EmployeeDTO GetEmployeeById(int employeeId)
+        {
+            try
+            {
+                return employeeDAL.GetEmployeeById(employeeId);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in GetEmployeeById: {ex.Message}");
+                return null;
+            }
+        }
     }
 
     /// <summary>
@@ -504,4 +810,21 @@ namespace EmployeeManagement.BLL
         public DateTime? CheckOutTime { get; set; }
         public decimal WorkingHours { get; set; }
     }
+
+    /// <summary>
+    /// Kết quả tạo bản ghi chấm công
+    /// </summary>
+    public class AttendanceCreateResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string AttendanceType { get; set; } = string.Empty; // CheckIn, CheckOut
+        public int? AttendanceId { get; set; }
+    }
+
+
+
+
+
+
 }

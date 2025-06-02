@@ -1,0 +1,51 @@
+{
+  "faces_folder": "faces",
+  "tolerance": 0.6,
+  "confidence_threshold": 0.4,
+  "camera_index": 0,
+  "frame_width": 640,
+  "frame_height": 480,
+  "recognition_timeout": 30,
+  "save_attendance_images": true,
+  "attendance_images_folder": "attendance_images",
+  "database": {
+    "connection_string": "Server=DESKTOP-DCQVCP9;Database=EmployeeManagement;User Id=sa;Password=1234567;TrustServerCertificate=True;",
+    "providerName=\"System.Data.SqlClient\"\",": null,
+    "timeout": 30
+  },
+  "logging": {
+    "enable_logging": true,
+    "log_file": "face_recognition.log",
+    "log_level": "INFO"
+  },
+  "security": {
+    "max_recognition_attempts": 3,
+    "lockout_duration_minutes": 5,
+    "require_live_detection": false
+  },
+  "performance": {
+    "process_every_nth_frame": 2,
+    "face_detection_model": "hog",
+    "number_of_times_to_upsample": 1,
+    "num_jitters": 1
+  },
+  "ui": {
+    "show_preview_window": true,
+    "preview_window_title": "Face Recognition - Press ESC to exit",
+    "success_display_duration": 3,
+    "error_display_duration": 5
+  },
+  "backup": {
+    "auto_backup_faces": true,
+    "backup_interval_days": 7,
+    "backup_folder": "backup",
+    "max_backups": 10
+  },
+  "notifications": {
+    "enable_sound": true,
+    "success_sound": "success.wav",
+    "error_sound": "error.wav",
+    "enable_email_alerts": false,
+    "admin_email": "admin@company.com"
+  }
+}
