@@ -7,8 +7,7 @@ using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Models.DTO;
 using EmployeeManagement.Utilities;
 using EmployeeManagement.GUI.Attendance;
-using static EmployeeManagement.DAL.AttendanceDAL;
-
+ 
 namespace EmployeeManagement.BLL
 {
     public class AttendanceBLL
@@ -811,20 +810,5 @@ namespace EmployeeManagement.BLL
         public decimal WorkingHours { get; set; }
     }
 
-    /// <summary>
-    /// Kết quả tạo bản ghi chấm công
-    /// </summary>
-    public class AttendanceCreateResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public string AttendanceType { get; set; } = string.Empty; // CheckIn, CheckOut
-        public int? AttendanceId { get; set; }
-    }
-
-
-
-
-
-
+   
 }

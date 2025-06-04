@@ -1,0 +1,25 @@
+Cách 1: Thêm vĩnh viễn (Khuyến nghị)
+
+Mở System Properties:
+
+Nhấn Windows + R, gõ sysdm.cpl và Enter
+Hoặc Right-click "This PC" → Properties → Advanced system settings
+
+
+Chỉnh sửa Environment Variables:
+
+Chọn tab "Advanced" → nhấn "Environment Variables..."
+Trong "System variables", tìm và chọn "Path" → nhấn "Edit..."
+Nhấn "New" và thêm đường dẫn:
+E:\du_an_ca_nhan\kháchVV\cmake-4.0.2-windows-x86_64\bin
+
+Nhấn OK → OK → OK
+
+
+Kiểm tra và cài đặt:
+
+Mở Command Prompt mới và kiểm tra:
+cmdcmake --version
+
+Nếu hiển thị version, cài lại packages:
+cmdpip install opencv-python face-recognition numpy pillow

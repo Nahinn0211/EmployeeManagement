@@ -1,4 +1,4 @@
-﻿namespace EmployeeManagement.GUI.Task
+﻿namespace EmployeeManagement.GUI.WorkTask
 {
     partial class TaskListForm
     {

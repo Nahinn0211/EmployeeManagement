@@ -7,17 +7,16 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using EmployeeManagement.BLL;
-using EmployeeManagement.Models;
 using EmployeeManagement.Models.Entity;
-
-namespace EmployeeManagement.GUI.Task
+ 
+namespace EmployeeManagement.GUI.WorkTask
 {
     public partial class TaskListForm : Form
     {
         #region Fields
         private TaskBLL? taskBLL;
-        private List<WorkTask>? tasks;
-        private List<WorkTask>? filteredTasks;
+        private List<Models.Entity.WorkTask>? tasks;
+        private List<Models.Entity.WorkTask>? filteredTasks;
         private readonly string searchPlaceholder = "🔍 Tìm kiếm theo tên công việc, mã công việc...";
 
         // UI Controls - sẽ được khởi tạo trong InitializeLayout
@@ -73,8 +72,8 @@ namespace EmployeeManagement.GUI.Task
                     return;
                 }
 
-                tasks = taskBLL.GetAllTasks() ?? new List<WorkTask>();
-                filteredTasks = new List<WorkTask>(tasks);
+                tasks = taskBLL.GetAllTasks() ?? new List<Models.Entity.WorkTask>();
+                filteredTasks = new List<Models.Entity.WorkTask>(tasks);
                 LoadTasksToGrid();
                 UpdateStatistics();
             }
@@ -166,7 +165,7 @@ namespace EmployeeManagement.GUI.Task
 
                 if (tasks != null)
                 {
-                    filteredTasks = new List<WorkTask>(tasks);
+                    filteredTasks = new List<Models.Entity.WorkTask>(tasks);
                     LoadTasksToGrid();
                 }
             }
@@ -223,7 +222,7 @@ namespace EmployeeManagement.GUI.Task
             };
         }
 
-        private WorkTask? GetSelectedTask()
+        private Models.Entity.WorkTask? GetSelectedTask()
         {
             try
             {

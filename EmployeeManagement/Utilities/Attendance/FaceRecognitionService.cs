@@ -1,315 +1,318 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
-using System.Diagnostics;
-using EmployeeManagement.Utilities;
-using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Threading;
 
 namespace EmployeeManagement.Utilities
 {
-    /// <summary>
-    /// Service xử lý nhận diện khuôn mặt
-    /// </summary>
     public static class FaceRecognitionService
     {
-        private static readonly string FaceDataDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "EmployeeManagement", "FaceData");
+        private static readonly string PythonExecutable = ConfigurationManager.AppSettings["PythonExecutable"] ?? "python";
+        private static readonly string ScriptPath = ConfigurationManager.AppSettings["FaceRecognitionScriptPath"] ?? @"Scripts\face_recognition_service.py";
+        private static readonly int TimeoutSeconds = int.Parse(ConfigurationManager.AppSettings["FaceRecognitionTimeout"] ?? "30");
 
-        private static readonly string AttendanceImagesDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "EmployeeManagement", "AttendanceImages");
-
-        static FaceRecognitionService()
-        {
-            // Tạo thư mục nếu chưa tồn tại
-            Directory.CreateDirectory(FaceDataDirectory);
-            Directory.CreateDirectory(AttendanceImagesDirectory);
-        }
-
-        /// <summary>
-        /// Kiểm tra hệ thống có sẵn sàng cho face recognition không
-        /// </summary>
-        public static SystemReadinessResult CheckSystemReadiness()
-        {
-            var result = new SystemReadinessResult();
-            var errors = new List<string>();
-
-            try
-            {
-                // Kiểm tra thư mục face data
-                if (!Directory.Exists(FaceDataDirectory))
-                {
-                    Directory.CreateDirectory(FaceDataDirectory);
-                }
-
-                // Kiểm tra quyền truy cập file system
-                if (!HasFileSystemPermissions())
-                {
-                    errors.Add("Không có quyền truy cập thư mục lưu trữ");
-                }
-
-                // Kiểm tra Python (nếu cần)
-                if (!IsPythonAvailable())
-                {
-                    errors.Add("Python không được cài đặt hoặc không tìm thấy");
-                }
-
-                result.IsReady = errors.Count == 0;
-                result.Errors = errors;
-            }
-            catch (Exception ex)
-            {
-                errors.Add($"Lỗi kiểm tra hệ thống: {ex.Message}");
-                result.IsReady = false;
-                result.Errors = errors;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Cài đặt các dependencies cần thiết
-        /// </summary>
-        public static async System.Threading.Tasks.Task<InstallationResult> InstallDependenciesAsync()
+        public static async Task<FaceRecognitionServiceResult> RegisterFaceAsync(string employeeCode, string employeeName, string imagePath)
         {
             try
             {
-                var result = new InstallationResult();
+                // Validate input parameters
+                if (string.IsNullOrEmpty(employeeCode))
+                    return new FaceRecognitionServiceResult { Success = false, Message = "Mã nhân viên không được để trống" };
 
-                // Placeholder cho việc cài đặt thư viện
-                await System.Threading.Tasks.Task.Delay(3000); // Simulate installation time
+                if (string.IsNullOrEmpty(employeeName))
+                    return new FaceRecognitionServiceResult { Success = false, Message = "Tên nhân viên không được để trống" };
 
-                // Trong thực tế, đây sẽ là nơi cài đặt:
-                // - OpenCV libraries
-                // - Face recognition libraries
-                // - Python dependencies
+                if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+                    return new FaceRecognitionServiceResult { Success = false, Message = "File ảnh không tồn tại" };
 
-                result.Success = true;
-                result.Message = "Cài đặt thành công tất cả thư viện cần thiết";
+                // Check if script exists
+                if (!File.Exists(ScriptPath))
+                    return new FaceRecognitionServiceResult { Success = false, Message = $"Không tìm thấy script Python: {ScriptPath}" };
+
+                // Escape arguments for command line
+                string safeEmployeeCode = EscapeArgument(employeeCode);
+                string safeEmployeeName = EscapeArgument(employeeName);
+                string safeImagePath = EscapeArgument(imagePath);
+
+                string arguments = $"\"{ScriptPath}\" register --employee_id \"{safeEmployeeCode}\" --employee_name \"{safeEmployeeName}\" --image_path \"{safeImagePath}\"";
+
+                var result = await ExecutePythonScriptAsync(arguments, TimeoutSeconds * 2); // Double timeout for registration
+
+                if (result.Success)
+                {
+                    // Parse the result to get face path
+                    var jsonResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(result.Output);
+
+                    if (jsonResult.ContainsKey("face_path"))
+                    {
+                        result.FacePath = jsonResult["face_path"].ToString();
+                    }
+                }
 
                 return result;
             }
             catch (Exception ex)
             {
-                return new InstallationResult
+                return new FaceRecognitionServiceResult
                 {
                     Success = false,
-                    Message = $"Lỗi cài đặt: {ex.Message}"
+                    Message = $"Lỗi hệ thống: {ex.Message}"
                 };
             }
         }
 
-        /// <summary>
-        /// Đăng ký khuôn mặt cho nhân viên
-        /// </summary>
-        public static async System.Threading.Tasks.Task<FaceRegistrationResult> RegisterFaceAsync(string employeeId, string employeeName, string imagePath)
+        public static async Task<FaceRecognitionResult> RecognizeFromCameraAsync(int timeoutSeconds = 30)
         {
             try
             {
-                // Validate input
-                if (string.IsNullOrEmpty(employeeId) || string.IsNullOrEmpty(imagePath))
+                if (!File.Exists(ScriptPath))
                 {
-                    return new FaceRegistrationResult
+                    return new FaceRecognitionResult
                     {
                         Success = false,
-                        Message = "Thông tin đầu vào không hợp lệ"
+                        Message = $"Không tìm thấy script Python: {ScriptPath}"
                     };
                 }
 
-                if (!File.Exists(imagePath))
+                string arguments = $"\"{ScriptPath}\" recognize_camera --timeout {timeoutSeconds}";
+                var result = await ExecutePythonScriptAsync(arguments, timeoutSeconds + 10);
+
+                if (result.Success)
                 {
-                    return new FaceRegistrationResult
+                    try
                     {
-                        Success = false,
-                        Message = "File ảnh không tồn tại"
-                    };
-                }
+                        var jsonResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(result.Output);
 
-                // Copy image to face data directory
-                string faceDataFileName = $"employee_{employeeId}_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
-                string destinationPath = Path.Combine(FaceDataDirectory, faceDataFileName);
-
-                File.Copy(imagePath, destinationPath, true);
-
-                // Placeholder cho việc training face recognition model
-                await System.Threading.Tasks.Task.Delay(2000); // Simulate processing time
-
-                // Trong thực tế, đây sẽ là nơi:
-                // - Extract face features từ ảnh
-                // - Train hoặc update face recognition model
-                // - Lưu face encoding vào database hoặc file
-
-                return new FaceRegistrationResult
-                {
-                    Success = true,
-                    Message = "Đăng ký khuôn mặt thành công",
-                    FacePath = destinationPath
-                };
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError($"FaceRecognitionService.RegisterFaceAsync: {ex.Message}");
-                return new FaceRegistrationResult
-                {
-                    Success = false,
-                    Message = $"Lỗi đăng ký khuôn mặt: {ex.Message}"
-                };
-            }
-        }
-
-        /// <summary>
-        /// Nhận diện khuôn mặt từ camera
-        /// </summary>
-        public static async System.Threading.Tasks.Task<FaceRecognitionResult> RecognizeFromCameraAsync(int timeoutSeconds = 30)
-        {
-            try
-            {
-                // Placeholder cho việc capture và nhận diện từ camera
-                await System.Threading.Tasks.Task.Delay(5000); // Simulate recognition time
-
-                // Trong thực tế, đây sẽ là nơi:
-                // - Capture ảnh từ camera
-                // - Extract face features
-                // - So sánh với các face đã đăng ký
-                // - Trả về kết quả nhận diện
-
-                // Simulate successful recognition
-                string attendanceImagePath = Path.Combine(AttendanceImagesDirectory,
-                    $"attendance_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
-
-                // Create a dummy image file (in real implementation, this would be the captured image)
-                File.WriteAllText(attendanceImagePath, "Dummy attendance image");
-
-                return new FaceRecognitionResult
-                {
-                    Success = true,
-                    EmployeeId = "NV0001", // This would come from face recognition
-                    EmployeeName = "Nguyễn Văn A", // This would be looked up from database
-                    Confidence = 95.5f,
-                    Timestamp = DateTime.Now,
-                    AttendanceImagePath = attendanceImagePath
-                };
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError($"FaceRecognitionService.RecognizeFromCameraAsync: {ex.Message}");
-                return new FaceRecognitionResult
-                {
-                    Success = false,
-                    Message = $"Lỗi nhận diện: {ex.Message}"
-                };
-            }
-        }
-
-        /// <summary>
-        /// Lấy danh sách khuôn mặt đã đăng ký
-        /// </summary>
-        public static async System.Threading.Tasks.Task<RegisteredFacesResult> GetRegisteredFacesAsync()
-        {
-            try
-            {
-                var faces = new List<RegisteredFace>();
-
-                // Placeholder - trong thực tế sẽ lấy từ database
-                await System.Threading.Tasks.Task.Delay(500);
-
-                // Scan face data directory
-                if (Directory.Exists(FaceDataDirectory))
-                {
-                    var files = Directory.GetFiles(FaceDataDirectory, "employee_*.jpg");
-                    foreach (var file in files)
-                    {
-                        var fileName = Path.GetFileNameWithoutExtension(file);
-                        var parts = fileName.Split('_');
-
-                        if (parts.Length >= 2)
+                        return new FaceRecognitionResult
                         {
-                            faces.Add(new RegisteredFace
-                            {
-                                EmployeeId = parts[1],
-                                EmployeeName = $"Nhân viên {parts[1]}", // Would lookup from database
-                                FacePath = file,
-                                RegisterDate = File.GetCreationTime(file)
-                            });
-                        }
+                            Success = true,
+                            EmployeeId = jsonResult["employee_id"].ToString(),
+                            EmployeeName = jsonResult.ContainsKey("employee_name") ? jsonResult["employee_name"].ToString() : "",
+                            Confidence = Convert.ToDecimal(jsonResult["confidence"]),
+                            Timestamp = DateTime.Parse(jsonResult["timestamp"].ToString()),
+                            AttendanceImagePath = jsonResult.ContainsKey("attendance_image") ? jsonResult["attendance_image"].ToString() : null
+                        };
+                    }
+                    catch (Exception parseEx)
+                    {
+                        return new FaceRecognitionResult
+                        {
+                            Success = false,
+                            Message = $"Lỗi phân tích kết quả: {parseEx.Message}"
+                        };
                     }
                 }
 
-                return new RegisteredFacesResult
+                return new FaceRecognitionResult
                 {
-                    Success = true,
-                    Faces = faces
+                    Success = false,
+                    Message = result.Message
                 };
             }
             catch (Exception ex)
             {
-                Logger.LogError($"FaceRecognitionService.GetRegisteredFacesAsync: {ex.Message}");
-                return new RegisteredFacesResult
+                return new FaceRecognitionResult
                 {
                     Success = false,
-                    Message = $"Lỗi lấy danh sách: {ex.Message}",
-                    Faces = new List<RegisteredFace>()
+                    Message = $"Lỗi hệ thống: {ex.Message}"
                 };
             }
         }
 
-        /// <summary>
-        /// Xóa khuôn mặt đã đăng ký
-        /// </summary>
-        public static async System.Threading.Tasks.Task<FaceDeleteResult> DeleteRegisteredFaceAsync(string employeeId)
+        public static async Task<FaceRecognitionServiceResult> GetRegisteredFacesAsync()
         {
             try
             {
-                await System.Threading.Tasks.Task.Delay(500);
-
-                // Find and delete face files for this employee
-                if (Directory.Exists(FaceDataDirectory))
+                if (!File.Exists(ScriptPath))
                 {
-                    var files = Directory.GetFiles(FaceDataDirectory, $"employee_{employeeId}_*.jpg");
-                    foreach (var file in files)
+                    return new FaceRecognitionServiceResult
                     {
-                        File.Delete(file);
+                        Success = false,
+                        Message = $"Không tìm thấy script Python: {ScriptPath}"
+                    };
+                }
+
+                string arguments = $"\"{ScriptPath}\" list";
+                var result = await ExecutePythonScriptAsync(arguments, TimeoutSeconds);
+
+                if (result.Success)
+                {
+                    try
+                    {
+                        var jsonResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(result.Output);
+
+                        var faces = new List<RegisteredFace>();
+                        if (jsonResult.ContainsKey("faces"))
+                        {
+                            var facesArray = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(jsonResult["faces"].ToString());
+
+                            foreach (var face in facesArray)
+                            {
+                                faces.Add(new RegisteredFace
+                                {
+                                    EmployeeId = face["employee_id"].ToString(),
+                                    EmployeeName = face["employee_name"].ToString()
+                                });
+                            }
+                        }
+
+                        result.Faces = faces;
+                    }
+                    catch (Exception parseEx)
+                    {
+                        return new FaceRecognitionServiceResult
+                        {
+                            Success = false,
+                            Message = $"Lỗi phân tích danh sách: {parseEx.Message}"
+                        };
                     }
                 }
 
-                // Trong thực tế, cũng cần xóa face encoding từ model
-
-                return new FaceDeleteResult
-                {
-                    Success = true,
-                    Message = "Xóa khuôn mặt thành công"
-                };
+                return result;
             }
             catch (Exception ex)
             {
-                Logger.LogError($"FaceRecognitionService.DeleteRegisteredFaceAsync: {ex.Message}");
-                return new FaceDeleteResult
+                return new FaceRecognitionServiceResult
                 {
                     Success = false,
-                    Message = $"Lỗi xóa khuôn mặt: {ex.Message}"
+                    Message = $"Lỗi hệ thống: {ex.Message}"
                 };
             }
         }
 
-        #region Helper Methods
+        public static async Task<FaceRecognitionServiceResult> DeleteRegisteredFaceAsync(string employeeId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(employeeId))
+                    return new FaceRecognitionServiceResult { Success = false, Message = "Mã nhân viên không được để trống" };
+
+                if (!File.Exists(ScriptPath))
+                {
+                    return new FaceRecognitionServiceResult
+                    {
+                        Success = false,
+                        Message = $"Không tìm thấy script Python: {ScriptPath}"
+                    };
+                }
+
+                string safeEmployeeId = EscapeArgument(employeeId);
+                string arguments = $"\"{ScriptPath}\" delete --employee_id \"{safeEmployeeId}\"";
+
+                return await ExecutePythonScriptAsync(arguments, TimeoutSeconds);
+            }
+            catch (Exception ex)
+            {
+                return new FaceRecognitionServiceResult
+                {
+                    Success = false,
+                    Message = $"Lỗi hệ thống: {ex.Message}"
+                };
+            }
+        }
+
+        public static SystemReadinessResult CheckSystemReadiness()
+        {
+            try
+            {
+                // Check Python executable
+                if (!IsPythonAvailable())
+                {
+                    return new SystemReadinessResult
+                    {
+                        IsReady = false,
+                        ErrorMessage = "Python không được cài đặt hoặc không trong PATH"
+                    };
+                }
+
+                // Check script file
+                if (!File.Exists(ScriptPath))
+                {
+                    return new SystemReadinessResult
+                    {
+                        IsReady = false,
+                        ErrorMessage = $"Không tìm thấy script Python: {ScriptPath}"
+                    };
+                }
+
+                // Check required folders
+                string facesFolder = ConfigurationManager.AppSettings["FacesFolder"] ?? "faces";
+                if (!Directory.Exists(facesFolder))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(facesFolder);
+                    }
+                    catch (Exception ex)
+                    {
+                        return new SystemReadinessResult
+                        {
+                            IsReady = false,
+                            ErrorMessage = $"Không thể tạo thư mục faces: {ex.Message}"
+                        };
+                    }
+                }
+
+                string attendanceFolder = ConfigurationManager.AppSettings["AttendanceImagesFolder"] ?? "attendance_images";
+                if (!Directory.Exists(attendanceFolder))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(attendanceFolder);
+                    }
+                    catch (Exception ex)
+                    {
+                        return new SystemReadinessResult
+                        {
+                            IsReady = false,
+                            ErrorMessage = $"Không thể tạo thư mục attendance_images: {ex.Message}"
+                        };
+                    }
+                }
+
+                return new SystemReadinessResult
+                {
+                    IsReady = true,
+                    Message = "Hệ thống Face Recognition sẵn sàng"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new SystemReadinessResult
+                {
+                    IsReady = false,
+                    ErrorMessage = $"Lỗi kiểm tra hệ thống: {ex.Message}"
+                };
+            }
+        }
 
         private static bool IsPythonAvailable()
         {
             try
             {
-                using var process = new Process();
-                process.StartInfo.FileName = "python";
-                process.StartInfo.Arguments = "--version";
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.CreateNoWindow = true;
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = PythonExecutable;
+                    process.StartInfo.Arguments = "--version";
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
+                    process.StartInfo.CreateNoWindow = true;
 
-                process.Start();
-                process.WaitForExit(5000);
+                    process.Start();
+                    bool exited = process.WaitForExit(5000); // 5 second timeout
 
-                return process.ExitCode == 0;
+                    if (!exited)
+                    {
+                        process.Kill();
+                        return false;
+                    }
+
+                    return process.ExitCode == 0;
+                }
             }
             catch
             {
@@ -317,97 +320,179 @@ namespace EmployeeManagement.Utilities
             }
         }
 
-        private static bool HasFileSystemPermissions()
+        private static async Task<FaceRecognitionServiceResult> ExecutePythonScriptAsync(string arguments, int timeoutSeconds)
         {
+            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+
             try
             {
-                var testFile = Path.Combine(FaceDataDirectory, "test.txt");
-                File.WriteAllText(testFile, "test");
-                File.Delete(testFile);
-                return true;
+                using (var process = new Process())
+                {
+                    process.StartInfo.FileName = PythonExecutable;
+                    process.StartInfo.Arguments = arguments;
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.RedirectStandardError = true;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
+                    process.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
+
+                    // Set environment variables
+                    process.StartInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+                    process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
+
+                    var outputBuilder = new System.Text.StringBuilder();
+                    var errorBuilder = new System.Text.StringBuilder();
+
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            outputBuilder.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            errorBuilder.AppendLine(e.Data);
+                        }
+                    };
+
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    // Wait for process to complete with cancellation support
+                    var processTask = Task.Run(() =>
+                    {
+                        process.WaitForExit();
+                        return process.ExitCode;
+                    }, cancellationTokenSource.Token);
+
+                    try
+                    {
+                        var exitCode = await processTask;
+
+                        string output = outputBuilder.ToString().Trim();
+                        string error = errorBuilder.ToString().Trim();
+
+                        if (exitCode == 0 && !string.IsNullOrEmpty(output))
+                        {
+                            // Try to parse as JSON to validate
+                            try
+                            {
+                                var testParse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(output);
+
+                                return new FaceRecognitionServiceResult
+                                {
+                                    Success = testParse.ContainsKey("success") && testParse["success"].ToString().ToLower() == "true",
+                                    Message = testParse.ContainsKey("message") ? testParse["message"].ToString() : "",
+                                    Output = output
+                                };
+                            }
+                            catch
+                            {
+                                return new FaceRecognitionServiceResult
+                                {
+                                    Success = false,
+                                    Message = $"Kết quả không hợp lệ: {output}"
+                                };
+                            }
+                        }
+                        else
+                        {
+                            string errorMessage = !string.IsNullOrEmpty(error) ? error : $"Process exited with code {exitCode}";
+
+                            return new FaceRecognitionServiceResult
+                            {
+                                Success = false,
+                                Message = errorMessage
+                            };
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        try
+                        {
+                            process.Kill();
+                        }
+                        catch { }
+
+                        return new FaceRecognitionServiceResult
+                        {
+                            Success = false,
+                            Message = $"Quá thời gian chờ ({timeoutSeconds}s)"
+                        };
+                    }
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                return new FaceRecognitionServiceResult
+                {
+                    Success = false,
+                    Message = $"Lỗi thực thi: {ex.Message}"
+                };
+            }
+            finally
+            {
+                cancellationTokenSource?.Dispose();
             }
         }
 
-        #endregion
+        private static string EscapeArgument(string argument)
+        {
+            if (string.IsNullOrEmpty(argument))
+                return argument;
+
+            // Escape special characters for command line
+            return argument.Replace("\"", "\\\"").Replace("\\", "\\\\");
+        }
     }
-
-    #region Result Classes
-
-    /// <summary>
-    /// Kết quả kiểm tra hệ thống
-    /// </summary>
     public class SystemReadinessResult
     {
         public bool IsReady { get; set; }
-        public List<string> Errors { get; set; } = new List<string>();
+        public string Message { get; set; } = string.Empty;
+        public string ErrorMessage { get; set; } = string.Empty;
     }
 
-    /// <summary>
-    /// Kết quả cài đặt
-    /// </summary>
-    public class InstallationResult
+    // Supporting classes
+    public class FaceRecognitionServiceResult
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
-    }
-
-    /// <summary>
-    /// Kết quả đăng ký khuôn mặt
-    /// </summary>
-    public class FaceRegistrationResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
+        public string Output { get; set; } = string.Empty;
         public string FacePath { get; set; } = string.Empty;
+        public List<RegisteredFace> Faces { get; set; } = new List<RegisteredFace>();
     }
 
-    /// <summary>
-    /// Kết quả nhận diện khuôn mặt
-    /// </summary>
     public class FaceRecognitionResult
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public string EmployeeId { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
-        public double Confidence { get; set; }
+        public decimal Confidence { get; set; }
         public DateTime Timestamp { get; set; }
         public string AttendanceImagePath { get; set; } = string.Empty;
     }
 
-    /// <summary>
-    /// Kết quả xóa khuôn mặt
-    /// </summary>
-    public class FaceDeleteResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-    }
-
-    /// <summary>
-    /// Kết quả danh sách khuôn mặt
-    /// </summary>
-    public class RegisteredFacesResult
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public List<RegisteredFace> Faces { get; set; } = new List<RegisteredFace>();
-    }
-
-    /// <summary>
-    /// Thông tin khuôn mặt đã đăng ký
-    /// </summary>
     public class RegisteredFace
     {
         public string EmployeeId { get; set; } = string.Empty;
         public string EmployeeName { get; set; } = string.Empty;
-        public string FacePath { get; set; } = string.Empty;
-        public DateTime RegisterDate { get; set; }
     }
 
-    #endregion
+   
+    public class AttendanceCreateResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string AttendanceType { get; set; } = string.Empty;
+    }
+ 
+   
+
 }

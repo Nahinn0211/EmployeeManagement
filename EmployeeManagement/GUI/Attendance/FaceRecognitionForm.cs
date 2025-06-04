@@ -16,8 +16,11 @@ namespace EmployeeManagement.GUI.Attendance
     {
         private readonly AttendanceBLL attendanceBLL;
         private readonly EmployeeBLL employeeBLL;
+
+        // Recognition state
         private bool isRecognizing = false;
         private DateTime recognitionStartTime;
+        private int recognitionTimeoutSeconds = 30;
 
         // Camera components
         private FilterInfoCollection? videoDevices;
@@ -30,512 +33,197 @@ namespace EmployeeManagement.GUI.Attendance
             InitializeComponent();
             attendanceBLL = new AttendanceBLL();
             employeeBLL = new EmployeeBLL();
-
-            // Set initial UI state
-            SetInitialUIState();
-
-            // Initialize asynchronously to prevent blocking
-            System.Threading.Tasks.Task.Run(InitializeFormAsync);
         }
 
-        private void SetInitialUIState()
+        private async void FaceRecognitionForm_Load(object sender, EventArgs e)
         {
-            lblStatus.Text = "⏳ Đang khởi tạo hệ thống...";
-            lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
-            lblCameraStatus.Text = "📷 Đang kiểm tra camera...";
-            lblCameraStatus.ForeColor = Color.Yellow;
-            btnStartRecognition.Enabled = false;
-            btnSettings.Enabled = true; // Keep settings always available
+            await InitializeSystemAsync();
         }
 
-        private async System.Threading.Tasks.Task InitializeFormAsync()
+        private async Task InitializeSystemAsync()
+        {
+            try
+            {
+                lblStatus.Text = "🔍 Đang kiểm tra hệ thống...";
+                lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
+
+                // 1. Kiểm tra hệ thống Face Recognition
+                await CheckFaceRecognitionSystemAsync();
+
+                // 2. Khởi tạo camera
+                await InitializeCameraAsync();
+
+                // 3. Kích hoạt nút nếu mọi thứ OK
+                if (isCameraRunning)
+                {
+                    EnableRecognitionButton();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi khởi tạo hệ thống: {ex.Message}");
+            }
+        }
+
+        private async Task CheckFaceRecognitionSystemAsync()
+        {
+            try
+            {
+                lblStatus.Text = "🔍 Đang kiểm tra Python Face Recognition...";
+
+                var systemCheck = await Task.Run(() => FaceRecognitionService.CheckSystemReadiness());
+
+                if (!systemCheck.IsReady)
+                {
+                    lblStatus.Text = "⚠️ Hệ thống Face Recognition chưa sẵn sàng";
+                    lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
+
+                    var result = MessageBox.Show(
+                        $"Hệ thống Face Recognition có vấn đề:\n\n{systemCheck.ErrorMessage}\n\n" +
+                        "Bạn có muốn tiếp tục để test camera không?\n\n" +
+                        "Lưu ý: Chức năng nhận diện sẽ không hoạt động.",
+                        "Cảnh báo hệ thống",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning
+                    );
+
+                    if (result == DialogResult.No)
+                    {
+                        this.Close();
+                        return;
+                    }
+                }
+                else
+                {
+                    lblStatus.Text = "✅ Hệ thống Face Recognition sẵn sàng";
+                    lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
+                }
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = "❌ Lỗi kiểm tra hệ thống Face Recognition";
+                lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
+                System.Diagnostics.Debug.WriteLine($"Face Recognition check error: {ex.Message}");
+            }
+        }
+
+        private async Task InitializeCameraAsync()
         {
             try
             {
                 isInitializing = true;
+                lblCameraStatus.Text = "📷 Đang tìm camera...";
+                lblStatus.Text = "📷 Đang khởi tạo camera...";
 
-                // Initialize camera in background thread
-                await System.Threading.Tasks.Task.Run(() => InitializeCamera());
+                // Tìm camera devices
+                await Task.Run(() =>
+                {
+                    videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                });
 
-                // Check system readiness
-                await CheckSystemReadinessAsync();
+                if (videoDevices == null || videoDevices.Count == 0)
+                {
+                    ShowNoCameraError();
+                    return;
+                }
 
-                isInitializing = false;
+                lblCameraStatus.Text = $"📷 Tìm thấy {videoDevices.Count} camera";
+                lblCameraStatus.ForeColor = Color.Green;
+
+                // Log camera info
+                System.Diagnostics.Debug.WriteLine($"Found {videoDevices.Count} cameras:");
+                for (int i = 0; i < videoDevices.Count; i++)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Camera {i}: {videoDevices[i].Name}");
+                }
+
+                // Khởi động camera
+                await StartFirstAvailableCameraAsync();
             }
             catch (Exception ex)
             {
+                ShowError($"Lỗi khởi tạo camera: {ex.Message}");
+            }
+            finally
+            {
                 isInitializing = false;
-                this.Invoke(new Action(() =>
-                {
-                    lblStatus.Text = $"❌ Lỗi khởi tạo: {ex.Message}";
-                    lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-                    lblCameraStatus.Text = "❌ Khởi tạo thất bại";
-                    lblCameraStatus.ForeColor = Color.Red;
-
-                    MessageBox.Show($"Lỗi khởi tạo hệ thống: {ex.Message}\n\nVui lòng thử lại.",
-                        "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }));
             }
         }
 
-        private void InitializeCamera()
+        private async Task StartFirstAvailableCameraAsync()
         {
-            try
+            for (int i = 0; i < videoDevices.Count; i++)
             {
-                // Update UI from background thread
-                this.Invoke(new Action(() =>
-                {
-                    lblCameraStatus.Text = "📷 Đang tìm camera...";
-                    lblCameraStatus.ForeColor = Color.Yellow;
-                }));
-
-                System.Diagnostics.Debug.WriteLine("Starting camera detection...");
-
-                // Lấy danh sách camera
-                videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-
-                System.Diagnostics.Debug.WriteLine($"Found {videoDevices.Count} video devices");
-
-                this.Invoke(new Action(() =>
-                {
-                    if (videoDevices.Count == 0)
-                    {
-                        lblCameraStatus.Text = "❌ Không tìm thấy camera";
-                        lblCameraStatus.ForeColor = Color.Red;
-                        lblStatus.Text = "❌ Không có camera - Chỉ có thể test hệ thống";
-                        lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-                        btnStartRecognition.Enabled = false;
-
-                        MessageBox.Show("Không tìm thấy camera!\n\nKiểm tra:\n" +
-                            "• Camera đã được kết nối\n" +
-                            "• Driver camera đã cài đặt\n" +
-                            "• Quyền camera trong Windows Settings\n" +
-                            "• Camera không bị app khác sử dụng",
-                            "Lỗi Camera", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    // Hiển thị thông tin camera tìm thấy
-                    System.Diagnostics.Debug.WriteLine("Available cameras:");
-                    for (int i = 0; i < videoDevices.Count; i++)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  Camera {i}: {videoDevices[i].Name}");
-                    }
-
-                    lblCameraStatus.Text = $"📷 Tìm thấy {videoDevices.Count} camera - Đang khởi động...";
-                    lblCameraStatus.ForeColor = Color.Green;
-
-                    // Khởi động camera ngay lập tức
-                    System.Threading.Tasks.Task.Run(StartCameraWithRetryAsync);
-                }));
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Camera detection error: {ex.Message}");
-                this.Invoke(new Action(() =>
-                {
-                    lblCameraStatus.Text = $"❌ Lỗi camera: {ex.Message}";
-                    lblCameraStatus.ForeColor = Color.Red;
-                    lblStatus.Text = "❌ Lỗi camera - Có thể test hệ thống";
-                    lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-                    btnStartRecognition.Enabled = false;
-                }));
-            }
-        }
-
-        private async System.Threading.Tasks.Task StartCameraWithRetryAsync()
-        {
-            const int maxRetries = 3;
-            int retryCount = 0;
-
-            while (retryCount < maxRetries && !isCameraRunning && !this.IsDisposed)
-            {
-                retryCount++;
-                System.Diagnostics.Debug.WriteLine($"Camera start attempt {retryCount}/{maxRetries}");
-
                 try
                 {
-                    this.Invoke(new Action(() =>
+                    lblCameraStatus.Text = $"📷 Đang thử camera {i + 1}...";
+
+                    // Cleanup previous camera
+                    CleanupCamera();
+
+                    // Create new camera
+                    videoSource = new VideoCaptureDevice(videoDevices[i].MonikerString);
+
+                    // Set resolution if available
+                    if (videoSource.VideoCapabilities?.Length > 0)
                     {
-                        lblCameraStatus.Text = $"📷 Đang khởi động camera (lần {retryCount})...";
-                        lblCameraStatus.ForeColor = Color.Yellow;
-                    }));
+                        var capability = videoSource.VideoCapabilities
+                            .Where(c => c.FrameSize.Width <= 640 && c.FrameSize.Height <= 480)
+                            .OrderByDescending(c => c.FrameSize.Width * c.FrameSize.Height)
+                            .FirstOrDefault() ?? videoSource.VideoCapabilities[0];
 
-                    if (videoDevices?.Count > 0)
-                    {
-                        // Thử từng camera cho đến khi tìm được camera hoạt động
-                        for (int i = 0; i < videoDevices.Count && !isCameraRunning; i++)
-                        {
-                            try
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Trying camera {i}: {videoDevices[i].Name}");
-
-                                // Dọn dẹp camera cũ nếu có
-                                if (videoSource != null)
-                                {
-                                    try
-                                    {
-                                        videoSource.NewFrame -= VideoSource_NewFrame;
-                                        if (videoSource.IsRunning)
-                                        {
-                                            videoSource.SignalToStop();
-                                            videoSource.WaitForStop();
-                                        }
-                                    }
-                                    catch { }
-                                    videoSource = null;
-                                }
-
-                                await System.Threading.Tasks.Task.Delay(500); // Delay giữa các lần thử
-
-                                videoSource = new VideoCaptureDevice(videoDevices[i].MonikerString);
-
-                                // Thiết lập độ phân giải với error handling
-                                try
-                                {
-                                    if (videoSource.VideoCapabilities?.Length > 0)
-                                    {
-                                        // Tìm độ phân giải phù hợp (ưu tiên 640x480, nếu không có thì chọn nhỏ nhất)
-                                        var capability = videoSource.VideoCapabilities
-                                            .Where(c => c.FrameSize.Width <= 640 && c.FrameSize.Height <= 480)
-                                            .OrderByDescending(c => c.FrameSize.Width * c.FrameSize.Height)
-                                            .FirstOrDefault() ?? videoSource.VideoCapabilities
-                                            .OrderBy(c => c.FrameSize.Width * c.FrameSize.Height)
-                                            .First();
-
-                                        videoSource.VideoResolution = capability;
-                                        System.Diagnostics.Debug.WriteLine($"Set resolution: {capability.FrameSize.Width}x{capability.FrameSize.Height}");
-                                    }
-                                }
-                                catch (Exception resEx)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Resolution setting failed: {resEx.Message}");
-                                    // Tiếp tục mà không set resolution
-                                }
-
-                                videoSource.NewFrame += VideoSource_NewFrame;
-
-                                // Start camera với timeout dài hơn
-                                var startTask = System.Threading.Tasks.Task.Run(() =>
-                                {
-                                    videoSource.Start();
-                                    System.Diagnostics.Debug.WriteLine($"Camera {i} Start() method called");
-                                });
-
-                                var timeoutTask = System.Threading.Tasks.Task.Delay(10000); // 10 giây timeout
-                                var completedTask = await System.Threading.Tasks.Task.WhenAny(startTask, timeoutTask);
-
-                                if (completedTask == timeoutTask)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Camera {i} start timeout");
-                                    continue; // Thử camera tiếp theo
-                                }
-
-                                // Đợi camera khởi động hoàn toàn
-                                await System.Threading.Tasks.Task.Delay(1500);
-
-                                // Kiểm tra camera có thực sự chạy không
-                                if (videoSource.IsRunning)
-                                {
-                                    isCameraRunning = true;
-                                    System.Diagnostics.Debug.WriteLine($"Camera {i} started successfully!");
-
-                                    this.Invoke(new Action(() =>
-                                    {
-                                        lblCameraStatus.Text = $"📷 Camera sẵn sàng ({videoDevices[i].Name})";
-                                        lblCameraStatus.ForeColor = Color.White;
-                                    }));
-
-                                    return; // Thành công, thoát khỏi tất cả loops
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"Camera {i} failed to start (IsRunning = false)");
-                                }
-                            }
-                            catch (Exception camEx)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"Camera {i} error: {camEx.Message}");
-                                continue; // Thử camera tiếp theo
-                            }
-                        }
+                        videoSource.VideoResolution = capability;
                     }
 
-                    // Nếu đến đây mà vẫn chưa có camera nào chạy được
-                    if (!isCameraRunning)
+                    // Register event handler
+                    videoSource.NewFrame += VideoSource_NewFrame;
+
+                    // Start camera
+                    videoSource.Start();
+
+                    // Wait for camera to start
+                    await Task.Delay(2000);
+
+                    if (videoSource.IsRunning)
                     {
-                        throw new Exception($"Không thể khởi động camera nào sau {retryCount} lần thử");
-                    }
-                    else
-                    {
-                        // Thành công, thoát khỏi retry loop
-                        break;
+                        isCameraRunning = true;
+                        lblCameraStatus.Text = $"📷 Camera {i + 1} đang hoạt động";
+                        lblCameraStatus.ForeColor = Color.FromArgb(76, 175, 80);
+                        lblStatus.Text = "📹 Camera sẵn sàng";
+                        lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
+
+                        System.Diagnostics.Debug.WriteLine($"Camera {i} started successfully!");
+                        return;
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Camera start attempt {retryCount} failed: {ex.Message}");
-
-                    if (retryCount < maxRetries)
-                    {
-                        // Đợi trước khi thử lại
-                        await System.Threading.Tasks.Task.Delay(2000);
-                    }
-                    else
-                    {
-                        // Hết lần thử
-                        this.Invoke(new Action(() =>
-                        {
-                            lblCameraStatus.Text = "❌ Không thể khởi động camera";
-                            lblCameraStatus.ForeColor = Color.Red;
-                            lblStatus.Text = "❌ Camera không khả dụng - Chỉ test hệ thống";
-                            lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-
-                            // Hiển thị thông báo chi tiết
-                            MessageBox.Show($"Không thể khởi động camera sau {maxRetries} lần thử!\n\n" +
-                                $"Lỗi cuối: {ex.Message}\n\n" +
-                                "Các bước khắc phục:\n" +
-                                "1. Đóng tất cả ứng dụng khác đang dùng camera\n" +
-                                "2. Kiểm tra quyền camera trong Windows Settings\n" +
-                                "3. Thử rút và cắm lại camera USB\n" +
-                                "4. Kiểm tra Device Manager xem camera có lỗi không\n" +
-                                "5. Khởi động lại ứng dụng với quyền Administrator",
-                                "Lỗi Camera", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }));
-                        break;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"Camera {i} failed: {ex.Message}");
+                    continue;
                 }
             }
-        }
 
-        // Thêm method để test camera thủ công từ Settings
-        private void TestCameraManually()
-        {
-            try
-            {
-                lblStatus.Text = "🔄 Đang test camera...";
-                lblStatus.ForeColor = Color.Yellow;
-
-                // Stop camera hiện tại
-                StopCamera();
-
-                // Restart camera detection
-                System.Threading.Tasks.Task.Run(() =>
-                {
-                    System.Threading.Tasks.Task.Delay(1000).Wait(); // Đợi 1 giây
-                    InitializeCamera();
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi test camera: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        // Cập nhật Settings để có nút Test Camera
-        private void BtnSettings_Click(object? sender, EventArgs e)
-        {
-            using var settingsForm = new Form
-            {
-                Text = "Cài đặt hệ thống",
-                Size = new Size(450, 400),
-                StartPosition = FormStartPosition.CenterParent,
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                MaximizeBox = false,
-                MinimizeBox = false
-            };
-
-            var infoLabel = new Label
-            {
-                Text = "Thông tin hệ thống:\n\n" +
-                       $"• Camera: {videoDevices?.Count ?? 0} thiết bị\n" +
-                       $"• Trạng thái camera: {(isCameraRunning ? "Đang chạy" : "Dừng")}\n" +
-                       $"• Đang nhận diện: {(isRecognizing ? "Có" : "Không")}\n" +
-                       $"• Face Recognition: {(FaceRecognitionService.CheckSystemReadiness().IsReady ? "Sẵn sàng" : "Chưa sẵn sàng")}\n\n" +
-                       "Nếu camera không hoạt động, hãy thử:",
-                Location = new Point(20, 20),
-                Size = new Size(400, 180),
-                Font = new Font("Segoe UI", 9)
-            };
-
-            var btnTestCamera = new Button
-            {
-                Text = "🔄 TEST CAMERA",
-                Location = new Point(20, 220),
-                Size = new Size(150, 40),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                BackColor = Color.FromArgb(0, 120, 215),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-
-            var btnCheckPermissions = new Button
-            {
-                Text = "⚙️ MỞ CAMERA SETTINGS",
-                Location = new Point(180, 220),
-                Size = new Size(180, 40),
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                BackColor = Color.FromArgb(255, 140, 0),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-
-            var btnClose = new Button
-            {
-                Text = "Đóng",
-                Location = new Point(170, 280),
-                Size = new Size(100, 35),
-                DialogResult = DialogResult.OK
-            };
-
-            btnTestCamera.Click += (s, ev) =>
-            {
-                settingsForm.Hide();
-                TestCameraManually();
-                settingsForm.Show();
-            };
-
-            btnCheckPermissions.Click += (s, ev) =>
-            {
-                try
-                {
-                    // Mở Camera settings trong Windows
-                    System.Diagnostics.Process.Start("ms-settings:privacy-webcam");
-                }
-                catch
-                {
-                    MessageBox.Show("Không thể mở Camera Settings.\n\nVui lòng mở thủ công:\nSettings > Privacy > Camera",
-                        "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            };
-
-            settingsForm.Controls.Add(infoLabel);
-            settingsForm.Controls.Add(btnTestCamera);
-            settingsForm.Controls.Add(btnCheckPermissions);
-            settingsForm.Controls.Add(btnClose);
-
-            settingsForm.ShowDialog(this);
-        }
-        private async System.Threading.Tasks.Task StartCameraAsync()
-        {
-            try
-            {
-                if (videoDevices?.Count > 0 && !isCameraRunning && !this.IsDisposed)
-                {
-                    this.Invoke(new Action(() =>
-                    {
-                        lblCameraStatus.Text = "📷 Đang khởi động camera...";
-                        lblCameraStatus.ForeColor = Color.Yellow;
-                    }));
-
-                    await System.Threading.Tasks.Task.Delay(200); // Small delay
-
-                    videoSource = new VideoCaptureDevice(videoDevices[0].MonikerString);
-
-                    // Thiết lập độ phân giải với timeout
-                    if (videoSource.VideoCapabilities?.Length > 0)
-                    {
-                        var capability = videoSource.VideoCapabilities
-                            .FirstOrDefault(c => c.FrameSize.Width == 640 && c.FrameSize.Height == 480)
-                            ?? videoSource.VideoCapabilities[0];
-                        videoSource.VideoResolution = capability;
-                    }
-
-                    videoSource.NewFrame += VideoSource_NewFrame;
-
-                    // Start camera with timeout protection
-                    var startTask = System.Threading.Tasks.Task.Run(() => videoSource.Start());
-                    var timeoutTask = System.Threading.Tasks.Task.Delay(5000); // 5 second timeout
-
-                    var completedTask = await System.Threading.Tasks.Task.WhenAny(startTask, timeoutTask);
-
-                    if (completedTask == timeoutTask)
-                    {
-                        throw new TimeoutException("Camera startup timeout");
-                    }
-
-                    isCameraRunning = true;
-
-                    this.Invoke(new Action(() =>
-                    {
-                        lblCameraStatus.Text = "📷 Camera sẵn sàng";
-                        lblCameraStatus.ForeColor = Color.White;
-                    }));
-                }
-            }
-            catch (Exception ex)
-            {
-                this.Invoke(new Action(() =>
-                {
-                    lblCameraStatus.Text = $"❌ Lỗi khởi động camera: {ex.Message}";
-                    lblCameraStatus.ForeColor = Color.Red;
-                    lblStatus.Text = "❌ Camera không khả dụng - Chỉ test hệ thống";
-                    lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-                }));
-            }
-        }
-
-        private void StopCamera()
-        {
-            try
-            {
-                if (videoSource?.IsRunning == true)
-                {
-                    videoSource.NewFrame -= VideoSource_NewFrame;
-                    videoSource.SignalToStop();
-
-                    // Wait with timeout
-                    var stopTask = System.Threading.Tasks.Task.Run(() => videoSource.WaitForStop());
-                    stopTask.Wait(2000); // 2 second timeout
-
-                    videoSource = null;
-                }
-                isCameraRunning = false;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error stopping camera: {ex.Message}");
-                isCameraRunning = false;
-            }
+            // Nếu không camera nào chạy được
+            ShowCameraStartError();
         }
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
             try
             {
-                if (this.IsDisposed || this.Disposing) return;
+                if (this.IsDisposed || pictureBoxCamera == null) return;
 
                 // Clone frame để tránh access violation
                 var frame = (Bitmap)eventArgs.Frame.Clone();
 
-                // Cập nhật UI trên main thread với error handling
+                // Update UI trên main thread
                 if (this.InvokeRequired)
                 {
-                    this.BeginInvoke(new Action(() =>
-                    {
-                        try
-                        {
-                            if (!this.IsDisposed && pictureBoxCamera != null)
-                            {
-                                var oldImage = pictureBoxCamera.Image;
-                                pictureBoxCamera.Image = frame;
-                                oldImage?.Dispose();
-
-                                // Update camera status during recognition
-                                if (isRecognizing)
-                                {
-                                    var elapsed = (DateTime.Now - recognitionStartTime).TotalSeconds;
-                                    var remaining = 30 - elapsed;
-                                    lblCameraStatus.Text = $"🔍 Đang nhận diện... ({remaining:F0}s)";
-                                    lblCameraStatus.ForeColor = Color.Yellow;
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
-                        }
-                    }));
+                    this.BeginInvoke(new Action(() => UpdateCameraDisplay(frame)));
+                }
+                else
+                {
+                    UpdateCameraDisplay(frame);
                 }
             }
             catch (Exception ex)
@@ -544,152 +232,150 @@ namespace EmployeeManagement.GUI.Attendance
             }
         }
 
-        private async System.Threading.Tasks.Task CheckSystemReadinessAsync()
+        private void UpdateCameraDisplay(Bitmap frame)
         {
             try
             {
-                await System.Threading.Tasks.Task.Run(async () =>
+                if (this.IsDisposed || pictureBoxCamera == null)
                 {
-                    this.Invoke(new Action(() =>
-                    {
-                        lblStatus.Text = "🔍 Đang kiểm tra hệ thống...";
-                        lblStatus.ForeColor = Color.FromArgb(33, 150, 243);
-                    }));
+                    frame?.Dispose();
+                    return;
+                }
 
-                    await System.Threading.Tasks.Task.Delay(500); // Simulate check time
+                // Dispose old image
+                var oldImage = pictureBoxCamera.Image;
+                pictureBoxCamera.Image = frame;
+                oldImage?.Dispose();
 
-                    var checkResult = FaceRecognitionService.CheckSystemReadiness();
-
-                    this.Invoke(new Action(() =>
-                    {
-                        if (!checkResult.IsReady)
-                        {
-                            lblStatus.Text = "⚠️ Hệ thống chưa sẵn sàng - Nhấn Cài đặt";
-                            lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
-
-                            // Still enable button for testing
-                            btnStartRecognition.Enabled = true;
-                            btnStartRecognition.Text = "🔧 TEST HỆ THỐNG";
-                        }
-                        else
-                        {
-                            lblStatus.Text = "✅ Sẵn sàng chấm công";
-                            lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
-                            btnStartRecognition.Enabled = true;
-                            btnStartRecognition.Text = "🚀 BẮT ĐẦU NHẬN DIỆN";
-                        }
-                    }));
-                });
+                // Update status during recognition
+                if (isRecognizing)
+                {
+                    var elapsed = (DateTime.Now - recognitionStartTime).TotalSeconds;
+                    var remaining = Math.Max(0, recognitionTimeoutSeconds - elapsed);
+                    lblCameraStatus.Text = $"🔍 Đang nhận diện... ({remaining:F0}s)";
+                    lblCameraStatus.ForeColor = Color.Yellow;
+                }
+                else if (!lblCameraStatus.Text.Contains("đang hoạt động"))
+                {
+                    lblCameraStatus.Text = "📷 Camera đang hoạt động";
+                    lblCameraStatus.ForeColor = Color.FromArgb(76, 175, 80);
+                }
             }
             catch (Exception ex)
             {
-                this.Invoke(new Action(() =>
-                {
-                    lblStatus.Text = $"❌ Lỗi kiểm tra: {ex.Message}";
-                    lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-                    btnStartRecognition.Enabled = true;
-                    btnStartRecognition.Text = "🔧 TEST HỆ THỐNG";
-                }));
+                System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
+                frame?.Dispose();
             }
         }
 
-        private async void BtnStartRecognition_Click(object? sender, EventArgs e)
+        private void EnableRecognitionButton()
         {
-            if (isRecognizing || isInitializing) return;
+            btnStartRecognition.Enabled = true;
+            btnStartRecognition.Text = "🚀 BẮT ĐẦU NHẬN DIỆN";
+            lblStatus.Text = "✅ Hệ thống sẵn sàng chấm công";
+            lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
+        }
 
+        private async void BtnStartRecognition_Click(object sender, EventArgs e)
+        {
+            if (isRecognizing) return;
+
+            // Kiểm tra điều kiện trước khi bắt đầu
+            if (!isCameraRunning)
+            {
+                MessageBox.Show("Camera chưa sẵn sàng!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await StartFaceRecognitionAsync();
+        }
+
+        private async Task StartFaceRecognitionAsync()
+        {
             try
             {
-                // Quick UI feedback
-                btnStartRecognition.Enabled = false;
-                lblStatus.Text = "⏳ Đang chuẩn bị...";
-                lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
-
-                await System.Threading.Tasks.Task.Delay(100); // Let UI update
-
+                // Prepare UI
                 isRecognizing = true;
                 recognitionStartTime = DateTime.Now;
 
-                // UI Updates
                 btnStartRecognition.Visible = false;
                 btnCancel.Visible = true;
                 progressBarRecognition.Visible = true;
                 progressBarRecognition.Value = 0;
                 panelResult.Visible = false;
 
-                lblStatus.Text = "🔍 Đang nhận diện... Vui lòng nhìn vào camera";
+                lblStatus.Text = "🔍 Đang nhận diện khuôn mặt... Vui lòng nhìn vào camera";
                 lblStatus.ForeColor = Color.FromArgb(33, 150, 243);
 
-                // Highlight camera area
+                // Highlight camera
                 panelCamera.BackColor = Color.FromArgb(33, 150, 243);
 
                 // Start timers
                 timerRecognition.Start();
                 timerUpdate.Start();
 
-                // Start recognition with timeout
-                var recognitionTask = FaceRecognitionService.RecognizeFromCameraAsync(30);
-                var timeoutTask = System.Threading.Tasks.Task.Delay(35000); // 35 second total timeout
-
-                var completedTask = await System.Threading.Tasks.Task.WhenAny(recognitionTask, timeoutTask);
+                // Call face recognition service
+                var recognitionTask = FaceRecognitionService.RecognizeFromCameraAsync(recognitionTimeoutSeconds);
+                var result = await recognitionTask;
 
                 // Stop timers
                 timerRecognition.Stop();
                 timerUpdate.Stop();
 
-                if (completedTask == timeoutTask)
+                if (result.Success)
                 {
-                    ProcessFailedRecognition("⏰ Hết thời gian - Hệ thống không phản hồi");
+                    await ProcessSuccessfulRecognitionAsync(result);
                 }
                 else
                 {
-                    var result = await recognitionTask;
-                    if (result.Success)
-                    {
-                        await ProcessSuccessfulRecognition(result);
-                    }
-                    else
-                    {
-                        ProcessFailedRecognition(result.Message ?? "Nhận diện thất bại");
-                    }
+                    ProcessFailedRecognition(result.Message ?? "Không nhận diện được khuôn mặt");
                 }
             }
             catch (Exception ex)
             {
+                timerRecognition.Stop();
+                timerUpdate.Stop();
                 ProcessFailedRecognition($"Lỗi: {ex.Message}");
             }
             finally
             {
-                ResetUI();
+                ResetRecognitionUI();
             }
         }
 
-        private async System.Threading.Tasks.Task ProcessSuccessfulRecognition(FaceRecognitionResult result)
+        private async Task ProcessSuccessfulRecognitionAsync(FaceRecognitionResult result)
         {
             try
             {
                 lblStatus.Text = "🔍 Đang xử lý kết quả...";
 
-                // Tìm nhân viên bằng EmployeeCode
-                var allEmployees = await employeeBLL.GetAllEmployeesAsync();
-                var employee = allEmployees.FirstOrDefault(e => e.EmployeeCode == result.EmployeeId);
+                // Tìm nhân viên theo EmployeeCode
+                var employee = await employeeBLL.GetEmployeeByCodeAsync(result.EmployeeId);
 
                 if (employee == null)
                 {
-                    ProcessFailedRecognition("Không tìm thấy thông tin nhân viên");
+                    ProcessFailedRecognition($"Không tìm thấy nhân viên có mã: {result.EmployeeId}");
                     return;
                 }
 
-                // Lưu chấm công vào database
+                // Kiểm tra trạng thái nhân viên
+                if (employee.Status != "Đang làm việc")
+                {
+                    ProcessFailedRecognition($"Nhân viên {employee.FullName} không trong trạng thái làm việc");
+                    return;
+                }
+
+                // Lưu chấm công
                 var attendanceResult = await attendanceBLL.CreateAttendanceRecordAsync(
                     employee.EmployeeID.ToString(),
                     "Face Recognition",
-                    result.AttendanceImagePath
+                    result.AttendanceImagePath ?? ""
                 );
 
                 if (attendanceResult.Success)
                 {
                     ShowSuccessResult(result, employee, attendanceResult);
-                    SystemSounds.Asterisk.Play();
+                    PlaySuccessSound();
                     FlashSuccessEffect();
                 }
                 else
@@ -703,101 +389,90 @@ namespace EmployeeManagement.GUI.Attendance
             }
         }
 
-        // [Phần còn lại của các method giữ nguyên như bản trước]
         private void ShowSuccessResult(FaceRecognitionResult result, EmployeeDTO employee, AttendanceCreateResult attendanceResult)
         {
             lblStatus.Text = "✅ Chấm công thành công!";
             lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
-            lblCameraStatus.Text = $"✅ Nhận diện thành công - {attendanceResult.AttendanceType}";
+
+            var attendanceType = attendanceResult.AttendanceType == "CheckIn" ? "Chấm công vào" : "Chấm công ra";
+            lblCameraStatus.Text = $"✅ {attendanceType} thành công";
             lblCameraStatus.ForeColor = Color.FromArgb(76, 175, 80);
 
+            // Update result panel
             lblEmployeeInfo.Text = $"{employee.EmployeeCode} - {employee.FullName}";
             lblConfidence.Text = $"Độ tin cậy: {result.Confidence:F1}%";
-            lblTime.Text = $"Thời gian: {result.Timestamp:dd/MM/yyyy HH:mm:ss}\nLoại: {attendanceResult.AttendanceType}";
+            lblTime.Text = $"Thời gian: {result.Timestamp:dd/MM/yyyy HH:mm:ss}\n" +
+                          $"Loại: {attendanceType}\n" +
+                          $"Phòng ban: {employee.DepartmentName ?? "Chưa phân bổ"}";
 
-            if (!string.IsNullOrEmpty(employee.FaceDataPath) && System.IO.File.Exists(employee.FaceDataPath))
-            {
-                try
-                {
-                    pictureBoxEmployee.Image?.Dispose();
-                    pictureBoxEmployee.Image = Image.FromFile(employee.FaceDataPath);
-                }
-                catch
-                {
-                    pictureBoxEmployee.Image?.Dispose();
-                    pictureBoxEmployee.Image = CreateDefaultEmployeeImage(employee.FullName);
-                }
-            }
-            else
-            {
-                pictureBoxEmployee.Image?.Dispose();
-                pictureBoxEmployee.Image = CreateDefaultEmployeeImage(employee.FullName);
-            }
+            // Set employee image
+            SetEmployeeImage(employee);
 
             panelResult.Visible = true;
-            AutoHideResult();
-        }
 
-        private void AutoHideResult()
-        {
-            var timer = new System.Windows.Forms.Timer { Interval = 7000 };
-            timer.Tick += (s, e) =>
+            // Auto hide after 5 seconds
+            var hideTimer = new System.Windows.Forms.Timer { Interval = 5000 };
+            hideTimer.Tick += (s, e) =>
             {
-                timer.Stop();
-                timer.Dispose();
+                hideTimer.Stop();
+                hideTimer.Dispose();
                 if (!this.IsDisposed)
                 {
                     panelResult.Visible = false;
-                    lblStatus.Text = "✅ Sẵn sàng chấm công";
-                    lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
-                    lblCameraStatus.Text = "📷 Camera sẵn sàng";
-                    lblCameraStatus.ForeColor = Color.White;
+                    ResetStatusAfterSuccess();
                 }
             };
-            timer.Start();
+            hideTimer.Start();
         }
 
-        private static Bitmap CreateDefaultEmployeeImage(string employeeName)
+        private void SetEmployeeImage(EmployeeDTO employee)
+        {
+            try
+            {
+                pictureBoxEmployee.Image?.Dispose();
+
+                if (!string.IsNullOrEmpty(employee.FaceDataPath) && System.IO.File.Exists(employee.FaceDataPath))
+                {
+                    pictureBoxEmployee.Image = Image.FromFile(employee.FaceDataPath);
+                }
+                else
+                {
+                    pictureBoxEmployee.Image = CreateDefaultEmployeeImage(employee.FullName);
+                }
+            }
+            catch
+            {
+                pictureBoxEmployee.Image = CreateDefaultEmployeeImage(employee.FullName);
+            }
+        }
+
+        private static Bitmap CreateDefaultEmployeeImage(string name)
         {
             var bitmap = new Bitmap(100, 120);
             using var g = Graphics.FromImage(bitmap);
             g.FillRectangle(new SolidBrush(Color.FromArgb(63, 81, 181)), 0, 0, 100, 120);
+
             var font = new Font("Segoe UI", 12, FontStyle.Bold);
-            var initials = GetInitials(employeeName);
+            var initials = GetInitials(name);
             var textSize = g.MeasureString(initials, font);
             var x = (100 - textSize.Width) / 2;
             var y = (120 - textSize.Height) / 2;
+
             g.DrawString(initials, font, Brushes.White, x, y);
+            font.Dispose();
+
             return bitmap;
         }
 
         private static string GetInitials(string fullName)
         {
             if (string.IsNullOrEmpty(fullName)) return "??";
-            var parts = fullName.Split(' ');
-            if (parts.Length == 1) return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
+
+            var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+                return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
+
             return (parts[0][..1] + parts[^1][..1]).ToUpper();
-        }
-
-        private void FlashSuccessEffect()
-        {
-            var originalColor = panelCamera.BackColor;
-            var flashTimer = new System.Windows.Forms.Timer { Interval = 200 };
-            int flashCount = 0;
-
-            flashTimer.Tick += (s, e) =>
-            {
-                if (this.IsDisposed) { flashTimer.Stop(); return; }
-                flashCount++;
-                panelCamera.BackColor = flashCount % 2 == 0 ? Color.FromArgb(76, 175, 80) : originalColor;
-                if (flashCount >= 6)
-                {
-                    flashTimer.Stop();
-                    flashTimer.Dispose();
-                    panelCamera.BackColor = originalColor;
-                }
-            };
-            flashTimer.Start();
         }
 
         private void ProcessFailedRecognition(string message)
@@ -809,6 +484,7 @@ namespace EmployeeManagement.GUI.Attendance
 
             try { SystemSounds.Hand.Play(); } catch { }
 
+            // Auto reset after 3 seconds
             var resetTimer = new System.Windows.Forms.Timer { Interval = 3000 };
             resetTimer.Tick += (s, e) =>
             {
@@ -816,70 +492,240 @@ namespace EmployeeManagement.GUI.Attendance
                 resetTimer.Dispose();
                 if (!this.IsDisposed)
                 {
-                    lblStatus.Text = "✅ Sẵn sàng chấm công";
-                    lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
-                    lblCameraStatus.Text = "📷 Camera sẵn sàng";
-                    lblCameraStatus.ForeColor = Color.White;
+                    ResetStatusAfterSuccess();
                 }
             };
             resetTimer.Start();
         }
 
-        private void BtnCancel_Click(object? sender, EventArgs e)
+        private void ResetStatusAfterSuccess()
+        {
+            lblStatus.Text = "✅ Sẵn sàng chấm công";
+            lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
+            lblCameraStatus.Text = "📷 Camera sẵn sàng";
+            lblCameraStatus.ForeColor = Color.FromArgb(76, 175, 80);
+        }
+
+        private static void PlaySuccessSound()
+        {
+            try { SystemSounds.Asterisk.Play(); } catch { }
+        }
+
+        private void FlashSuccessEffect()
+        {
+            var originalColor = panelCamera.BackColor;
+            var flashTimer = new System.Windows.Forms.Timer { Interval = 200 };
+            int flashCount = 0;
+
+            flashTimer.Tick += (s, e) =>
+            {
+                if (this.IsDisposed)
+                {
+                    flashTimer.Stop();
+                    flashTimer.Dispose();
+                    return;
+                }
+
+                flashCount++;
+                panelCamera.BackColor = flashCount % 2 == 0 ?
+                    Color.FromArgb(76, 175, 80) : originalColor;
+
+                if (flashCount >= 6)
+                {
+                    flashTimer.Stop();
+                    flashTimer.Dispose();
+                    panelCamera.BackColor = originalColor;
+                }
+            };
+            flashTimer.Start();
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
         {
             if (isRecognizing)
             {
                 timerRecognition.Stop();
                 timerUpdate.Stop();
-                ResetUI();
+                ResetRecognitionUI();
 
                 lblStatus.Text = "⏹️ Đã hủy nhận diện";
                 lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
-                lblCameraStatus.Text = "📷 Camera sẵn sàng";
-                lblCameraStatus.ForeColor = Color.White;
 
-                var timer = new System.Windows.Forms.Timer { Interval = 2000 };
-                timer.Tick += (s, ev) =>
+                var resetTimer = new System.Windows.Forms.Timer { Interval = 2000 };
+                resetTimer.Tick += (s, ev) =>
                 {
-                    timer.Stop();
-                    timer.Dispose();
+                    resetTimer.Stop();
+                    resetTimer.Dispose();
                     if (!this.IsDisposed)
                     {
-                        lblStatus.Text = "✅ Sẵn sàng chấm công";
-                        lblStatus.ForeColor = Color.FromArgb(76, 175, 80);
+                        ResetStatusAfterSuccess();
                     }
                 };
-                timer.Start();
+                resetTimer.Start();
             }
         }
 
-      
-        private void TimerRecognition_Tick(object? sender, EventArgs e)
+        private void BtnSettings_Click(object sender, EventArgs e)
+        {
+            ShowSettingsDialog();
+        }
+
+        private void ShowSettingsDialog()
+        {
+            var form = new Form
+            {
+                Text = "Cài đặt hệ thống",
+                Size = new Size(500, 400),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false
+            };
+
+            var txtInfo = new TextBox
+            {
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Vertical,
+                Location = new Point(20, 20),
+                Size = new Size(440, 280),
+                Font = new Font("Consolas", 10),
+                Text = GetSystemInfo()
+            };
+
+            var btnRestartCamera = new Button
+            {
+                Text = "🔄 Khởi động lại Camera",
+                Location = new Point(50, 320),
+                Size = new Size(180, 40),
+                BackColor = Color.FromArgb(33, 150, 243),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+
+            var btnClose = new Button
+            {
+                Text = "Đóng",
+                Location = new Point(270, 320),
+                Size = new Size(100, 40),
+                DialogResult = DialogResult.OK
+            };
+
+            btnRestartCamera.Click += async (s, e) =>
+            {
+                form.Hide();
+                await RestartCameraAsync();
+                txtInfo.Text = GetSystemInfo();
+                form.Show();
+            };
+
+            form.Controls.Add(txtInfo);
+            form.Controls.Add(btnRestartCamera);
+            form.Controls.Add(btnClose);
+
+            form.ShowDialog(this);
+        }
+
+        private async Task RestartCameraAsync()
+        {
+            try
+            {
+                lblStatus.Text = "🔄 Đang khởi động lại camera...";
+                lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
+
+                CleanupCamera();
+                isCameraRunning = false;
+
+                await Task.Delay(1000);
+                await InitializeCameraAsync();
+
+                if (isCameraRunning)
+                {
+                    EnableRecognitionButton();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowError($"Lỗi khởi động lại camera: {ex.Message}");
+            }
+        }
+
+        private string GetSystemInfo()
+        {
+            var info = "=== THÔNG TIN HỆ THỐNG ===\r\n\r\n";
+            info += $"Camera devices: {videoDevices?.Count ?? 0}\r\n";
+            info += $"Camera running: {(isCameraRunning ? "Đang chạy" : "Dừng")}\r\n";
+            info += $"Is recognizing: {(isRecognizing ? "Có" : "Không")}\r\n";
+            info += $"OS: {Environment.OSVersion}\r\n";
+            info += $".NET Version: {Environment.Version}\r\n\r\n";
+
+            if (videoDevices?.Count > 0)
+            {
+                info += "=== DANH SÁCH CAMERA ===\r\n";
+                for (int i = 0; i < videoDevices.Count; i++)
+                {
+                    info += $"[{i}] {videoDevices[i].Name}\r\n";
+                }
+                info += "\r\n";
+            }
+
+            info += "=== FACE RECOGNITION STATUS ===\r\n";
+            try
+            {
+                var systemCheck = FaceRecognitionService.CheckSystemReadiness();
+                info += $"Status: {(systemCheck.IsReady ? "Sẵn sàng" : "Chưa sẵn sàng")}\r\n";
+                if (!systemCheck.IsReady)
+                {
+                    info += $"Error: {systemCheck.ErrorMessage}\r\n";
+                }
+                else
+                {
+                    info += $"Message: {systemCheck.Message}\r\n";
+                }
+            }
+            catch (Exception ex)
+            {
+                info += $"Error checking: {ex.Message}\r\n";
+            }
+
+            return info;
+        }
+
+        private void BtnRegisterFace_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var registerForm = new FaceRegistrationForm();
+                registerForm.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi mở form đăng ký: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void TimerRecognition_Tick(object sender, EventArgs e)
         {
             var elapsed = (DateTime.Now - recognitionStartTime).TotalSeconds;
-            if (elapsed >= 30)
+            if (elapsed >= recognitionTimeoutSeconds)
             {
                 timerRecognition.Stop();
                 timerUpdate.Stop();
-                ProcessFailedRecognition("⏰ Hết thời gian nhận diện (30s)");
-                ResetUI();
+                ProcessFailedRecognition("⏰ Hết thời gian nhận diện");
+                ResetRecognitionUI();
             }
         }
 
-        private void TimerUpdate_Tick(object? sender, EventArgs e)
+        private void TimerUpdate_Tick(object sender, EventArgs e)
         {
             if (isRecognizing)
             {
                 var elapsed = (DateTime.Now - recognitionStartTime).TotalSeconds;
-                var progress = (int)((elapsed / 30.0) * 100);
-                if (progressBarRecognition != null && !this.IsDisposed)
-                {
-                    progressBarRecognition.Value = Math.Min(progress, 100);
-                }
+                var progress = (int)((elapsed / recognitionTimeoutSeconds) * 100);
+                progressBarRecognition.Value = Math.Min(progress, 100);
             }
         }
 
-        private void ResetUI()
+        private void ResetRecognitionUI()
         {
             isRecognizing = false;
             btnStartRecognition.Visible = true;
@@ -887,36 +733,115 @@ namespace EmployeeManagement.GUI.Attendance
             btnCancel.Visible = false;
             progressBarRecognition.Visible = false;
             progressBarRecognition.Value = 0;
-            panelCamera.BackColor = Color.White;
+            panelCamera.BackColor = Color.Black;
         }
 
-        protected override void OnFormClosing(FormClosingEventArgs e)
+        private void ShowNoCameraError()
+        {
+            lblCameraStatus.Text = "❌ Không tìm thấy camera";
+            lblCameraStatus.ForeColor = Color.Red;
+            lblStatus.Text = "❌ Cần camera để chấm công";
+            lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
+            btnStartRecognition.Enabled = false;
+            btnStartRecognition.Text = "❌ KHÔNG CÓ CAMERA";
+
+            MessageBox.Show(
+                "Không tìm thấy camera!\n\n" +
+                "Vui lòng kiểm tra:\n" +
+                "• Camera đã được kết nối và bật\n" +
+                "• Driver camera đã cài đặt đúng\n" +
+                "• Quyền camera trong Windows Settings\n" +
+                "• Camera không bị ứng dụng khác sử dụng\n\n" +
+                "Sau khi khắc phục, hãy sử dụng nút 'Cài đặt' để khởi động lại.",
+                "Không có Camera",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+        }
+
+        private void ShowCameraStartError()
+        {
+            lblCameraStatus.Text = "❌ Không thể khởi động camera";
+            lblCameraStatus.ForeColor = Color.Red;
+            lblStatus.Text = "❌ Camera không khởi động được";
+            lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
+            btnStartRecognition.Enabled = false;
+            btnStartRecognition.Text = "❌ CAMERA LỖI";
+
+            MessageBox.Show(
+                "Camera không thể khởi động!\n\n" +
+                "Thử các cách khắc phục:\n" +
+                "1. Đóng tất cả ứng dụng camera khác (Skype, Teams, Zoom)\n" +
+                "2. Rút và cắm lại USB camera\n" +
+                "3. Sử dụng nút 'Cài đặt' để khởi động lại\n" +
+                "4. Kiểm tra Device Manager\n" +
+                "5. Thử camera khác nếu có",
+                "Camera Lỗi",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            );
+        }
+
+        private void ShowError(string message)
+        {
+            lblStatus.Text = $"❌ {message}";
+            lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
+            System.Diagnostics.Debug.WriteLine($"Error: {message}");
+        }
+
+        private void CleanupCamera()
         {
             try
             {
-                isInitializing = false;
-                isRecognizing = false;
+                if (videoSource != null)
+                {
+                    videoSource.NewFrame -= VideoSource_NewFrame;
+                    if (videoSource.IsRunning)
+                    {
+                        videoSource.SignalToStop();
+                        videoSource.WaitForStop();
+                    }
+                    videoSource = null;
+                }
+                isCameraRunning = false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Camera cleanup error: {ex.Message}");
+            }
+        }
 
+        private void FaceRecognitionForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            try
+            {
+                isRecognizing = false;
                 timerRecognition?.Stop();
                 timerUpdate?.Stop();
-
-                StopCamera();
-
+                timerRecognition?.Dispose();
+                timerUpdate?.Dispose();
+                CleanupCamera();
                 pictureBoxCamera?.Image?.Dispose();
                 pictureBoxEmployee?.Image?.Dispose();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Cleanup error: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Form closing cleanup error: {ex.Message}");
             }
-
-            base.OnFormClosing(e);
         }
 
-        protected override void OnLoad(EventArgs e)
+        protected override void Dispose(bool disposing)
         {
-            base.OnLoad(e);
-            // Camera initialization is handled in constructor async
+            if (disposing)
+            {
+                CleanupCamera();
+                timerRecognition?.Dispose();
+                timerUpdate?.Dispose();
+                pictureBoxCamera?.Image?.Dispose();
+                pictureBoxEmployee?.Image?.Dispose();
+                components?.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

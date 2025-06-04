@@ -435,7 +435,7 @@ namespace EmployeeManagement.GUI
                         OpenChildForm(new Projects.ProjectListForm());
                          break;
                     case "Task":
-                        OpenChildForm(new EmployeeManagement.GUI.Task.TaskListForm());
+                        OpenChildForm(new WorkTask.TaskListForm());
                          break;
                     case "Customer":
                          OpenChildForm(new Customer.CustomerListForm());
