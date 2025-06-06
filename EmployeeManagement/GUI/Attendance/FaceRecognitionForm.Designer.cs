@@ -242,13 +242,11 @@
             // timerRecognition
             // 
             this.timerRecognition.Interval = 1000;
-            this.timerRecognition.Tick += new System.EventHandler(this.TimerRecognition_Tick);
-            // 
+             // 
             // timerUpdate
             // 
             this.timerUpdate.Interval = 100;
-            this.timerUpdate.Tick += new System.EventHandler(this.TimerUpdate_Tick);
-            // 
+             // 
             // FaceRecognitionForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);

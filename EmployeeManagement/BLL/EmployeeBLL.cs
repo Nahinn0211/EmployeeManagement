@@ -4,6 +4,7 @@ using System.Linq;
 using EmployeeManagement.DAL;
 using EmployeeManagement.Models.DTO;
 using EmployeeManagement.Models.Entity;
+using EmployeeManagement.Utilities;
 
 namespace EmployeeManagement.BLL
 {
@@ -14,11 +15,14 @@ namespace EmployeeManagement.BLL
     {
         private readonly EmployeeDAL _employeeDAL;
         private readonly DepartmentDAL _departmentDAL;
+        private readonly UserDAL userDAL;
 
         public EmployeeBLL()
         {
             _employeeDAL = new EmployeeDAL();
             _departmentDAL = new DepartmentDAL();
+            userDAL = new UserDAL();
+
         }
 
         /// <summary>
@@ -548,6 +552,27 @@ namespace EmployeeManagement.BLL
             catch (Exception ex)
             {
                  throw new Exception($"Lỗi lấy thông tin nhân viên: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin nhân viên từ UserID hiện tại
+        /// </summary>
+        public async Task<EmployeeDTO> GetCurrentLoggedInEmployeeAsync()
+        {
+            try
+            {
+                if (!SessionManager.IsLoggedIn)
+                    return null;
+
+                int currentUserId = SessionManager.CurrentUserId;
+
+                // Có thể gọi UserDAL hoặc tìm trong danh sách employees
+                return await Task.Run(() => userDAL.GetEmployeeByUserId(currentUserId));
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi lấy thông tin nhân viên hiện tại: {ex.Message}", ex);
             }
         }
 

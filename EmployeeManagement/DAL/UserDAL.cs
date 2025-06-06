@@ -470,10 +470,151 @@ namespace EmployeeManagement.DAL
             return new UserStatistics();
         }
 
+
+        /// <summary>
+        /// Lấy EmployeeID từ UserID
+        /// </summary>
+        public int? GetEmployeeIdByUserId(int userId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = "SELECT EmployeeID FROM Users WHERE UserID = @UserID";
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@UserID", userId);
+
+                    connection.Open();
+                    var result = command.ExecuteScalar();
+
+                    return result != null && result != DBNull.Value ? (int?)result : null;
+                }
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Lấy thông tin Employee từ UserID
+        /// </summary>
+        public EmployeeDTO GetEmployeeByUserId(int userId)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                SELECT e.*, d.DepartmentName, p.PositionName
+                FROM Users u
+                INNER JOIN Employees e ON u.EmployeeID = e.EmployeeID  
+                LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                LEFT JOIN Positions p ON e.PositionID = p.PositionID
+                WHERE u.UserID = @UserID";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@UserID", userId);
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return MapReaderToEmployeeDTO(reader);
+                        }
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                 return null;
+            }
+        }
+
         #endregion
 
         #region Helper Methods
+        // Thêm vào cuối class UserDAL, trong region Helper Methods
 
+        /// <summary>
+        /// Map SqlDataReader to EmployeeDTO
+        /// </summary>
+        private EmployeeDTO MapReaderToEmployeeDTO(SqlDataReader reader)
+        {
+            try
+            {
+                var dto = new EmployeeDTO
+                {
+                    EmployeeID = Convert.ToInt32(reader["EmployeeID"]),
+                    EmployeeCode = reader["EmployeeCode"].ToString(),
+                    FirstName = reader["FirstName"].ToString(),
+                    LastName = reader["LastName"].ToString(),
+                    FullName = reader["FullName"].ToString(),
+                    Gender = reader["Gender"].ToString(),
+                    DateOfBirth = Convert.ToDateTime(reader["DateOfBirth"]),
+                    IDCardNumber = reader["IDCardNumber"].ToString(),
+                    Phone = reader["Phone"].ToString(),
+                    Email = reader["Email"].ToString(),
+                    Status = reader["Status"].ToString(),
+                    CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                    HireDate = Convert.ToDateTime(reader["HireDate"])
+                };
+
+                // Handle nullable fields
+                if (reader["Address"] != DBNull.Value)
+                    dto.Address = reader["Address"].ToString();
+
+                if (reader["DepartmentID"] != DBNull.Value)
+                {
+                    dto.DepartmentID = Convert.ToInt32(reader["DepartmentID"]);
+                    if (reader["DepartmentName"] != DBNull.Value)
+                        dto.DepartmentName = reader["DepartmentName"].ToString();
+                }
+
+                if (reader["PositionID"] != DBNull.Value)
+                {
+                    dto.PositionID = Convert.ToInt32(reader["PositionID"]);
+                    if (reader["PositionName"] != DBNull.Value)
+                        dto.PositionName = reader["PositionName"].ToString();
+                }
+
+                if (reader["ManagerID"] != DBNull.Value)
+                    dto.ManagerID = Convert.ToInt32(reader["ManagerID"]);
+
+                if (reader["EndDate"] != DBNull.Value)
+                    dto.EndDate = Convert.ToDateTime(reader["EndDate"]);
+
+                if (reader["BankAccount"] != DBNull.Value)
+                    dto.BankAccount = reader["BankAccount"].ToString();
+
+                if (reader["BankName"] != DBNull.Value)
+                    dto.BankName = reader["BankName"].ToString();
+
+                if (reader["TaxCode"] != DBNull.Value)
+                    dto.TaxCode = reader["TaxCode"].ToString();
+
+                if (reader["InsuranceCode"] != DBNull.Value)
+                    dto.InsuranceCode = reader["InsuranceCode"].ToString();
+
+                if (reader["Notes"] != DBNull.Value)
+                    dto.Notes = reader["Notes"].ToString();
+
+                if (reader["FaceDataPath"] != DBNull.Value)
+                    dto.FaceDataPath = reader["FaceDataPath"].ToString();
+
+                if (reader["UpdatedAt"] != DBNull.Value)
+                    dto.UpdatedAt = Convert.ToDateTime(reader["UpdatedAt"]);
+
+                return dto;
+            }
+            catch (Exception ex)
+            {
+                // Log error if needed
+                throw new Exception($"Error mapping EmployeeDTO: {ex.Message}", ex);
+            }
+        }
         public List<Employee> GetAvailableEmployees()
         {
             List<Employee> employees = new List<Employee>();

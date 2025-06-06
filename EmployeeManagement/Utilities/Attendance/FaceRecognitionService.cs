@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Threading;
+using System.Text.Json;
 
 namespace EmployeeManagement.Utilities
 {
@@ -30,25 +31,46 @@ namespace EmployeeManagement.Utilities
 
                 // Check if script exists
                 if (!File.Exists(ScriptPath))
-                    return new FaceRecognitionServiceResult { Success = false, Message = $"Không tìm thấy script Python: {ScriptPath}" };
-
-                // Escape arguments for command line
-                string safeEmployeeCode = EscapeArgument(employeeCode);
-                string safeEmployeeName = EscapeArgument(employeeName);
-                string safeImagePath = EscapeArgument(imagePath);
-
-                string arguments = $"\"{ScriptPath}\" register --employee_id \"{safeEmployeeCode}\" --employee_name \"{safeEmployeeName}\" --image_path \"{safeImagePath}\"";
-
-                var result = await ExecutePythonScriptAsync(arguments, TimeoutSeconds * 2); // Double timeout for registration
-
-                if (result.Success)
                 {
-                    // Parse the result to get face path
-                    var jsonResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(result.Output);
-
-                    if (jsonResult.ContainsKey("face_path"))
+                    return new FaceRecognitionServiceResult
                     {
-                        result.FacePath = jsonResult["face_path"].ToString();
+                        Success = false,
+                        Message = $"Không tìm thấy script Python: {ScriptPath}\nVui lòng kiểm tra đường dẫn trong App.config"
+                    };
+                }
+
+                // Build arguments
+                string arguments = $"\"{ScriptPath}\" register --employee_id \"{employeeCode}\" --employee_name \"{employeeName}\" --image_path \"{imagePath}\"";
+
+                var result = await ExecutePythonScriptAsync(arguments, TimeoutSeconds * 3); // Triple timeout for registration
+
+                if (result.Success && !string.IsNullOrEmpty(result.Output))
+                {
+                    try
+                    {
+                        var jsonResult = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(result.Output);
+
+                        if (jsonResult.ContainsKey("face_path") && jsonResult["face_path"].ValueKind == JsonValueKind.String)
+                        {
+                            result.FacePath = jsonResult["face_path"].GetString() ?? "";
+                        }
+
+                        // Update success status from JSON
+                        if (jsonResult.ContainsKey("success"))
+                        {
+                            result.Success = jsonResult["success"].GetBoolean();
+                        }
+
+                        // Update message from JSON
+                        if (jsonResult.ContainsKey("message") && jsonResult["message"].ValueKind == JsonValueKind.String)
+                        {
+                            result.Message = jsonResult["message"].GetString() ?? result.Message;
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        result.Success = false;
+                        result.Message = $"Lỗi phân tích JSON: {ex.Message}";
                     }
                 }
 
@@ -73,35 +95,68 @@ namespace EmployeeManagement.Utilities
                     return new FaceRecognitionResult
                     {
                         Success = false,
-                        Message = $"Không tìm thấy script Python: {ScriptPath}"
+                        Message = $"Không tìm thấy script Python: {ScriptPath}\nVui lòng kiểm tra đường dẫn trong App.config"
                     };
                 }
 
                 string arguments = $"\"{ScriptPath}\" recognize_camera --timeout {timeoutSeconds}";
-                var result = await ExecutePythonScriptAsync(arguments, timeoutSeconds + 10);
+                var result = await ExecutePythonScriptAsync(arguments, timeoutSeconds + 15);
 
-                if (result.Success)
+                if (result.Success && !string.IsNullOrEmpty(result.Output))
                 {
                     try
                     {
-                        var jsonResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(result.Output);
+                        var jsonResult = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(result.Output);
 
-                        return new FaceRecognitionResult
+                        var recognitionResult = new FaceRecognitionResult();
+
+                        // Check success
+                        if (jsonResult.ContainsKey("success"))
                         {
-                            Success = true,
-                            EmployeeId = jsonResult["employee_id"].ToString(),
-                            EmployeeName = jsonResult.ContainsKey("employee_name") ? jsonResult["employee_name"].ToString() : "",
-                            Confidence = Convert.ToDecimal(jsonResult["confidence"]),
-                            Timestamp = DateTime.Parse(jsonResult["timestamp"].ToString()),
-                            AttendanceImagePath = jsonResult.ContainsKey("attendance_image") ? jsonResult["attendance_image"].ToString() : null
-                        };
+                            recognitionResult.Success = jsonResult["success"].GetBoolean();
+                        }
+
+                        if (!recognitionResult.Success)
+                        {
+                            recognitionResult.Message = jsonResult.ContainsKey("message") && jsonResult["message"].ValueKind == JsonValueKind.String
+                                ? jsonResult["message"].GetString() ?? "Nhận diện thất bại"
+                                : "Nhận diện thất bại";
+                            return recognitionResult;
+                        }
+
+                        // Parse successful recognition data
+                        if (jsonResult.ContainsKey("employee_id") && jsonResult["employee_id"].ValueKind == JsonValueKind.String)
+                            recognitionResult.EmployeeId = jsonResult["employee_id"].GetString() ?? "";
+
+                        if (jsonResult.ContainsKey("employee_name") && jsonResult["employee_name"].ValueKind == JsonValueKind.String)
+                            recognitionResult.EmployeeName = jsonResult["employee_name"].GetString() ?? "";
+
+                        if (jsonResult.ContainsKey("confidence") && jsonResult["confidence"].ValueKind == JsonValueKind.Number)
+                            recognitionResult.Confidence = (decimal)jsonResult["confidence"].GetDouble();
+
+                        if (jsonResult.ContainsKey("timestamp") && jsonResult["timestamp"].ValueKind == JsonValueKind.String)
+                        {
+                            if (DateTime.TryParse(jsonResult["timestamp"].GetString(), out var timestamp))
+                                recognitionResult.Timestamp = timestamp;
+                            else
+                                recognitionResult.Timestamp = DateTime.Now;
+                        }
+                        else
+                        {
+                            recognitionResult.Timestamp = DateTime.Now;
+                        }
+
+                        if (jsonResult.ContainsKey("attendance_image") && jsonResult["attendance_image"].ValueKind == JsonValueKind.String)
+                            recognitionResult.AttendanceImagePath = jsonResult["attendance_image"].GetString();
+
+                        return recognitionResult;
                     }
-                    catch (Exception parseEx)
+                    catch (JsonException ex)
                     {
                         return new FaceRecognitionResult
                         {
                             Success = false,
-                            Message = $"Lỗi phân tích kết quả: {parseEx.Message}"
+                            Message = $"Lỗi phân tích kết quả JSON: {ex.Message}\nOutput: {result.Output}"
                         };
                     }
                 }
@@ -109,7 +164,7 @@ namespace EmployeeManagement.Utilities
                 return new FaceRecognitionResult
                 {
                     Success = false,
-                    Message = result.Message
+                    Message = string.IsNullOrEmpty(result.Message) ? "Không nhận diện được khuôn mặt" : result.Message
                 };
             }
             catch (Exception ex)
@@ -138,35 +193,50 @@ namespace EmployeeManagement.Utilities
                 string arguments = $"\"{ScriptPath}\" list";
                 var result = await ExecutePythonScriptAsync(arguments, TimeoutSeconds);
 
-                if (result.Success)
+                if (result.Success && !string.IsNullOrEmpty(result.Output))
                 {
                     try
                     {
-                        var jsonResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(result.Output);
+                        var jsonResult = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(result.Output);
 
                         var faces = new List<RegisteredFace>();
-                        if (jsonResult.ContainsKey("faces"))
-                        {
-                            var facesArray = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(jsonResult["faces"].ToString());
 
-                            foreach (var face in facesArray)
+                        if (jsonResult.ContainsKey("success") && jsonResult["success"].GetBoolean() &&
+                            jsonResult.ContainsKey("faces") && jsonResult["faces"].ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var faceElement in jsonResult["faces"].EnumerateArray())
                             {
-                                faces.Add(new RegisteredFace
+                                if (faceElement.ValueKind == JsonValueKind.Object)
                                 {
-                                    EmployeeId = face["employee_id"].ToString(),
-                                    EmployeeName = face["employee_name"].ToString()
-                                });
+                                    var faceObj = faceElement.Deserialize<Dictionary<string, JsonElement>>();
+                                    if (faceObj != null)
+                                    {
+                                        var face = new RegisteredFace();
+
+                                        if (faceObj.ContainsKey("employee_id") && faceObj["employee_id"].ValueKind == JsonValueKind.String)
+                                            face.EmployeeId = faceObj["employee_id"].GetString() ?? "";
+
+                                        if (faceObj.ContainsKey("employee_name") && faceObj["employee_name"].ValueKind == JsonValueKind.String)
+                                            face.EmployeeName = faceObj["employee_name"].GetString() ?? "";
+
+                                        faces.Add(face);
+                                    }
+                                }
                             }
                         }
 
                         result.Faces = faces;
+                        result.Success = jsonResult.ContainsKey("success") ? jsonResult["success"].GetBoolean() : false;
+
+                        if (jsonResult.ContainsKey("message") && jsonResult["message"].ValueKind == JsonValueKind.String)
+                            result.Message = jsonResult["message"].GetString() ?? "";
                     }
-                    catch (Exception parseEx)
+                    catch (JsonException ex)
                     {
                         return new FaceRecognitionServiceResult
                         {
                             Success = false,
-                            Message = $"Lỗi phân tích danh sách: {parseEx.Message}"
+                            Message = $"Lỗi phân tích danh sách JSON: {ex.Message}"
                         };
                     }
                 }
@@ -199,10 +269,29 @@ namespace EmployeeManagement.Utilities
                     };
                 }
 
-                string safeEmployeeId = EscapeArgument(employeeId);
-                string arguments = $"\"{ScriptPath}\" delete --employee_id \"{safeEmployeeId}\"";
+                string arguments = $"\"{ScriptPath}\" delete --employee_id \"{employeeId}\"";
+                var result = await ExecutePythonScriptAsync(arguments, TimeoutSeconds);
 
-                return await ExecutePythonScriptAsync(arguments, TimeoutSeconds);
+                if (result.Success && !string.IsNullOrEmpty(result.Output))
+                {
+                    try
+                    {
+                        var jsonResult = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(result.Output);
+
+                        if (jsonResult.ContainsKey("success"))
+                            result.Success = jsonResult["success"].GetBoolean();
+
+                        if (jsonResult.ContainsKey("message") && jsonResult["message"].ValueKind == JsonValueKind.String)
+                            result.Message = jsonResult["message"].GetString() ?? result.Message;
+                    }
+                    catch (JsonException ex)
+                    {
+                        result.Success = false;
+                        result.Message = $"Lỗi phân tích JSON: {ex.Message}";
+                    }
+                }
+
+                return result;
             }
             catch (Exception ex)
             {
@@ -224,7 +313,9 @@ namespace EmployeeManagement.Utilities
                     return new SystemReadinessResult
                     {
                         IsReady = false,
-                        ErrorMessage = "Python không được cài đặt hoặc không trong PATH"
+                        ErrorMessage = "Python không được cài đặt hoặc không trong PATH.\n" +
+                                     "Vui lòng cài đặt Python 3.8+ và các thư viện cần thiết:\n" +
+                                     "pip install opencv-python face-recognition numpy"
                     };
                 }
 
@@ -234,11 +325,12 @@ namespace EmployeeManagement.Utilities
                     return new SystemReadinessResult
                     {
                         IsReady = false,
-                        ErrorMessage = $"Không tìm thấy script Python: {ScriptPath}"
+                        ErrorMessage = $"Không tìm thấy script Python: {ScriptPath}\n" +
+                                     "Vui lòng đảm bảo file face_recognition_service.py tồn tại trong thư mục Scripts"
                     };
                 }
 
-                // Check required folders
+                // Check and create required folders
                 string facesFolder = ConfigurationManager.AppSettings["FacesFolder"] ?? "faces";
                 if (!Directory.Exists(facesFolder))
                 {
@@ -273,6 +365,32 @@ namespace EmployeeManagement.Utilities
                     }
                 }
 
+                // Try to test Python script
+                try
+                {
+                    var testTask = ExecutePythonScriptAsync($"\"{ScriptPath}\" list", 10);
+                    var testResult = testTask.GetAwaiter().GetResult();
+
+                    if (!testResult.Success && testResult.Message.Contains("ModuleNotFoundError"))
+                    {
+                        return new SystemReadinessResult
+                        {
+                            IsReady = false,
+                            ErrorMessage = "Thiếu thư viện Python cần thiết.\n" +
+                                         "Vui lòng cài đặt:\n" +
+                                         "pip install opencv-python face-recognition numpy Pillow"
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return new SystemReadinessResult
+                    {
+                        IsReady = false,
+                        ErrorMessage = $"Lỗi kiểm tra script Python: {ex.Message}"
+                    };
+                }
+
                 return new SystemReadinessResult
                 {
                     IsReady = true,
@@ -285,6 +403,65 @@ namespace EmployeeManagement.Utilities
                 {
                     IsReady = false,
                     ErrorMessage = $"Lỗi kiểm tra hệ thống: {ex.Message}"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Test Python script health
+        /// </summary>
+        public static async Task<FaceRecognitionServiceResult> TestSystemHealthAsync()
+        {
+            try
+            {
+                if (!File.Exists(ScriptPath))
+                {
+                    return new FaceRecognitionServiceResult
+                    {
+                        Success = false,
+                        Message = $"Không tìm thấy script Python: {ScriptPath}"
+                    };
+                }
+
+                string arguments = $"\"{ScriptPath}\" health";
+                var result = await ExecutePythonScriptAsync(arguments, 15);
+
+                if (result.Success && !string.IsNullOrEmpty(result.Output))
+                {
+                    try
+                    {
+                        var jsonResult = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(result.Output);
+
+                        if (jsonResult.ContainsKey("success"))
+                            result.Success = jsonResult["success"].GetBoolean();
+
+                        if (jsonResult.ContainsKey("message") && jsonResult["message"].ValueKind == JsonValueKind.String)
+                            result.Message = jsonResult["message"].GetString() ?? result.Message;
+
+                        // Add health info to output for display
+                        if (jsonResult.ContainsKey("health_info"))
+                        {
+                            result.Output = JsonSerializer.Serialize(jsonResult["health_info"], new JsonSerializerOptions
+                            {
+                                WriteIndented = true
+                            });
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        result.Success = false;
+                        result.Message = $"Lỗi phân tích health check JSON: {ex.Message}";
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new FaceRecognitionServiceResult
+                {
+                    Success = false,
+                    Message = $"Lỗi health check: {ex.Message}"
                 };
             }
         }
@@ -307,7 +484,7 @@ namespace EmployeeManagement.Utilities
 
                     if (!exited)
                     {
-                        process.Kill();
+                        try { process.Kill(); } catch { }
                         return false;
                     }
 
@@ -322,110 +499,122 @@ namespace EmployeeManagement.Utilities
 
         private static async Task<FaceRecognitionServiceResult> ExecutePythonScriptAsync(string arguments, int timeoutSeconds)
         {
-            var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+            using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
 
             try
             {
-                using (var process = new Process())
+                using var process = new Process();
+
+                process.StartInfo.FileName = PythonExecutable;
+                process.StartInfo.Arguments = arguments;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
+                process.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
+
+                // Set environment variables for proper encoding
+                process.StartInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
+                process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
+
+                var outputBuilder = new System.Text.StringBuilder();
+                var errorBuilder = new System.Text.StringBuilder();
+
+                process.OutputDataReceived += (sender, e) =>
                 {
-                    process.StartInfo.FileName = PythonExecutable;
-                    process.StartInfo.Arguments = arguments;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
-                    process.StartInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
-
-                    // Set environment variables
-                    process.StartInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
-                    process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
-
-                    var outputBuilder = new System.Text.StringBuilder();
-                    var errorBuilder = new System.Text.StringBuilder();
-
-                    process.OutputDataReceived += (sender, e) =>
+                    if (!string.IsNullOrEmpty(e.Data))
                     {
-                        if (!string.IsNullOrEmpty(e.Data))
-                        {
-                            outputBuilder.AppendLine(e.Data);
-                        }
-                    };
+                        outputBuilder.AppendLine(e.Data);
+                    }
+                };
 
-                    process.ErrorDataReceived += (sender, e) =>
+                process.ErrorDataReceived += (sender, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
                     {
-                        if (!string.IsNullOrEmpty(e.Data))
-                        {
-                            errorBuilder.AppendLine(e.Data);
-                        }
-                    };
+                        errorBuilder.AppendLine(e.Data);
+                    }
+                };
 
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
 
-                    // Wait for process to complete with cancellation support
-                    var processTask = Task.Run(() =>
+                // Wait for process with cancellation
+                var processTask = Task.Run(() =>
+                {
+                    process.WaitForExit();
+                    return process.ExitCode;
+                }, cancellationTokenSource.Token);
+
+                try
+                {
+                    var exitCode = await processTask;
+
+                    string output = outputBuilder.ToString().Trim();
+                    string error = errorBuilder.ToString().Trim();
+
+                    // Log for debugging
+                    System.Diagnostics.Debug.WriteLine($"Python Exit Code: {exitCode}");
+                    System.Diagnostics.Debug.WriteLine($"Python Output: {output}");
+                    if (!string.IsNullOrEmpty(error))
+                        System.Diagnostics.Debug.WriteLine($"Python Error: {error}");
+
+                    if (exitCode == 0 && !string.IsNullOrEmpty(output))
                     {
-                        process.WaitForExit();
-                        return process.ExitCode;
-                    }, cancellationTokenSource.Token);
-
-                    try
-                    {
-                        var exitCode = await processTask;
-
-                        string output = outputBuilder.ToString().Trim();
-                        string error = errorBuilder.ToString().Trim();
-
-                        if (exitCode == 0 && !string.IsNullOrEmpty(output))
+                        // Try to validate JSON
+                        try
                         {
-                            // Try to parse as JSON to validate
-                            try
-                            {
-                                var testParse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(output);
-
-                                return new FaceRecognitionServiceResult
-                                {
-                                    Success = testParse.ContainsKey("success") && testParse["success"].ToString().ToLower() == "true",
-                                    Message = testParse.ContainsKey("message") ? testParse["message"].ToString() : "",
-                                    Output = output
-                                };
-                            }
-                            catch
-                            {
-                                return new FaceRecognitionServiceResult
-                                {
-                                    Success = false,
-                                    Message = $"Kết quả không hợp lệ: {output}"
-                                };
-                            }
-                        }
-                        else
-                        {
-                            string errorMessage = !string.IsNullOrEmpty(error) ? error : $"Process exited with code {exitCode}";
+                            var testParse = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(output);
 
                             return new FaceRecognitionServiceResult
                             {
+                                Success = testParse.ContainsKey("success") ? testParse["success"].GetBoolean() : false,
+                                Message = testParse.ContainsKey("message") && testParse["message"].ValueKind == JsonValueKind.String
+                                    ? testParse["message"].GetString() ?? ""
+                                    : "",
+                                Output = output
+                            };
+                        }
+                        catch (JsonException)
+                        {
+                            return new FaceRecognitionServiceResult
+                            {
                                 Success = false,
-                                Message = errorMessage
+                                Message = $"Kết quả không phải JSON hợp lệ: {output}"
                             };
                         }
                     }
-                    catch (OperationCanceledException)
+                    else
                     {
-                        try
-                        {
-                            process.Kill();
-                        }
-                        catch { }
+                        string errorMessage = !string.IsNullOrEmpty(error)
+                            ? error
+                            : !string.IsNullOrEmpty(output)
+                                ? output
+                                : $"Process exited with code {exitCode}";
 
                         return new FaceRecognitionServiceResult
                         {
                             Success = false,
-                            Message = $"Quá thời gian chờ ({timeoutSeconds}s)"
+                            Message = errorMessage
                         };
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                            process.Kill();
+                    }
+                    catch { }
+
+                    return new FaceRecognitionServiceResult
+                    {
+                        Success = false,
+                        Message = $"Quá thời gian chờ ({timeoutSeconds}s)"
+                    };
                 }
             }
             catch (Exception ex)
@@ -433,24 +622,13 @@ namespace EmployeeManagement.Utilities
                 return new FaceRecognitionServiceResult
                 {
                     Success = false,
-                    Message = $"Lỗi thực thi: {ex.Message}"
+                    Message = $"Lỗi thực thi Python: {ex.Message}"
                 };
             }
-            finally
-            {
-                cancellationTokenSource?.Dispose();
-            }
-        }
-
-        private static string EscapeArgument(string argument)
-        {
-            if (string.IsNullOrEmpty(argument))
-                return argument;
-
-            // Escape special characters for command line
-            return argument.Replace("\"", "\\\"").Replace("\\", "\\\\");
         }
     }
+
+    // Supporting classes
     public class SystemReadinessResult
     {
         public bool IsReady { get; set; }
@@ -458,7 +636,6 @@ namespace EmployeeManagement.Utilities
         public string ErrorMessage { get; set; } = string.Empty;
     }
 
-    // Supporting classes
     public class FaceRecognitionServiceResult
     {
         public bool Success { get; set; }
@@ -485,14 +662,10 @@ namespace EmployeeManagement.Utilities
         public string EmployeeName { get; set; } = string.Empty;
     }
 
-   
     public class AttendanceCreateResult
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public string AttendanceType { get; set; } = string.Empty;
     }
- 
-   
-
 }
