@@ -337,6 +337,64 @@ namespace EmployeeManagement.BLL
                     throw new InvalidOperationException($"Không thể xóa phòng ban vì có {relatedDepartments} phòng ban khác đang sử dụng quản lý từ phòng ban này. Vui lòng thay đổi quản lý cho các phòng ban đó trước khi xóa.");
             }
         }
+
+
+
+        /// <summary>
+        /// Lấy tất cả phòng ban async
+        /// </summary>
+        public async Task<List<DepartmentDTO>> GetAllDepartmentsAsync()
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var departments = _departmentDAL.GetAllDepartments();
+                    return departments.Select(d => new DepartmentDTO
+                    {
+                        DepartmentID = d.DepartmentID,
+                        DepartmentName = d.DepartmentName,
+                        Description = d.Description,
+                        ManagerID = d.ManagerID,
+                        CreatedAt = d.CreatedAt,
+                        UpdatedAt = d.UpdatedAt
+                    }).ToList();
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy danh sách phòng ban: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Lấy phòng ban theo ID
+        /// </summary>
+        public async Task<DepartmentDTO> GetDepartmentByIdAsync(int departmentId)
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var department = _departmentDAL.GetDepartmentById(departmentId);
+                    if (department == null) return null;
+
+                    return new DepartmentDTO
+                    {
+                        DepartmentID = department.DepartmentID,
+                        DepartmentName = department.DepartmentName,
+                        Description = department.Description,
+                        ManagerID = department.ManagerID,
+                        CreatedAt = department.CreatedAt,
+                        UpdatedAt = department.UpdatedAt
+                    };
+                });
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi lấy thông tin phòng ban: {ex.Message}", ex);
+            }
+        }
     }
 
    

@@ -5,6 +5,8 @@ using System.Configuration;
 using EmployeeManagement.Models.Entity;
 using EmployeeManagement.Utilities;
 using System.Data;
+using EmployeeManagement.GUI.Attendance;
+using EmployeeManagement.Models.DTO;
 
 namespace EmployeeManagement.DAL
 {
@@ -562,47 +564,389 @@ namespace EmployeeManagement.DAL
                 CreatedAt = reader.GetDateTime("CreatedAt")
             };
         }
-    }
 
-    /// <summary>
-    /// Thống kê chấm công
-    /// </summary>
-    public class AttendanceStatistics
-    {
-        public int TotalRecords { get; set; }
-        public int TotalEmployees { get; set; }
-        public int PresentEmployees { get; set; }
-        public int AbsentEmployees { get; set; }
-        public int OnTimeCheckins { get; set; }
-        public int LateCheckins { get; set; }
-        public int EarlyCheckouts { get; set; }
-        public double TotalWorkingHours { get; set; }
-        public double AverageWorkingHours { get; set; }
-        public decimal AttendanceRate { get; set; }
-        public decimal PunctualityRate { get; set; }
-    }
 
-    /// <summary>
-    /// Model cho thống kê chấm công theo tháng
-    /// </summary>
-    public class MonthlyAttendanceStats
-    {
-        public int EmployeeID { get; set; }
-        public string EmployeeCode { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public string Department { get; set; } = string.Empty;
-        public int WorkingDays { get; set; }
-        public int PresentDays { get; set; }
-        public int AbsentDays { get; set; }
-        public int LateDays { get; set; }
-        public decimal TotalWorkingHours { get; set; }
-        public decimal OvertimeHours { get; set; }
+        /// <summary>
+        /// Cập nhật đường dẫn dữ liệu khuôn mặt cho nhân viên
+        /// </summary>
+        public bool UpdateEmployeeFaceData(int employeeId, string faceDataPath)
+        {
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                UPDATE Employees 
+                SET FaceDataPath = @FaceDataPath, UpdatedAt = GETDATE()
+                WHERE EmployeeID = @EmployeeID";
 
-        // Calculated properties
-        public decimal AttendanceRate => WorkingDays > 0 ? (decimal)PresentDays / WorkingDays * 100 : 0;
-        public decimal AverageWorkingHoursPerDay => PresentDays > 0 ? TotalWorkingHours / PresentDays : 0;
-        public string AttendanceRateDisplay => $"{AttendanceRate:F1}%";
-        public string TotalWorkingHoursDisplay => $"{TotalWorkingHours:F1}h";
-        public string OvertimeHoursDisplay => $"{OvertimeHours:F1}h";
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@EmployeeID", employeeId);
+                    command.Parameters.AddWithValue("@FaceDataPath", (object)faceDataPath ?? DBNull.Value);
+
+                    connection.Open();
+                    return command.ExecuteNonQuery() > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"AttendanceDAL.UpdateEmployeeFaceData: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Lấy báo cáo chấm công hàng ngày
+        /// </summary>
+        public List<DailyAttendanceReportItem> GetDailyAttendanceReport(AttendanceSearchCriteria criteria)
+        {
+            try
+            {
+                var reportItems = new List<DailyAttendanceReportItem>();
+
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                SELECT 
+                    e.EmployeeCode,
+                    e.FullName as EmployeeName,
+                    d.DepartmentName,
+                    a.CheckInTime,
+                    a.CheckOutTime,
+                    a.WorkingHours,
+                    a.Status,
+                    a.CheckInMethod,
+                    a.Notes
+                FROM Attendance a
+                INNER JOIN Employees e ON a.EmployeeID = e.EmployeeID
+                LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                WHERE a.CheckInTime >= @FromDate AND a.CheckInTime <= @ToDate";
+
+                    var parameters = new List<SqlParameter>
+            {
+                new SqlParameter("@FromDate", criteria.FromDate),
+                new SqlParameter("@ToDate", criteria.ToDate)
+            };
+
+                    if (criteria.DepartmentId.HasValue)
+                    {
+                        query += " AND e.DepartmentID = @DepartmentId";
+                        parameters.Add(new SqlParameter("@DepartmentId", criteria.DepartmentId.Value));
+                    }
+
+                    if (criteria.EmployeeId.HasValue)
+                    {
+                        query += " AND e.EmployeeID = @EmployeeId";
+                        parameters.Add(new SqlParameter("@EmployeeId", criteria.EmployeeId.Value));
+                    }
+
+                    if (!string.IsNullOrEmpty(criteria.Status))
+                    {
+                        query += " AND a.Status = @Status";
+                        parameters.Add(new SqlParameter("@Status", criteria.Status));
+                    }
+
+                    query += " ORDER BY a.CheckInTime DESC";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddRange(parameters.ToArray());
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            reportItems.Add(new DailyAttendanceReportItem
+                            {
+                                EmployeeCode = reader.GetString("EmployeeCode"),
+                                EmployeeName = reader.GetString("EmployeeName"),
+                                DepartmentName = reader.IsDBNull("DepartmentName") ? "Chưa phân bổ" : reader.GetString("DepartmentName"),
+                                CheckInTime = reader.GetDateTime("CheckInTime"),
+                                CheckOutTime = reader.IsDBNull("CheckOutTime") ? null : reader.GetDateTime("CheckOutTime"),
+                                WorkingHours = reader.GetDecimal("WorkingHours"),
+                                Status = reader.GetString("Status"),
+                                CheckInMethod = reader.IsDBNull("CheckInMethod") ? "" : reader.GetString("CheckInMethod"),
+                                Notes = reader.IsDBNull("Notes") ? "" : reader.GetString("Notes")
+                            });
+                        }
+                    }
+                }
+
+                return reportItems;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"AttendanceDAL.GetDailyAttendanceReport: {ex.Message}");
+                return new List<DailyAttendanceReportItem>();
+            }
+        }
+
+        /// <summary>
+        /// Lấy báo cáo tổng hợp chấm công
+        /// </summary>
+        public List<AttendanceSummaryReportItem> GetAttendanceSummaryReport(AttendanceSearchCriteria criteria)
+        {
+            try
+            {
+                var reportItems = new List<AttendanceSummaryReportItem>();
+
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                SELECT 
+                    e.EmployeeCode,
+                    e.FullName as EmployeeName,
+                    d.DepartmentName,
+                    COUNT(DISTINCT CAST(a.CheckInTime AS DATE)) as PresentDays,
+                    COUNT(CASE WHEN CAST(a.CheckInTime AS TIME) > '08:30:00' THEN 1 END) as LateDays,
+                    SUM(a.WorkingHours) as TotalWorkingHours,
+                    AVG(a.WorkingHours) as AverageWorkingHours
+                FROM Employees e
+                LEFT JOIN Attendance a ON e.EmployeeID = a.EmployeeID 
+                    AND a.CheckInTime >= @FromDate AND a.CheckInTime <= @ToDate
+                LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                WHERE e.Status = N'Đang làm việc'";
+
+                    var parameters = new List<SqlParameter>
+            {
+                new SqlParameter("@FromDate", criteria.FromDate),
+                new SqlParameter("@ToDate", criteria.ToDate)
+            };
+
+                    if (criteria.DepartmentId.HasValue)
+                    {
+                        query += " AND e.DepartmentID = @DepartmentId";
+                        parameters.Add(new SqlParameter("@DepartmentId", criteria.DepartmentId.Value));
+                    }
+
+                    if (criteria.EmployeeId.HasValue)
+                    {
+                        query += " AND e.EmployeeID = @EmployeeId";
+                        parameters.Add(new SqlParameter("@EmployeeId", criteria.EmployeeId.Value));
+                    }
+
+                    query += @" 
+                GROUP BY e.EmployeeCode, e.FullName, d.DepartmentName
+                ORDER BY e.EmployeeCode";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddRange(parameters.ToArray());
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            int totalDays = GetWorkingDaysInDateRange(criteria.FromDate, criteria.ToDate);
+                            int presentDays = reader.IsDBNull("PresentDays") ? 0 : reader.GetInt32("PresentDays");
+                            int absentDays = Math.Max(0, totalDays - presentDays);
+
+                            reportItems.Add(new AttendanceSummaryReportItem
+                            {
+                                EmployeeCode = reader.GetString("EmployeeCode"),
+                                EmployeeName = reader.GetString("EmployeeName"),
+                                DepartmentName = reader.IsDBNull("DepartmentName") ? "Chưa phân bổ" : reader.GetString("DepartmentName"),
+                                TotalDays = totalDays,
+                                PresentDays = presentDays,
+                                AbsentDays = absentDays,
+                                LateDays = reader.IsDBNull("LateDays") ? 0 : reader.GetInt32("LateDays"),
+                                TotalWorkingHours = reader.IsDBNull("TotalWorkingHours") ? 0 : reader.GetDecimal("TotalWorkingHours"),
+                                AverageWorkingHours = reader.IsDBNull("AverageWorkingHours") ? 0 : reader.GetDecimal("AverageWorkingHours"),
+                                AttendanceRate = presentDays > 0 ? (decimal)presentDays / totalDays * 100 : 0
+                            });
+                        }
+                    }
+                }
+
+                return reportItems;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"AttendanceDAL.GetAttendanceSummaryReport: {ex.Message}");
+                return new List<AttendanceSummaryReportItem>();
+            }
+        }
+
+        /// <summary>
+        /// Lấy báo cáo chấm công bằng nhận diện khuôn mặt
+        /// </summary>
+        public List<FaceRecognitionAttendanceReportItem> GetFaceRecognitionAttendanceReport(AttendanceSearchCriteria criteria)
+        {
+            try
+            {
+                var reportItems = new List<FaceRecognitionAttendanceReportItem>();
+
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                SELECT 
+                    e.EmployeeCode,
+                    e.FullName as EmployeeName,
+                    d.DepartmentName,
+                    a.CheckInTime,
+                    a.CheckInImage as ImagePath,
+                    a.Status,
+                    95.5 as Confidence -- Placeholder for confidence score
+                FROM Attendance a
+                INNER JOIN Employees e ON a.EmployeeID = e.EmployeeID
+                LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                WHERE a.CheckInMethod = 'Face Recognition'
+                    AND a.CheckInTime >= @FromDate 
+                    AND a.CheckInTime <= @ToDate";
+
+                    var parameters = new List<SqlParameter>
+            {
+                new SqlParameter("@FromDate", criteria.FromDate),
+                new SqlParameter("@ToDate", criteria.ToDate)
+            };
+
+                    if (criteria.DepartmentId.HasValue)
+                    {
+                        query += " AND e.DepartmentID = @DepartmentId";
+                        parameters.Add(new SqlParameter("@DepartmentId", criteria.DepartmentId.Value));
+                    }
+
+                    if (criteria.EmployeeId.HasValue)
+                    {
+                        query += " AND e.EmployeeID = @EmployeeId";
+                        parameters.Add(new SqlParameter("@EmployeeId", criteria.EmployeeId.Value));
+                    }
+
+                    query += " ORDER BY a.CheckInTime DESC";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    command.Parameters.AddRange(parameters.ToArray());
+
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            reportItems.Add(new FaceRecognitionAttendanceReportItem
+                            {
+                                EmployeeCode = reader.GetString("EmployeeCode"),
+                                EmployeeName = reader.GetString("EmployeeName"),
+                                DepartmentName = reader.IsDBNull("DepartmentName") ? "Chưa phân bổ" : reader.GetString("DepartmentName"),
+                                CheckInTime = reader.GetDateTime("CheckInTime"),
+                                Confidence = reader.GetDecimal("Confidence"),
+                                ImagePath = reader.IsDBNull("ImagePath") ? "" : reader.GetString("ImagePath"),
+                                Status = reader.GetString("Status")
+                            });
+                        }
+                    }
+                }
+
+                return reportItems;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"AttendanceDAL.GetFaceRecognitionAttendanceReport: {ex.Message}");
+                return new List<FaceRecognitionAttendanceReportItem>();
+            }
+        }
+
+        /// <summary>
+        /// Tính số ngày làm việc trong khoảng thời gian (trừ cuối tuần)
+        /// </summary>
+        private static int GetWorkingDaysInDateRange(DateTime fromDate, DateTime toDate)
+        {
+            int workingDays = 0;
+
+            for (var date = fromDate.Date; date <= toDate.Date; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    workingDays++;
+                }
+            }
+
+            return workingDays;
+        }
+
+        /// <summary>
+        /// Lấy nhân viên đã đăng ký khuôn mặt
+        /// </summary>
+        public List<EmployeeWithFaceData> GetEmployeesWithFaceData()
+        {
+            try
+            {
+                var employees = new List<EmployeeWithFaceData>();
+
+                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
+                {
+                    string query = @"
+                SELECT e.EmployeeID, e.EmployeeCode, e.FullName, e.FaceDataPath, 
+                       d.DepartmentName, e.CreatedAt
+                FROM Employees e
+                LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+                WHERE e.FaceDataPath IS NOT NULL 
+                    AND e.FaceDataPath != ''
+                    AND e.Status = N'Đang làm việc'
+                ORDER BY e.FullName";
+
+                    SqlCommand command = new SqlCommand(query, connection);
+                    connection.Open();
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            employees.Add(new EmployeeWithFaceData
+                            {
+                                EmployeeID = reader.GetInt32("EmployeeID"),
+                                EmployeeCode = reader.GetString("EmployeeCode"),
+                                FullName = reader.GetString("FullName"),
+                                FaceDataPath = reader.GetString("FaceDataPath"),
+                                DepartmentName = reader.IsDBNull("DepartmentName") ? "Chưa phân bổ" : reader.GetString("DepartmentName"),
+                                RegisterDate = reader.GetDateTime("CreatedAt")
+                            });
+                        }
+                    }
+                }
+
+                return employees;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"AttendanceDAL.GetEmployeesWithFaceData: {ex.Message}");
+                return new List<EmployeeWithFaceData>();
+            }
+        }
+
+        // Support classes
+        public class EmployeeWithFaceData
+        {
+            public int EmployeeID { get; set; }
+            public string EmployeeCode { get; set; } = string.Empty;
+            public string FullName { get; set; } = string.Empty;
+            public string FaceDataPath { get; set; } = string.Empty;
+            public string DepartmentName { get; set; } = string.Empty;
+            public DateTime RegisterDate { get; set; }
+        }
+
+       
+        /// <summary>
+        /// Model cho thống kê chấm công theo tháng
+        /// </summary>
+        public class MonthlyAttendanceStats
+        {
+            public int EmployeeID { get; set; }
+            public string EmployeeCode { get; set; } = string.Empty;
+            public string FullName { get; set; } = string.Empty;
+            public string Department { get; set; } = string.Empty;
+            public int WorkingDays { get; set; }
+            public int PresentDays { get; set; }
+            public int AbsentDays { get; set; }
+            public int LateDays { get; set; }
+            public decimal TotalWorkingHours { get; set; }
+            public decimal OvertimeHours { get; set; }
+
+            // Calculated properties
+            public decimal AttendanceRate => WorkingDays > 0 ? (decimal)PresentDays / WorkingDays * 100 : 0;
+            public decimal AverageWorkingHoursPerDay => PresentDays > 0 ? TotalWorkingHours / PresentDays : 0;
+            public string AttendanceRateDisplay => $"{AttendanceRate:F1}%";
+            public string TotalWorkingHoursDisplay => $"{TotalWorkingHours:F1}h";
+            public string OvertimeHoursDisplay => $"{OvertimeHours:F1}h";
+        }
     }
 }
