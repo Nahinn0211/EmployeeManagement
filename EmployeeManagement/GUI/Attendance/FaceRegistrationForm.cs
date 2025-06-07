@@ -9,6 +9,12 @@ using EmployeeManagement.BLL;
 using EmployeeManagement.Utilities;
 using EmployeeManagement.Models.DTO;
 using System.Threading;
+using System.Collections.Generic;
+using Emgu.CV;
+using Emgu.CV.Structure;
+using Emgu.CV.Face;
+using Emgu.CV.CvEnum;
+using System.Text.Json;
 
 namespace EmployeeManagement.GUI.Attendance
 {
@@ -16,6 +22,7 @@ namespace EmployeeManagement.GUI.Attendance
     {
         private readonly EmployeeBLL employeeBLL;
         private readonly AttendanceBLL attendanceBLL;
+        private readonly FaceRecognitionService faceService;
         private string selectedImagePath = string.Empty;
         private Image? capturedImage;
         private CancellationTokenSource cancellationTokenSource;
@@ -25,6 +32,7 @@ namespace EmployeeManagement.GUI.Attendance
             InitializeComponent();
             employeeBLL = new EmployeeBLL();
             attendanceBLL = new AttendanceBLL();
+            faceService = new FaceRecognitionService();
             cancellationTokenSource = new CancellationTokenSource();
             InitializeForm();
         }
@@ -35,7 +43,7 @@ namespace EmployeeManagement.GUI.Attendance
             await LoadRegisteredFaces();
         }
 
-        private async System.Threading.Tasks.Task LoadEmployees()
+        private async Task LoadEmployees()
         {
             try
             {
@@ -58,11 +66,11 @@ namespace EmployeeManagement.GUI.Attendance
             }
         }
 
-        private async System.Threading.Tasks.Task LoadRegisteredFaces()
+        private async Task LoadRegisteredFaces()
         {
             try
             {
-                var result = await FaceRecognitionService.GetRegisteredFacesAsync();
+                var result = await faceService.GetRegisteredFacesAsync();
 
                 listViewRegistered.Items.Clear();
 
@@ -72,7 +80,7 @@ namespace EmployeeManagement.GUI.Attendance
                     {
                         var item = new ListViewItem(face.EmployeeId);
                         item.SubItems.Add(face.EmployeeName);
-                        item.SubItems.Add(DateTime.Now.ToString("dd/MM/yyyy")); // Should be actual registration date
+                        item.SubItems.Add(face.RegistrationDate.ToString("dd/MM/yyyy"));
                         item.Tag = face;
                         listViewRegistered.Items.Add(item);
                     }
@@ -250,23 +258,14 @@ namespace EmployeeManagement.GUI.Attendance
                     throw new FileNotFoundException("File ảnh không tồn tại hoặc không thể truy cập");
                 }
 
-                // Register face in background thread with timeout
-                var registerTask = Task.Run(async () =>
+                // Register face with timeout
+                var result = await Task.Run(async () =>
                 {
-                    return await FaceRecognitionService.RegisterFaceAsync(employeeCode, employeeName, imagePath);
-                }, cancellationTokenSource.Token);
+                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSource.Token);
+                    timeoutCts.CancelAfter(TimeSpan.FromSeconds(60));
 
-                // Add timeout
-                var timeoutTask = Task.Delay(60000, cancellationTokenSource.Token); // 60 seconds timeout
-                var completedTask = await Task.WhenAny(registerTask, timeoutTask);
-
-                if (completedTask == timeoutTask)
-                {
-                    cancellationTokenSource.Cancel();
-                    throw new TimeoutException("Quá trình đăng ký mất quá nhiều thời gian (timeout 60s)");
-                }
-
-                var result = await registerTask;
+                    return await faceService.RegisterFaceAsync(employeeCode, employeeName, imagePath, timeoutCts.Token);
+                });
 
                 progressBarRegistration.Visible = false;
 
@@ -301,12 +300,6 @@ namespace EmployeeManagement.GUI.Attendance
             {
                 lblStatus.Text = "Đã hủy đăng ký";
                 lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
-            }
-            catch (TimeoutException ex)
-            {
-                lblStatus.Text = "Hết thời gian đăng ký";
-                lblStatus.ForeColor = Color.FromArgb(244, 67, 54);
-                MessageBox.Show(ex.Message, "Timeout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
@@ -352,7 +345,7 @@ namespace EmployeeManagement.GUI.Attendance
                     lblStatus.Text = "Đang xóa...";
                     lblStatus.ForeColor = Color.FromArgb(255, 152, 0);
 
-                    var deleteResult = await FaceRecognitionService.DeleteRegisteredFaceAsync(face.EmployeeId);
+                    var deleteResult = await faceService.DeleteRegisteredFaceAsync(face.EmployeeId);
 
                     if (deleteResult.Success)
                     {
@@ -456,7 +449,8 @@ namespace EmployeeManagement.GUI.Attendance
                     catch { }
                 }
 
-                // Dispose cancellation token source
+                // Dispose services and cancellation token
+                faceService?.Dispose();
                 cancellationTokenSource?.Dispose();
             }
             catch (Exception ex)
@@ -467,4 +461,6 @@ namespace EmployeeManagement.GUI.Attendance
             base.OnFormClosing(e);
         }
     }
+
+
 }

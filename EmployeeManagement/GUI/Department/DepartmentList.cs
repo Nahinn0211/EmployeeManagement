@@ -52,8 +52,7 @@ namespace EmployeeManagement.GUI.Department
                 // Tải dữ liệu lên DataGridView
                 LoadDepartmentsToGrid();
 
-                // Cập nhật thống kê
-                UpdateStatistics();
+               
             }
             catch (Exception ex)
             {
@@ -70,7 +69,6 @@ namespace EmployeeManagement.GUI.Department
                 var dataSource = DepartmentDisplayModel.FromDTOList(filteredDepartments);
 
                 DepartmentDataGridView.DataSource = dataSource;
-                UpdateStatistics();
             }
             catch (Exception ex)
             {
@@ -115,15 +113,7 @@ namespace EmployeeManagement.GUI.Department
             LoadDepartmentsToGrid();
         }
 
-        private void UpdateStatistics()
-        {
-            var total = filteredDepartments.Count;
-            var withManager = filteredDepartments.Count(d => d.ManagerID.HasValue);
-            var withoutManager = filteredDepartments.Count(d => !d.ManagerID.HasValue);
-            var totalEmployees = filteredDepartments.Sum(d => d.EmployeeCount);
-
-            statisticsLabel.Text = $"📊 Tổng số phòng ban: {total} | 👤 Có quản lý: {withManager} | ⚠️ Chưa có quản lý: {withoutManager} | 👥 Tổng nhân viên: {totalEmployees}";
-        }
+        
         #endregion
 
         #region Helper Methods
@@ -367,65 +357,127 @@ namespace EmployeeManagement.GUI.Department
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(248, 249, 250),
                 BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(20, 10, 20, 10)
+                Padding = new Padding(15, 12, 15, 12) // Giảm padding
             };
 
-            // Search controls container
-            var searchContainer = new TableLayoutPanel
+            // Main container - chia 70% cho filters, 30% cho buttons
+            var mainContainer = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 4,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
+                Margin = new Padding(0)
+            };
+
+            mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70)); // Filter controls  
+            mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30)); // Buttons
+
+            // === FILTER CONTROLS CONTAINER ===
+            var filtersContainer = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
                 RowCount = 1,
                 BackColor = Color.Transparent,
                 CellBorderStyle = TableLayoutPanelCellBorderStyle.None
             };
 
-            // Column widths
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));  // Search box
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));  // Manager filter
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 17.5f)); // Search button
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 17.5f)); // Clear button
+            filtersContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65)); // Search box
+            filtersContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35)); // Status
 
             // Search TextBox
             searchTextBox = new TextBox
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 11),
+                Font = new Font("Segoe UI", 10),
                 Text = searchPlaceholder,
                 ForeColor = Color.Gray,
-                Height = 35,
-                Margin = new Padding(0, 5, 10, 5)
+                Height = 32,
+                Margin = new Padding(0, 6, 12, 6),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White
             };
             SetupSearchTextBoxEvents();
 
-            // Manager ComboBox
+            // Status ComboBox
             statusComboBox = new ComboBox
             {
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 11),
+                Font = new Font("Segoe UI", 9),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Height = 35,
-                Margin = new Padding(5, 5, 10, 5)
+                Height = 32,
+                Margin = new Padding(6, 6, 12, 6),
+                FlatStyle = FlatStyle.Standard,
+                BackColor = Color.White
             };
             statusComboBox.Items.AddRange(new[] { "Tất cả trạng thái", "Có quản lý", "Chưa có quản lý" });
             statusComboBox.SelectedIndex = 0;
             statusComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
 
-            // Search Button
-            searchButton = CreateStyledButton("🔍 TÌM KIẾM", Color.FromArgb(33, 150, 243));
+            // Add filters to container
+            filtersContainer.Controls.Add(searchTextBox, 0, 0);
+            filtersContainer.Controls.Add(statusComboBox, 1, 0);
+
+            // === BUTTONS CONTAINER ===
+            var buttonsContainer = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.Transparent,
+                Padding = new Padding(8, 0, 0, 0),
+                Margin = new Padding(0),
+                WrapContents = false,
+                AutoSize = false
+            };
+
+            // Search Button - FIXED SIZE
+            searchButton = new Button
+            {
+                Text = "🔍 TÌM KIẾM",
+                Size = new Size(100, 32), // Fixed size thay vì Dock.Fill
+                BackColor = Color.FromArgb(63, 81, 181), // Indigo color
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Margin = new Padding(0, 6, 8, 6),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
+            };
+            searchButton.FlatAppearance.BorderSize = 0;
+            searchButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(57, 73, 171);
             searchButton.Click += (s, e) => ApplyFilters();
 
-            // Clear Button
-            clearButton = CreateStyledButton("🗑️ XÓA BỘ LỌC", Color.FromArgb(244, 67, 54));
+            // Clear Button - FIXED SIZE
+            clearButton = new Button
+            {
+                Text = "🗑️ XÓA BỘ LỌC",
+                Size = new Size(110, 32), // Fixed size thay vì Dock.Fill
+                BackColor = Color.FromArgb(244, 67, 54),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Margin = new Padding(0, 6, 0, 6),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
+            };
+            clearButton.FlatAppearance.BorderSize = 0;
+            clearButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 57, 53);
             clearButton.Click += ClearFilters;
 
-            // Add controls to search container
-            searchContainer.Controls.Add(searchTextBox, 0, 0);
-            searchContainer.Controls.Add(statusComboBox, 1, 0);
-            searchContainer.Controls.Add(searchButton, 2, 0);
-            searchContainer.Controls.Add(clearButton, 3, 0);
+            buttonsContainer.Controls.Add(searchButton);
+            buttonsContainer.Controls.Add(clearButton);
 
-            searchPanel.Controls.Add(searchContainer);
+            // Add to main container
+            mainContainer.Controls.Add(filtersContainer, 0, 0);
+            mainContainer.Controls.Add(buttonsContainer, 1, 0);
+
+            searchPanel.Controls.Add(mainContainer);
             mainTableLayout.Controls.Add(searchPanel, 0, 1);
         }
 
@@ -480,36 +532,34 @@ namespace EmployeeManagement.GUI.Department
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(248, 249, 250),
                 BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(20, 15, 20, 15)
+                Padding = new Padding(20, 12, 20, 12) // Giảm padding
             };
 
-            var footerContainer = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                RowCount = 1,
-                BackColor = Color.Transparent,
-                CellBorderStyle = TableLayoutPanelCellBorderStyle.None
-            };
-
-            footerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60)); // Buttons
-            footerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40)); // Statistics
-
-            // Buttons panel
+            // Chỉ có buttons panel, không có statistics
             var buttonsPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 BackColor = Color.Transparent,
                 Padding = new Padding(0),
-                Margin = new Padding(0)
+                Margin = new Padding(0),
+                WrapContents = false,
+                AutoSize = false
             };
 
-            addButton = CreateActionButton("➕ THÊM PHÒNG BAN", Color.FromArgb(76, 175, 80));
-            editButton = CreateActionButton("✏️ CHỈNH SỬA", Color.FromArgb(255, 152, 0));
-            viewButton = CreateActionButton("👁️ XEM CHI TIẾT", Color.FromArgb(33, 150, 243));
-            deleteButton = CreateActionButton("🗑️ XÓA", Color.FromArgb(244, 67, 54));
+            // Tạo buttons với kích thước fixed
+            addButton = CreateCompactActionButton("➕ THÊM PHÒNG BAN", Color.FromArgb(76, 175, 80));
+            editButton = CreateCompactActionButton("✏️ CHỈNH SỬA", Color.FromArgb(255, 152, 0));
+            viewButton = CreateCompactActionButton("👁️ XEM CHI TIẾT", Color.FromArgb(63, 81, 181)); // Indigo color
+            deleteButton = CreateCompactActionButton("🗑️ XÓA", Color.FromArgb(244, 67, 54));
 
+            // Set fixed sizes cho buttons
+            addButton.Size = new Size(150, 38);
+            editButton.Size = new Size(120, 38);
+            viewButton.Size = new Size(130, 38);
+            deleteButton.Size = new Size(80, 38);
+
+            // Set initial states
             editButton.Enabled = false;
             viewButton.Enabled = false;
             deleteButton.Enabled = false;
@@ -521,61 +571,90 @@ namespace EmployeeManagement.GUI.Department
             buttonsPanel.Controls.Add(viewButton);
             buttonsPanel.Controls.Add(deleteButton);
 
-            // Statistics panel
-            var statsPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.Transparent
-            };
-
-            statisticsLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.FromArgb(64, 64, 64),
-                TextAlign = ContentAlignment.MiddleRight,
-                Text = "📊 Đang tải..."
-            };
-
-            statsPanel.Controls.Add(statisticsLabel);
-
-            footerContainer.Controls.Add(buttonsPanel, 0, 0);
-            footerContainer.Controls.Add(statsPanel, 1, 0);
-
-            footerPanel.Controls.Add(footerContainer);
+            footerPanel.Controls.Add(buttonsPanel);
             mainTableLayout.Controls.Add(footerPanel, 0, 3);
         }
 
-        private Button CreateStyledButton(string text, Color backColor)
+        private Button CreateCompactActionButton(string text, Color backColor)
         {
-            return new Button
+            var button = new Button
             {
                 Text = text,
-                Dock = DockStyle.Fill,
                 BackColor = backColor,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                Margin = new Padding(5, 5, 5, 5),
-                FlatAppearance = { BorderSize = 0 }
+                Margin = new Padding(0, 0, 12, 0), // Spacing giữa các buttons
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
             };
+
+            button.FlatAppearance.BorderSize = 0;
+
+            // Hover effects
+            Color hoverColor = ControlPaint.Dark(backColor, 0.1f);
+            button.MouseEnter += (s, e) => button.BackColor = hoverColor;
+            button.MouseLeave += (s, e) => button.BackColor = backColor;
+
+            return button;
         }
 
-        private Button CreateActionButton(string text, Color backColor)
+        // Responsive button sizing
+        private void AdjustButtonsForScreenSize()
         {
-            return new Button
+            if (this.Width < 1000)
             {
-                Text = text,
-                Size = new Size(140, 45),
-                BackColor = backColor,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Margin = new Padding(0, 0, 15, 0),
-                FlatAppearance = { BorderSize = 0 }
-            };
+                // Screen nhỏ - text ngắn
+                addButton.Text = "➕ THÊM";
+                editButton.Text = "✏️ SỬA";
+                viewButton.Text = "👁️ XEM";
+                deleteButton.Text = "🗑️ XÓA";
+
+                addButton.Size = new Size(80, 38);
+                editButton.Size = new Size(70, 38);
+                viewButton.Size = new Size(70, 38);
+                deleteButton.Size = new Size(70, 38);
+            }
+            else if (this.Width < 1300)
+            {
+                // Screen vừa - text trung bình
+                addButton.Text = "➕ THÊM PHÒNG BAN";
+                editButton.Text = "✏️ CHỈNH SỬA";
+                viewButton.Text = "👁️ XEM CHI TIẾT";
+                deleteButton.Text = "🗑️ XÓA";
+
+                addButton.Size = new Size(130, 38);
+                editButton.Size = new Size(110, 38);
+                viewButton.Size = new Size(120, 38);
+                deleteButton.Size = new Size(80, 38);
+            }
+            else
+            {
+                // Screen lớn - text đầy đủ
+                addButton.Text = "➕ THÊM PHÒNG BAN";
+                editButton.Text = "✏️ CHỈNH SỬA";
+                viewButton.Text = "👁️ XEM CHI TIẾT";
+                deleteButton.Text = "🗑️ XÓA";
+
+                addButton.Size = new Size(150, 38);
+                editButton.Size = new Size(120, 38);
+                viewButton.Size = new Size(130, 38);
+                deleteButton.Size = new Size(80, 38);
+            }
         }
 
+        // Hook vào resize event để tự động điều chỉnh
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (this.WindowState != FormWindowState.Minimized)
+            {
+                AdjustButtonsForScreenSize();
+            }
+        }
+       
         private void SetupSearchTextBoxEvents()
         {
             searchTextBox.GotFocus += (s, e) =>

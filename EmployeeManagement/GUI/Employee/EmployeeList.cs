@@ -124,8 +124,6 @@ namespace EmployeeManagement.GUI.Employee
                 // Tải dữ liệu lên DataGridView
                 LoadEmployeesToGrid();
 
-                // Cập nhật thống kê
-                UpdateStatistics();
             }
             catch (Exception ex)
             {
@@ -343,35 +341,7 @@ namespace EmployeeManagement.GUI.Employee
         #endregion
 
         #region Data Management
-        private void LoadEmployeesToGrid()
-        {
-            try
-            {
-                var dataSource = filteredEmployees.Select(e => new EmployeeDisplayModel
-                {
-                    EmployeeID = e.EmployeeID,
-                    EmployeeCode = e.EmployeeCode,
-                    FullName = e.FullName,
-                    Gender = e.Gender,
-                    DateOfBirth = e.DateOfBirth,
-                    Phone = e.Phone,
-                    Email = e.Email,
-                    Department = e.Department?.DepartmentName ?? GetDepartmentName(e.DepartmentID),
-                    Position = e.Position?.PositionName ?? GetPositionName(e.PositionID),
-                    Status = GetStatusDisplayText(e.Status),
-                    HireDate = e.HireDate
-                }).ToList();
-
-                employeeDataGridView.DataSource = dataSource;
-                UpdateStatistics();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
+        
         private void ApplyFilters()
         {
             try
@@ -411,15 +381,282 @@ namespace EmployeeManagement.GUI.Employee
             LoadEmployeesToGrid();
         }
 
-        private void UpdateStatistics()
+        // ==========================================
+        // FIX STATISTICS BỊ MẤT Ở GÓCKER PHẢI
+        // ==========================================
+
+        // 1. SỬA LẠI PHƯƠNG THỨC SetupFooter() - ĐẢM BẢO STATISTICS HIỂN THỊ
+        private void SetupFooter()
+        {
+            footerPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(248, 249, 250),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(20, 12, 20, 12)
+            };
+
+            var footerContainer = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.None
+            };
+
+            // ĐIỀU CHỈNH TỶ LỆ CỘT - ưu tiên statistics hơn
+            footerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60)); // Buttons - giảm xuống
+            footerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40)); // Statistics - tăng lên
+
+            // === BUTTONS PANEL ===
+            var buttonsPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.Transparent,
+                Padding = new Padding(0),
+                Margin = new Padding(0),
+                WrapContents = false,
+                AutoSize = false
+            };
+
+            // Tạo action buttons COMPACT hơn để nhường chỗ cho statistics
+            addButton = CreateCompactActionButton("➕ THÊM", Color.FromArgb(76, 175, 80));
+            editButton = CreateCompactActionButton("✏️ SỬA", Color.FromArgb(255, 152, 0));
+            viewButton = CreateCompactActionButton("👁️ XEM", Color.FromArgb(33, 150, 243));
+            deleteButton = CreateCompactActionButton("🗑️ XÓA", Color.FromArgb(244, 67, 54));
+
+            // Set sizes NHỎ GỌN để nhường chỗ
+            addButton.Size = new Size(90, 38);
+            editButton.Size = new Size(70, 38);
+            viewButton.Size = new Size(70, 38);
+            deleteButton.Size = new Size(70, 38);
+
+            // Set initial states
+            editButton.Enabled = false;
+            viewButton.Enabled = false;
+            deleteButton.Enabled = false;
+
+            SetupButtonEvents();
+
+            buttonsPanel.Controls.Add(addButton);
+            buttonsPanel.Controls.Add(editButton);
+            buttonsPanel.Controls.Add(viewButton);
+            buttonsPanel.Controls.Add(deleteButton);
+
+            // === STATISTICS PANEL - QUAN TRỌNG ===
+            var statsPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.Transparent,
+                Padding = new Padding(10, 0, 0, 0) // Thêm padding left
+            };
+
+           
+
+            statsPanel.Controls.Add(statisticsLabel);
+
+            footerContainer.Controls.Add(buttonsPanel, 0, 0);
+            footerContainer.Controls.Add(statsPanel, 1, 0);
+
+            footerPanel.Controls.Add(footerContainer);
+            mainTableLayout.Controls.Add(footerPanel, 0, 3);
+        }
+
+       
+        private void SetupFooterAlternative()
+        {
+            footerPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(248, 249, 250),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(20, 12, 20, 12)
+            };
+
+            // === STATISTICS PANEL - ĐẶT TRƯỚC (Dock Right) ===
+            var statsPanel = new Panel
+            {
+                Width = 450, // Fixed width để đảm bảo hiển thị
+                Dock = DockStyle.Right,
+                BackColor = Color.Transparent,
+                Padding = new Padding(15, 0, 0, 0)
+            };
+
+            statisticsLabel = new Label
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = Color.FromArgb(64, 64, 64),
+                TextAlign = ContentAlignment.MiddleRight,
+                Text = "📊 Đang tải...",
+                AutoSize = false,
+                BackColor = Color.Transparent // DEBUG - để thấy boundaries
+            };
+
+            statsPanel.Controls.Add(statisticsLabel);
+
+            // === BUTTONS PANEL - FILL PHẦN CÒN LẠI ===
+            var buttonsPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill, // Fill phần còn lại
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.Transparent,
+                Padding = new Padding(0),
+                Margin = new Padding(0),
+                WrapContents = false,
+                AutoSize = false
+            };
+
+            // Compact buttons
+            addButton = CreateCompactActionButton("➕ THÊM", Color.FromArgb(76, 175, 80));
+            editButton = CreateCompactActionButton("✏️ SỬA", Color.FromArgb(255, 152, 0));
+            viewButton = CreateCompactActionButton("👁️ XEM", Color.FromArgb(33, 150, 243));
+            deleteButton = CreateCompactActionButton("🗑️ XÓA", Color.FromArgb(244, 67, 54));
+
+            // Smaller sizes
+            addButton.Size = new Size(85, 38);
+            editButton.Size = new Size(70, 38);
+            viewButton.Size = new Size(70, 38);
+            deleteButton.Size = new Size(70, 38);
+
+            editButton.Enabled = false;
+            viewButton.Enabled = false;
+            deleteButton.Enabled = false;
+
+            SetupButtonEvents();
+
+            buttonsPanel.Controls.Add(addButton);
+            buttonsPanel.Controls.Add(editButton);
+            buttonsPanel.Controls.Add(viewButton);
+            buttonsPanel.Controls.Add(deleteButton);
+
+            // ADD TO FOOTER - THỨ TỰ QUAN TRỌNG
+            footerPanel.Controls.Add(buttonsPanel); // Add buttons first (Fill)
+            footerPanel.Controls.Add(statsPanel);   // Add stats second (Right)
+
+            mainTableLayout.Controls.Add(footerPanel, 0, 3);
+        }
+
+        // 4. COMPACT STATISTICS - CHỈ HIỂN THỊ CON SỐ
+        private void UpdateStatisticsCompact()
         {
             var total = filteredEmployees.Count;
             var active = filteredEmployees.Count(e => e.Status == "Đang làm việc");
             var onLeave = filteredEmployees.Count(e => e.Status == "Tạm nghỉ");
             var inactive = filteredEmployees.Count(e => e.Status == "Đã nghỉ việc");
 
-            statisticsLabel.Text = $"📊 Tổng: {total} | 👤 Đang làm việc: {active} | ⏸️ Tạm nghỉ: {onLeave} | 🚫 Đã nghỉ việc: {inactive}";
+            // FORMAT CỰC NGẮN
+            statisticsLabel.Text = $"{total} nhân viên | {active} đang làm | {onLeave} tạm nghỉ | {inactive} đã nghỉ";
+
+            // HOẶC CHỈ SỐ
+            // statisticsLabel.Text = $"📊 {total} | 👤 {active} | ⏸️ {onLeave} | 🚫 {inactive}";
         }
+
+        // 5. DEBUG METHOD - KIỂM TRA STATISTICS LABEL
+        private void DebugStatisticsLabel()
+        {
+            if (statisticsLabel != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Statistics Label Debug:");
+                System.Diagnostics.Debug.WriteLine($"- Text: {statisticsLabel.Text}");
+                System.Diagnostics.Debug.WriteLine($"- Size: {statisticsLabel.Size}");
+                System.Diagnostics.Debug.WriteLine($"- Location: {statisticsLabel.Location}");
+                System.Diagnostics.Debug.WriteLine($"- Visible: {statisticsLabel.Visible}");
+                System.Diagnostics.Debug.WriteLine($"- Parent Size: {statisticsLabel.Parent?.Size}");
+                System.Diagnostics.Debug.WriteLine($"- Dock: {statisticsLabel.Dock}");
+                System.Diagnostics.Debug.WriteLine($"- Anchor: {statisticsLabel.Anchor}");
+            }
+        }
+
+        // 7. SỬA LẠI LoadEmployeesToGrid() ĐỂ ĐẢM BẢO UpdateStatistics() ĐƯỢC GỌI
+        private void LoadEmployeesToGrid()
+        {
+            try
+            {
+                var dataSource = filteredEmployees.Select(e => new EmployeeDisplayModel
+                {
+                    EmployeeID = e.EmployeeID,
+                    EmployeeCode = e.EmployeeCode,
+                    FullName = e.FullName,
+                    Gender = e.Gender,
+                    DateOfBirth = e.DateOfBirth,
+                    Phone = e.Phone,
+                    Email = e.Email,
+                    Department = e.Department?.DepartmentName ?? GetDepartmentName(e.DepartmentID),
+                    Position = e.Position?.PositionName ?? GetPositionName(e.PositionID),
+                    Status = GetStatusDisplayText(e.Status),
+                    HireDate = e.HireDate
+                }).ToList();
+
+                employeeDataGridView.DataSource = dataSource;
+
+               
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải dữ liệu: {ex.Message}", "Lỗi",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+       
+        // 9. ALTERNATIVE - SIMPLE STATISTICS TRONG HEADER
+        private void AddStatisticsToHeader()
+        {
+            var headerStatsLabel = new Label
+            {
+                Size = new Size(300, 25),
+                Font = new Font("Segoe UI", 10),
+                ForeColor = Color.Gray,
+                TextAlign = ContentAlignment.MiddleRight,
+                Location = new Point(this.Width - 320, 35),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Text = "📊 Loading..."
+            };
+
+            headerPanel.Controls.Add(headerStatsLabel);
+
+            // Update method to also update header stats
+            // statisticsHeaderLabel = headerStatsLabel; // Declare this field
+        }
+
+        // 10. RESPONSIVE FOOTER LAYOUT
+        private void SetupResponsiveFooter()
+        {
+            footerPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(248, 249, 250),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(15, 10, 15, 10)
+            };
+
+            if (this.Width < 1200)
+            {
+                // Small screen - stack vertically
+                var verticalContainer = new TableLayoutPanel
+                {
+                    Dock = DockStyle.Fill,
+                    RowCount = 2,
+                    ColumnCount = 1
+                };
+
+                verticalContainer.RowStyles.Add(new RowStyle(SizeType.Percent, 60)); // Buttons
+                verticalContainer.RowStyles.Add(new RowStyle(SizeType.Percent, 40)); // Stats
+
+                // Add buttons to row 0, stats to row 1
+                // ... implementation
+            }
+            else
+            {
+                // Large screen - horizontal layout
+                SetupFooterAlternative();
+            }
+        }
+
+
         #endregion
 
         #region Helper Methods
@@ -660,28 +897,31 @@ namespace EmployeeManagement.GUI.Employee
                 Padding = new Padding(0)
             };
 
-            // Define row heights
-            mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));   // Header
-            mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));  // Search
+            // Giảm heights để giao diện gọn gàng hơn
+            mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 65));   // Header - giảm từ 80
+            mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));   // Search - giảm từ 100  
             mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));   // Grid
-            mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80));   // Footer
+            mainTableLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));   // Footer - giảm từ 80
 
             this.Controls.Add(mainTableLayout);
         }
+       
+        
+     
 
-        private void SetupHeader()
+       private void SetupHeader()
         {
             headerPanel = new Panel
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                Padding = new Padding(10, 0, 10, 0)
+                Padding = new Padding(10, 5, 10, 5) // Giảm padding
             };
 
             titleLabel = new Label
             {
                 Text = "👥 QUẢN LÝ NHÂN VIÊN",
-                Font = new Font("Segoe UI", 24, FontStyle.Bold),
+                Font = new Font("Segoe UI", 20, FontStyle.Bold), // Giảm từ 24 xuống 20
                 ForeColor = Color.FromArgb(64, 64, 64),
                 AutoSize = false,
                 Dock = DockStyle.Fill,
@@ -691,102 +931,7 @@ namespace EmployeeManagement.GUI.Employee
             headerPanel.Controls.Add(titleLabel);
             mainTableLayout.Controls.Add(headerPanel, 0, 0);
         }
-
-        private void SetupSearchPanel()
-        {
-            searchPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(248, 249, 250),
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(20, 10, 20, 10)
-            };
-
-            // Search controls container
-            var searchContainer = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 5,
-                RowCount = 1,
-                BackColor = Color.Transparent,
-                CellBorderStyle = TableLayoutPanelCellBorderStyle.None
-            };
-
-            // Column widths
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));  // Search box
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));  // Status filter
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));  // Department filter
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 12.5f)); // Search button
-            searchContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 12.5f)); // Clear button
-
-            // Search TextBox
-            searchTextBox = new TextBox
-            {
-                Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 11),
-                Text = searchPlaceholder,
-                ForeColor = Color.Gray,
-                Height = 35,
-                Margin = new Padding(0, 5, 10, 5)
-            };
-            SetupSearchTextBoxEvents();
-
-            // Status ComboBox
-            statusComboBox = new ComboBox
-            {
-                Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 11),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Height = 35,
-                Margin = new Padding(5, 5, 10, 5)
-            };
-            statusComboBox.Items.AddRange(new[] { "Tất cả trạng thái", "Đang làm việc", "Tạm nghỉ", "Đã nghỉ việc" });
-            statusComboBox.SelectedIndex = 0;
-            statusComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
-
-            // Department ComboBox - Tải phòng ban từ database
-            departmentComboBox = new ComboBox
-            {
-                Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 11),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Height = 35,
-                Margin = new Padding(5, 5, 10, 5),
-                DisplayMember = "DepartmentName",
-                ValueMember = "DepartmentID"
-            };
-
-            // Thêm lựa chọn "Tất cả phòng ban"
-            departmentComboBox.Items.Add("Tất cả phòng ban");
-
-            // Thêm phòng ban từ database
-            var departments = LoadDepartments();
-            foreach (var department in departments)
-            {
-                departmentComboBox.Items.Add(department.DepartmentName);
-            }
-
-            departmentComboBox.SelectedIndex = 0;
-            departmentComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
-
-            // Search Button
-            searchButton = CreateStyledButton("🔍 TÌM KIẾM", Color.FromArgb(33, 150, 243));
-            searchButton.Click += (s, e) => ApplyFilters();
-
-            // Clear Button
-            clearButton = CreateStyledButton("🗑️ XÓA BỘ LỌC", Color.FromArgb(244, 67, 54));
-            clearButton.Click += ClearFilters;
-
-            // Add controls to search container
-            searchContainer.Controls.Add(searchTextBox, 0, 0);
-            searchContainer.Controls.Add(statusComboBox, 1, 0);
-            searchContainer.Controls.Add(departmentComboBox, 2, 0);
-            searchContainer.Controls.Add(searchButton, 3, 0);
-            searchContainer.Controls.Add(clearButton, 4, 0);
-
-            searchPanel.Controls.Add(searchContainer);
-            mainTableLayout.Controls.Add(searchPanel, 0, 1);
-        }
+     
 
         private void SetupDataGrid()
         {
@@ -832,109 +977,7 @@ namespace EmployeeManagement.GUI.Employee
             mainTableLayout.Controls.Add(gridPanel, 0, 2);
         }
 
-        private void SetupFooter()
-        {
-            footerPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(248, 249, 250),
-                BorderStyle = BorderStyle.FixedSingle,
-                Padding = new Padding(20, 15, 20, 15)
-            };
-
-            var footerContainer = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                RowCount = 1,
-                BackColor = Color.Transparent,
-                CellBorderStyle = TableLayoutPanelCellBorderStyle.None
-            };
-
-            footerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60)); // Buttons
-            footerContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40)); // Statistics
-
-            // Buttons panel
-            var buttonsPanel = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                BackColor = Color.Transparent,
-                Padding = new Padding(0),
-                Margin = new Padding(0)
-            };
-
-            addButton = CreateActionButton("➕ THÊM NHÂN VIÊN", Color.FromArgb(76, 175, 80));
-            editButton = CreateActionButton("✏️ CHỈNH SỬA", Color.FromArgb(255, 152, 0));
-            viewButton = CreateActionButton("👁️ XEM CHI TIẾT", Color.FromArgb(33, 150, 243));
-            deleteButton = CreateActionButton("🗑️ XÓA", Color.FromArgb(244, 67, 54));
-
-            editButton.Enabled = false;
-            viewButton.Enabled = false;
-            deleteButton.Enabled = false;
-
-            SetupButtonEvents();
-
-            buttonsPanel.Controls.Add(addButton);
-            buttonsPanel.Controls.Add(editButton);
-            buttonsPanel.Controls.Add(viewButton);
-            buttonsPanel.Controls.Add(deleteButton);
-
-            // Statistics panel
-            var statsPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.Transparent
-            };
-
-            statisticsLabel = new Label
-            {
-                Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 12, FontStyle.Bold),
-                ForeColor = Color.FromArgb(64, 64, 64),
-                TextAlign = ContentAlignment.MiddleRight,
-                Text = "📊 Đang tải..."
-            };
-
-            statsPanel.Controls.Add(statisticsLabel);
-
-            footerContainer.Controls.Add(buttonsPanel, 0, 0);
-            footerContainer.Controls.Add(statsPanel, 1, 0);
-
-            footerPanel.Controls.Add(footerContainer);
-            mainTableLayout.Controls.Add(footerPanel, 0, 3);
-        }
-
-        private Button CreateStyledButton(string text, Color backColor)
-        {
-            return new Button
-            {
-                Text = text,
-                Dock = DockStyle.Fill,
-                BackColor = backColor,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                Margin = new Padding(5, 5, 5, 5),
-                FlatAppearance = { BorderSize = 0 }
-            };
-        }
-
-        private Button CreateActionButton(string text, Color backColor)
-        {
-            return new Button
-            {
-                Text = text,
-                Size = new Size(140, 45),
-                BackColor = backColor,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Margin = new Padding(0, 0, 15, 0),
-                FlatAppearance = { BorderSize = 0 }
-            };
-        }
-
+      
         private void SetupSearchTextBoxEvents()
         {
             searchTextBox.GotFocus += (s, e) =>
@@ -944,6 +987,7 @@ namespace EmployeeManagement.GUI.Employee
                     searchTextBox.Text = "";
                     searchTextBox.ForeColor = Color.Black;
                 }
+                searchTextBox.BackColor = Color.FromArgb(250, 250, 250);
             };
 
             searchTextBox.LostFocus += (s, e) =>
@@ -953,12 +997,24 @@ namespace EmployeeManagement.GUI.Employee
                     searchTextBox.Text = searchPlaceholder;
                     searchTextBox.ForeColor = Color.Gray;
                 }
+                searchTextBox.BackColor = Color.White;
             };
 
             searchTextBox.TextChanged += (s, e) =>
             {
                 if (searchTextBox.Text != searchPlaceholder)
                     ApplyFilters();
+            };
+
+            // Enter key support
+            searchTextBox.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    ApplyFilters();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                }
             };
         }
 
@@ -1060,7 +1116,314 @@ namespace EmployeeManagement.GUI.Employee
             viewButton.Click += (s, e) => ViewEmployee();
             deleteButton.Click += (s, e) => DeleteEmployee();
         }
-        #endregion
+
+        private void AdjustSearchButtonSizes()
+        {
+            if (this.Width < 1200)
+            {
+                // Small screen - compact buttons
+                searchButton.Text = "🔍";
+                clearButton.Text = "🗑️";
+                searchButton.Size = new Size(40, 35);
+                clearButton.Size = new Size(40, 35);
+            }
+            else if (this.Width < 1400)
+            {
+                // Medium screen - short text
+                searchButton.Text = "🔍 TÌM";
+                clearButton.Text = "🗑️ XÓA";
+                searchButton.Size = new Size(80, 35);
+                clearButton.Size = new Size(80, 35);
+            }
+            else
+            {
+                // Large screen - full text
+                searchButton.Text = "🔍 TÌM KIẾM";
+                clearButton.Text = "🗑️ XÓA BỘ LỌC";
+                searchButton.Size = new Size(120, 35);
+                clearButton.Size = new Size(120, 35);
+            }
+        }
+
+        // Hook vào Resize event
+        private void EmployeeListForm_Resize(object sender, EventArgs e)
+        {
+            AdjustSearchButtonSizes();
+        }
+
+
+
+        // ==========================================
+        // FIX HIỂN THỊ TEXT CHO BUTTONS
+        // ==========================================
+
+        // 1. SỬA LẠI PHƯƠNG THỨC AdjustButtonsForScreenSize()
+        private void AdjustButtonsForScreenSize()
+        {
+            // LUÔN HIỂN THỊ TEXT, chỉ thay đổi kích thước
+            if (this.Width < 1000) // Giảm ngưỡng xuống 1000px
+            {
+                // Screen nhỏ - text ngắn + kích thước vừa phải
+                addButton.Text = "➕ THÊM";
+                editButton.Text = "✏️ SỬA";
+                viewButton.Text = "👁️ XEM";
+                deleteButton.Text = "🗑️ XÓA";
+
+                addButton.Size = new Size(80, 38);
+                editButton.Size = new Size(70, 38);
+                viewButton.Size = new Size(70, 38);
+                deleteButton.Size = new Size(70, 38);
+
+                // Search buttons cũng text ngắn
+                searchButton.Text = "TÌM";
+                clearButton.Text = "XÓA";
+                searchButton.Size = new Size(60, 32);
+                clearButton.Size = new Size(60, 32);
+            }
+            else if (this.Width < 1300)
+            {
+                // Screen vừa - text trung bình
+                addButton.Text = "➕ THÊM MỚI";
+                editButton.Text = "✏️ CHỈNH SỬA";
+                viewButton.Text = "👁️ XEM CHI TIẾT";
+                deleteButton.Text = "🗑️ XÓA";
+
+                addButton.Size = new Size(110, 38);
+                editButton.Size = new Size(110, 38);
+                viewButton.Size = new Size(120, 38);
+                deleteButton.Size = new Size(80, 38);
+
+                searchButton.Text = "🔍 TÌM KIẾM";
+                clearButton.Text = "🗑️ XÓA BỘ LỌC";
+                searchButton.Size = new Size(100, 32);
+                clearButton.Size = new Size(110, 32);
+            }
+            else
+            {
+                // Screen lớn - text đầy đủ
+                addButton.Text = "➕ THÊM NHÂN VIÊN";
+                editButton.Text = "✏️ CHỈNH SỬA";
+                viewButton.Text = "👁️ XEM CHI TIẾT";
+                deleteButton.Text = "🗑️ XÓA";
+
+                addButton.Size = new Size(140, 38);
+                editButton.Size = new Size(120, 38);
+                viewButton.Size = new Size(130, 38);
+                deleteButton.Size = new Size(80, 38);
+
+                searchButton.Text = "🔍 TÌM KIẾM";
+                clearButton.Text = "🗑️ XÓA BỘ LỌC";
+                searchButton.Size = new Size(110, 32);
+                clearButton.Size = new Size(120, 32);
+            }
+        }
+
+        // 2. CẬP NHẬT PHƯƠNG THỨC CreateCompactActionButton() 
+        private Button CreateCompactActionButton(string text, Color backColor)
+        {
+            var button = new Button
+            {
+                Text = text,
+                Size = new Size(110, 38), // Tăng kích thước mặc định
+                BackColor = backColor,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Margin = new Padding(0, 0, 12, 0),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false,
+                TextAlign = ContentAlignment.MiddleCenter, // Đảm bảo text căn giữa
+                AutoSize = false // Tắt auto size để control được kích thước
+            };
+
+            button.FlatAppearance.BorderSize = 0;
+
+            // Hover effects
+            Color hoverColor = ControlPaint.Dark(backColor, 0.1f);
+            button.MouseEnter += (s, e) => button.BackColor = hoverColor;
+            button.MouseLeave += (s, e) => button.BackColor = backColor;
+
+            return button;
+        }
+
+       
+        // 4. SỬA LẠI SEARCH PANEL - ĐẢM BẢO BUTTONS CÓ TEXT
+        private void SetupSearchPanel()
+        {
+            searchPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(248, 249, 250),
+                BorderStyle = BorderStyle.FixedSingle,
+                Padding = new Padding(15, 12, 15, 12)
+            };
+
+            // Main container - chia 65% cho filters, 35% cho buttons
+            var mainContainer = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.None,
+                Margin = new Padding(0)
+            };
+
+            mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65)); // Filter controls  
+            mainContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35)); // Buttons
+
+            // === FILTER CONTROLS CONTAINER ===
+            var filtersContainer = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                CellBorderStyle = TableLayoutPanelCellBorderStyle.None
+            };
+
+            filtersContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); // Search box
+            filtersContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25)); // Status
+            filtersContainer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25)); // Department
+
+            // Search TextBox
+            searchTextBox = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10),
+                Text = searchPlaceholder,
+                ForeColor = Color.Gray,
+                Height = 32,
+                Margin = new Padding(0, 6, 12, 6),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.White
+            };
+            SetupSearchTextBoxEvents();
+
+            // Status ComboBox
+            statusComboBox = new ComboBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Height = 32,
+                Margin = new Padding(6, 6, 6, 6),
+                FlatStyle = FlatStyle.Standard,
+                BackColor = Color.White
+            };
+            statusComboBox.Items.AddRange(new[] { "Tất cả trạng thái", "Đang làm việc", "Tạm nghỉ", "Đã nghỉ việc" });
+            statusComboBox.SelectedIndex = 0;
+            statusComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
+
+            // Department ComboBox
+            departmentComboBox = new ComboBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Height = 32,
+                Margin = new Padding(6, 6, 12, 6),
+                DisplayMember = "DepartmentName",
+                ValueMember = "DepartmentID",
+                FlatStyle = FlatStyle.Standard,
+                BackColor = Color.White
+            };
+
+            // Load departments
+            departmentComboBox.Items.Add("Tất cả phòng ban");
+            var departments = LoadDepartments();
+            foreach (var department in departments)
+            {
+                departmentComboBox.Items.Add(department.DepartmentName);
+            }
+            departmentComboBox.SelectedIndex = 0;
+            departmentComboBox.SelectedIndexChanged += (s, e) => ApplyFilters();
+
+            // Add filters to container
+            filtersContainer.Controls.Add(searchTextBox, 0, 0);
+            filtersContainer.Controls.Add(statusComboBox, 1, 0);
+            filtersContainer.Controls.Add(departmentComboBox, 2, 0);
+
+            // === BUTTONS CONTAINER ===
+            var buttonsContainer = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.Transparent,
+                Padding = new Padding(8, 0, 0, 0),
+                Margin = new Padding(0),
+                WrapContents = false,
+                AutoSize = false
+            };
+
+            // Search Button với text
+            searchButton = new Button
+            {
+                Text = "🔍 TÌM KIẾM",
+                Size = new Size(110, 32),
+                BackColor = Color.FromArgb(33, 150, 243),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Margin = new Padding(0, 6, 8, 6),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
+            };
+            searchButton.FlatAppearance.BorderSize = 0;
+            searchButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(30, 136, 229);
+            searchButton.Click += (s, e) => ApplyFilters();
+
+            // Clear Button với text
+            clearButton = new Button
+            {
+                Text = "🗑️ XÓA BỘ LỌC",
+                Size = new Size(120, 32),
+                BackColor = Color.FromArgb(244, 67, 54),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Margin = new Padding(0, 6, 0, 6),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
+            };
+            clearButton.FlatAppearance.BorderSize = 0;
+            clearButton.FlatAppearance.MouseOverBackColor = Color.FromArgb(229, 57, 53);
+            clearButton.Click += ClearFilters;
+
+            buttonsContainer.Controls.Add(searchButton);
+            buttonsContainer.Controls.Add(clearButton);
+
+            // Add to main container
+            mainContainer.Controls.Add(filtersContainer, 0, 0);
+            mainContainer.Controls.Add(buttonsContainer, 1, 0);
+
+            searchPanel.Controls.Add(mainContainer);
+            mainTableLayout.Controls.Add(searchPanel, 0, 1);
+        }
+
+        // 5. TẮT AUTO-RESIZE TRONG OnLoad VÀ OnResize
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            // KHÔNG GỌI AdjustButtonsForScreenSize() ở đây nữa
+            // AdjustButtonsForScreenSize(); // COMMENT OUT DÒNG NÀY
+        }
+
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            // CHỈ GỌI KHI CẦN THIẾT
+            if (this.WindowState != FormWindowState.Minimized)
+            {
+                AdjustButtonsForScreenSize();
+            }
+        }
+
+      #endregion
 
 
 

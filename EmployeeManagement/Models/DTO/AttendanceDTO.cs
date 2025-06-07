@@ -3,7 +3,15 @@ using System;
 
 namespace EmployeeManagement.Models.DTO
 {
-
+    public class AttendanceCreateResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public string AttendanceType { get; set; } = ""; // "CheckIn" hoặc "CheckOut"
+        public int? AttendanceId { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string ErrorCode { get; set; } = "";
+    }
 
 
     /// <summary>

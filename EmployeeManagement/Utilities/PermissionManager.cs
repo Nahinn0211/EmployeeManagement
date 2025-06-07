@@ -122,5 +122,39 @@ namespace EmployeeManagement.Utilities
                 _ => "Không xác định"
             };
         }
+
+
+        public static List<string> GetAllRoles()
+        {
+            return RolePermissions.Keys.ToList();
+        }
+
+        /// <summary>
+        /// THÊM METHOD NÀY để kiểm tra role có hợp lệ không
+        /// </summary>
+        public static bool IsValidRole(string roleName)
+        {
+            return !string.IsNullOrEmpty(roleName) && RolePermissions.ContainsKey(roleName);
+        }
+
+        /// <summary>
+        /// THÊM METHOD NÀY để debug permission
+        /// </summary>
+        public static string GetPermissionDebugInfo(string userRole)
+        {
+            if (!IsValidRole(userRole))
+                return $"Role '{userRole}' không hợp lệ";
+
+            var allowedMenus = GetAllowedMenus(userRole);
+            var description = GetRoleDescription(userRole);
+
+            return $"Role: {userRole}\n" +
+                   $"Description: {description}\n" +
+                   $"Allowed Menus ({allowedMenus.Count}): {string.Join(", ", allowedMenus)}\n" +
+                   $"Can Create: {HasActionPermission(userRole, "create")}\n" +
+                   $"Can Edit: {HasActionPermission(userRole, "edit")}\n" +
+                   $"Can Delete: {HasActionPermission(userRole, "delete")}\n" +
+                   $"Can Export: {HasActionPermission(userRole, "export")}";
+        }
     }
 }
