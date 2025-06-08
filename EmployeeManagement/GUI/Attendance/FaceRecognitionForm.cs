@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Linq;
+using System.IO;
 using EmployeeManagement.BLL;
 using EmployeeManagement.Utilities;
 using EmployeeManagement.Models.DTO;
@@ -17,8 +18,7 @@ namespace EmployeeManagement.GUI.Attendance
     {
         private readonly AttendanceBLL attendanceBLL;
         private readonly EmployeeBLL employeeBLL;
-       private readonly UserDAL userDAL;
-
+        private readonly UserDAL userDAL;
 
         // Recognition state
         private bool isRecognizing = false;
@@ -40,6 +40,7 @@ namespace EmployeeManagement.GUI.Attendance
             InitializeComponent();
             attendanceBLL = new AttendanceBLL();
             employeeBLL = new EmployeeBLL();
+            userDAL = new UserDAL();
             InitializeTimers();
         }
 
@@ -60,13 +61,12 @@ namespace EmployeeManagement.GUI.Attendance
             updateTimer.Tick += UpdateTimer_Tick;
         }
 
-        // Trong FaceRecognitionForm_Load
         private async void FaceRecognitionForm_Load(object sender, EventArgs e)
         {
             await InitializeSystemAsync();
 
             // Hiển thị thông tin user đăng nhập
-            if (SessionManager.IsLoggedIn)
+            if (UserSession.IsLoggedIn)
             {
                 var currentEmployee = await GetCurrentLoggedInEmployeeAsync();
                 if (currentEmployee != null)
@@ -101,13 +101,32 @@ namespace EmployeeManagement.GUI.Attendance
             }
         }
 
+        private SystemCheckResult CheckSystemReadinessSync()
+        {
+            try
+            {
+                // Gọi static method từ FaceRecognitionService
+                return EmployeeManagement.Utilities.FaceRecognitionService.CheckSystemReadiness();
+            }
+            catch (Exception ex)
+            {
+                return new SystemCheckResult
+                {
+                    IsReady = false,
+                    Message = "",
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
         private async Task CheckFaceRecognitionSystemAsync()
         {
             try
             {
-                SetStatus("🔍 Đang kiểm tra Python Face Recognition...", Color.FromArgb(255, 152, 0));
+                SetStatus("🔍 Đang kiểm tra EmguCV Face Recognition...", Color.FromArgb(255, 152, 0));
 
-                var systemCheck = await Task.Run(() => FaceRecognitionService.CheckSystemReadiness());
+                // Gọi sync method để kiểm tra system
+                var systemCheck = CheckSystemReadinessSync();
 
                 if (!systemCheck.IsReady)
                 {
@@ -144,13 +163,21 @@ namespace EmployeeManagement.GUI.Attendance
         {
             try
             {
-                SetCameraStatus("📷 Đang tìm camera...", Color.FromArgb(255, 152, 0));
+                SetCameraStatus("📷 Đang kiểm tra camera...", Color.FromArgb(255, 152, 0));
                 SetStatus("📷 Đang khởi tạo camera...", Color.FromArgb(255, 152, 0));
 
-                // Find camera devices
+                // Check if any camera devices exist
                 await Task.Run(() =>
                 {
-                    videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                    try
+                    {
+                        videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error getting video devices: {ex.Message}");
+                        videoDevices = null;
+                    }
                 });
 
                 if (videoDevices == null || videoDevices.Count == 0)
@@ -161,8 +188,16 @@ namespace EmployeeManagement.GUI.Attendance
 
                 SetCameraStatus($"📷 Tìm thấy {videoDevices.Count} camera", Color.Green);
 
-                // Start first available camera
-                await StartFirstAvailableCameraAsync();
+                // Show camera diagnostics
+                System.Diagnostics.Debug.WriteLine(GetCameraDiagnostics());
+
+                // Try to start camera with retry mechanism
+                bool cameraStarted = await StartCameraWithRetryAsync();
+
+                if (!cameraStarted)
+                {
+                    ShowCameraStartError();
+                }
             }
             catch (Exception ex)
             {
@@ -170,65 +205,266 @@ namespace EmployeeManagement.GUI.Attendance
             }
         }
 
-        private async Task StartFirstAvailableCameraAsync()
+        private async Task<bool> StartCameraWithRetryAsync(int maxRetries = 3)
         {
-            for (int i = 0; i < videoDevices!.Count; i++)
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
                 try
                 {
-                    SetCameraStatus($"📷 Đang thử camera {i + 1}...", Color.FromArgb(255, 152, 0));
+                    SetCameraStatus($"📷 Thử khởi động camera (lần {attempt}/{maxRetries})...", Color.FromArgb(255, 152, 0));
 
-                    // Cleanup previous camera
-                    CleanupCamera();
+                    // Cleanup any existing camera
+                    CleanupCameraSync();
+                    await Task.Delay(1000); // Wait for cleanup
 
-                    await Task.Delay(500); // Wait for cleanup
-
-                    lock (cameraLock)
+                    // Try each camera device
+                    for (int i = 0; i < videoDevices!.Count; i++)
                     {
-                        // Create new camera
-                        videoSource = new VideoCaptureDevice(videoDevices[i].MonikerString);
-
-                        // Set resolution if available
-                        if (videoSource.VideoCapabilities?.Length > 0)
+                        try
                         {
-                            var capability = videoSource.VideoCapabilities
-                                .Where(c => c.FrameSize.Width <= 640 && c.FrameSize.Height <= 480)
-                                .OrderByDescending(c => c.FrameSize.Width * c.FrameSize.Height)
-                                .FirstOrDefault() ?? videoSource.VideoCapabilities[0];
+                            SetCameraStatus($"📷 Đang thử camera {i + 1}...", Color.FromArgb(255, 152, 0));
 
-                            videoSource.VideoResolution = capability;
+                            await Task.Delay(500); // Brief delay between attempts
+
+                            bool success = await TryStartSingleCameraAsync(i);
+                            if (success)
+                            {
+                                isCameraRunning = true;
+                                SetCameraStatus($"📷 Camera {i + 1} đang hoạt động", Color.FromArgb(76, 175, 80));
+                                SetStatus("📹 Camera sẵn sàng", Color.FromArgb(76, 175, 80));
+                                return true;
+                            }
                         }
-
-                        // Register event handler
-                        videoSource.NewFrame += VideoSource_NewFrame;
-
-                        // Start camera
-                        videoSource.Start();
-                    }
-
-                    // Wait for camera to start
-                    await Task.Delay(2000);
-
-                    lock (cameraLock)
-                    {
-                        if (videoSource?.IsRunning == true)
+                        catch (Exception ex)
                         {
-                            isCameraRunning = true;
-                            SetCameraStatus($"📷 Camera {i + 1} đang hoạt động", Color.FromArgb(76, 175, 80));
-                            SetStatus("📹 Camera sẵn sàng", Color.FromArgb(76, 175, 80));
-                            return;
+                            System.Diagnostics.Debug.WriteLine($"Camera {i} failed on attempt {attempt}: {ex.Message}");
+                            CleanupCameraSync();
+                            continue;
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Camera {i} failed: {ex.Message}");
-                    continue;
+                    System.Diagnostics.Debug.WriteLine($"Attempt {attempt} failed: {ex.Message}");
+                }
+
+                if (attempt < maxRetries)
+                {
+                    SetCameraStatus($"🔄 Thử lại sau 2 giây... ({attempt}/{maxRetries})", Color.FromArgb(255, 152, 0));
+                    await Task.Delay(2000);
                 }
             }
 
-            // If no camera could be started
-            ShowCameraStartError();
+            return false;
+        }
+
+        private async Task<bool> TryStartSingleCameraAsync(int deviceIndex)
+        {
+            try
+            {
+                VideoCaptureDevice? newVideoSource = null;
+
+                // Create camera outside of lock to avoid await in lock
+                try
+                {
+                    newVideoSource = new VideoCaptureDevice(videoDevices![deviceIndex].MonikerString);
+
+                    // Set reasonable resolution to avoid compatibility issues
+                    if (newVideoSource.VideoCapabilities?.Length > 0)
+                    {
+                        // Find best resolution (prefer smaller resolutions for stability)
+                        var capability = newVideoSource.VideoCapabilities
+                            .Where(c => c.FrameSize.Width <= 640 && c.FrameSize.Height <= 480)
+                            .OrderByDescending(c => c.FrameSize.Width * c.FrameSize.Height)
+                            .FirstOrDefault();
+
+                        if (capability == null)
+                        {
+                            // Fallback to smallest available resolution
+                            capability = newVideoSource.VideoCapabilities
+                                .OrderBy(c => c.FrameSize.Width * c.FrameSize.Height)
+                                .FirstOrDefault();
+                        }
+
+                        if (capability != null)
+                        {
+                            newVideoSource.VideoResolution = capability;
+                            System.Diagnostics.Debug.WriteLine($"Camera resolution set to: {capability.FrameSize.Width}x{capability.FrameSize.Height}");
+                        }
+                    }
+
+                    // Register event handler
+                    newVideoSource.NewFrame += VideoSource_NewFrame;
+
+                    // Start camera
+                    newVideoSource.Start();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error creating/starting camera: {ex.Message}");
+                    return false;
+                }
+
+                // Now assign to videoSource under lock
+                lock (cameraLock)
+                {
+                    videoSource = newVideoSource;
+                }
+
+                 for (int wait = 0; wait < 30; wait++) // Wait up to 3 seconds
+                {
+                    await Task.Delay(100);
+
+                    bool isRunning = false;
+                    lock (cameraLock)
+                    {
+                        isRunning = videoSource?.IsRunning == true;
+                    }
+
+                    if (isRunning)
+                    {
+                        // Double check - wait for first frame
+                        await Task.Delay(500);
+                        lock (cameraLock)
+                        {
+                            if (videoSource?.IsRunning == true)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                // Camera didn't start properly
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"TryStartSingleCamera error: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void CleanupCameraSync()
+        {
+            try
+            {
+                VideoCaptureDevice? sourceToCleanup = null;
+
+                lock (cameraLock)
+                {
+                    sourceToCleanup = videoSource;
+                    videoSource = null;
+                    isCameraRunning = false;
+                }
+
+                // Cleanup outside of lock
+                if (sourceToCleanup != null)
+                {
+                    try
+                    {
+                        // Remove event handler first
+                        sourceToCleanup.NewFrame -= VideoSource_NewFrame;
+
+                        if (sourceToCleanup.IsRunning)
+                        {
+                            sourceToCleanup.SignalToStop();
+
+                            // Wait for stop with timeout to prevent hanging
+                            var stopTask = Task.Run(() =>
+                            {
+                                try
+                                {
+                                    sourceToCleanup.WaitForStop();
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"WaitForStop error: {ex.Message}");
+                                }
+                            });
+
+                            if (!stopTask.Wait(3000)) // 3 second timeout
+                            {
+                                System.Diagnostics.Debug.WriteLine("Camera stop timeout - forcing cleanup");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Camera stop error: {ex.Message}");
+                    }
+                }
+
+                // Clear any displayed frame
+                if (pictureBoxCamera?.Image != null)
+                {
+                    var oldImage = pictureBoxCamera.Image;
+                    pictureBoxCamera.Image = null;
+                    oldImage?.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Cleanup error: {ex.Message}");
+            }
+        }
+
+        private string GetCameraDiagnostics()
+        {
+            var info = "=== CAMERA DIAGNOSTICS ===\n";
+            info += $"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
+            info += $"OS: {Environment.OSVersion}\n\n";
+
+            try
+            {
+                if (videoDevices == null)
+                {
+                    info += "Error: videoDevices is null\n";
+                    return info;
+                }
+
+                info += $"Camera devices found: {videoDevices.Count}\n\n";
+
+                for (int i = 0; i < videoDevices.Count; i++)
+                {
+                    info += $"Camera {i + 1}:\n";
+                    info += $"  Name: {videoDevices[i].Name}\n";
+                    info += $"  MonikerString: {videoDevices[i].MonikerString.Substring(0, Math.Min(50, videoDevices[i].MonikerString.Length))}...\n";
+
+                    try
+                    {
+                        var testDevice = new VideoCaptureDevice(videoDevices[i].MonikerString);
+
+                        if (testDevice.VideoCapabilities?.Length > 0)
+                        {
+                            info += $"  Capabilities: {testDevice.VideoCapabilities.Length}\n";
+                            var cap = testDevice.VideoCapabilities[0];
+                            info += $"  Default Resolution: {cap.FrameSize.Width}x{cap.FrameSize.Height}\n";
+                            info += $"  Max FPS: {cap.MaximumFrameRate}\n";
+                        }
+                        else
+                        {
+                            info += "  No video capabilities available\n";
+                        }
+
+                        info += "  Status: Available for testing\n";
+
+                        // Note: AForge VideoCaptureDevice doesn't implement IDisposable
+                        testDevice = null;
+                    }
+                    catch (Exception ex)
+                    {
+                        info += $"  Status: Error - {ex.Message}\n";
+                    }
+                    info += "\n";
+                }
+            }
+            catch (Exception ex)
+            {
+                info += $"Error getting camera diagnostics: {ex.Message}\n";
+            }
+
+            return info;
         }
 
         private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs)
@@ -335,7 +571,7 @@ namespace EmployeeManagement.GUI.Attendance
                 updateTimer?.Start();
 
                 // Call face recognition service
-                var recognitionTask = FaceRecognitionService.RecognizeFromCameraAsync(recognitionTimeoutSeconds);
+                var recognitionTask = EmployeeManagement.Utilities.FaceRecognitionService.RecognizeFromCameraAsync(recognitionTimeoutSeconds);
                 var result = await recognitionTask;
 
                 // Stop timers
@@ -370,7 +606,7 @@ namespace EmployeeManagement.GUI.Attendance
                 SetStatus("🔍 Đang xử lý kết quả...", Color.FromArgb(33, 150, 243));
 
                 // Kiểm tra user đã đăng nhập chưa
-                if (!SessionManager.IsLoggedIn)
+                if (!UserSession.IsLoggedIn)
                 {
                     ProcessFailedRecognition("Bạn chưa đăng nhập hệ thống");
                     return;
@@ -424,19 +660,20 @@ namespace EmployeeManagement.GUI.Attendance
                 ProcessFailedRecognition($"Lỗi xử lý: {ex.Message}");
             }
         }
-         private int? GetEmployeeIdByUserId(int userId)  
+
+        private int? GetEmployeeIdByUserId(int userId)
         {
             return userDAL.GetEmployeeIdByUserId(userId);
         }
 
-         private async Task<EmployeeDTO> GetCurrentLoggedInEmployeeAsync()
+        private async Task<EmployeeDTO?> GetCurrentLoggedInEmployeeAsync()
         {
             try
             {
-                if (!SessionManager.IsLoggedIn)
+                if (!UserSession.IsLoggedIn)
                     return null;
 
-                int currentUserId = SessionManager.CurrentUserId;
+                int currentUserId = UserSession.CurrentUserId;
 
                 // Lấy EmployeeID từ UserID
                 var employeeId = GetEmployeeIdByUserId(currentUserId);
@@ -444,7 +681,7 @@ namespace EmployeeManagement.GUI.Attendance
                 if (!employeeId.HasValue)
                     return null;
 
-                 return await employeeBLL.GetEmployeeByIdAsync(employeeId.Value);
+                return await employeeBLL.GetEmployeeByIdAsync(employeeId.Value);
             }
             catch (Exception ex)
             {
@@ -460,7 +697,7 @@ namespace EmployeeManagement.GUI.Attendance
             var attendanceType = attendanceResult.AttendanceType == "CheckIn" ? "Chấm công vào" : "Chấm công ra";
             SetCameraStatus($"✅ {attendanceType} thành công", Color.FromArgb(76, 175, 80));
 
-            // *** THÊM MESSAGEBOX THÔNG BÁO THÀNH CÔNG ***
+            // Thông báo thành công
             MessageBox.Show(
                 $"🎉 CHẤM CÔNG THÀNH CÔNG!\n\n" +
                 $"👤 Nhân viên: {employee.FullName}\n" +
@@ -475,7 +712,7 @@ namespace EmployeeManagement.GUI.Attendance
                 MessageBoxIcon.Information
             );
 
-            // Update result panel (giữ nguyên code cũ)
+            // Update result panel
             lblEmployeeInfo.Text = $"{employee.EmployeeCode} - {employee.FullName}";
             lblConfidence.Text = $"Độ tin cậy: {result.Confidence:F1}%";
             lblTime.Text = $"Thời gian: {result.Timestamp:dd/MM/yyyy HH:mm:ss}\n" +
@@ -485,7 +722,7 @@ namespace EmployeeManagement.GUI.Attendance
             SetEmployeeImage(employee);
             panelResult.Visible = true;
 
-            // Auto hide after 5 seconds (giữ nguyên)
+            // Auto hide after 5 seconds
             var hideTimer = new System.Windows.Forms.Timer { Interval = 5000 };
             hideTimer.Tick += (s, e) =>
             {
@@ -499,13 +736,14 @@ namespace EmployeeManagement.GUI.Attendance
             };
             hideTimer.Start();
         }
+
         private void SetEmployeeImage(EmployeeDTO employee)
         {
             try
             {
                 pictureBoxEmployee.Image?.Dispose();
 
-                if (!string.IsNullOrEmpty(employee.FaceDataPath) && System.IO.File.Exists(employee.FaceDataPath))
+                if (!string.IsNullOrEmpty(employee.FaceDataPath) && File.Exists(employee.FaceDataPath))
                 {
                     pictureBoxEmployee.Image = Image.FromFile(employee.FaceDataPath);
                 }
@@ -734,11 +972,8 @@ namespace EmployeeManagement.GUI.Attendance
             {
                 SetStatus("🧪 Đang test hệ thống...", Color.FromArgb(255, 152, 0));
 
-                var healthResult = await Task.Run(() =>
-                {
-                    // This would call Python script with health check
-                    return FaceRecognitionService.CheckSystemReadiness();
-                });
+                // Gọi sync method để test
+                var healthResult = CheckSystemReadinessSync();
 
                 if (healthResult.IsReady)
                 {
@@ -761,7 +996,7 @@ namespace EmployeeManagement.GUI.Attendance
             {
                 SetStatus("🔄 Đang khởi động lại camera...", Color.FromArgb(255, 152, 0));
 
-                CleanupCamera();
+                CleanupCameraSync();
                 isCameraRunning = false;
 
                 await Task.Delay(1000);
@@ -801,7 +1036,9 @@ namespace EmployeeManagement.GUI.Attendance
             info += "=== FACE RECOGNITION STATUS ===\r\n";
             try
             {
-                var systemCheck = FaceRecognitionService.CheckSystemReadiness();
+                // Gọi sync method để lấy thông tin
+                var systemCheck = CheckSystemReadinessSync();
+
                 info += $"Status: {(systemCheck.IsReady ? "Sẵn sàng" : "Chưa sẵn sàng")}\r\n";
                 if (!systemCheck.IsReady)
                 {
@@ -954,31 +1191,6 @@ namespace EmployeeManagement.GUI.Attendance
             }
         }
 
-        private void CleanupCamera()
-        {
-            try
-            {
-                lock (cameraLock)
-                {
-                    if (videoSource != null)
-                    {
-                        videoSource.NewFrame -= VideoSource_NewFrame;
-                        if (videoSource.IsRunning)
-                        {
-                            videoSource.SignalToStop();
-                            videoSource.WaitForStop();
-                        }
-                        videoSource = null;
-                    }
-                    isCameraRunning = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Camera cleanup error: {ex.Message}");
-            }
-        }
-
         private void FaceRecognitionForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
@@ -988,7 +1200,7 @@ namespace EmployeeManagement.GUI.Attendance
                 updateTimer?.Stop();
                 recognitionTimer?.Dispose();
                 updateTimer?.Dispose();
-                CleanupCamera();
+                CleanupCameraSync();
                 pictureBoxCamera?.Image?.Dispose();
                 pictureBoxEmployee?.Image?.Dispose();
             }
@@ -1002,7 +1214,7 @@ namespace EmployeeManagement.GUI.Attendance
         {
             if (disposing)
             {
-                CleanupCamera();
+                CleanupCameraSync();
                 recognitionTimer?.Dispose();
                 updateTimer?.Dispose();
                 pictureBoxCamera?.Image?.Dispose();

@@ -104,7 +104,6 @@ namespace EmployeeManagement.GUI
                 // Update stats with real data
                 UpdateStatsCards(currentMetrics);
                 UpdateChartsWithRealData();
-                UpdateRecentActivitiesWithRealData();
 
                 Logger.LogInfo("Dashboard data loaded successfully");
             }
@@ -164,12 +163,6 @@ namespace EmployeeManagement.GUI
             // Charts section
             CreateChartsSection(mainPanel);
 
-            // Quick actions section
-            CreateQuickActionsSection(mainPanel);
-
-            // Recent activities section
-            CreateRecentActivitiesSection(mainPanel);
-
             this.Controls.Add(mainPanel);
         }
 
@@ -206,8 +199,8 @@ namespace EmployeeManagement.GUI
             var welcomeLabel = new Label
             {
                 Text = UserSession.IsLoggedIn ?
-                    $"Chào mừng trở lại, {UserSession.Username}!" :
-                    "Chào mừng bạn đến với EMS!",
+                $"Chào mừng trở lại, {UserSession.CurrentUserName}!" :
+                "Chào mừng bạn đến với EMS!",
                 Font = new Font("Segoe UI", 24, FontStyle.Bold),
                 ForeColor = Color.White,
                 Location = new Point(30, 20),
@@ -256,7 +249,7 @@ namespace EmployeeManagement.GUI
                 // Draw user icon
                 var iconFont = new Font("Segoe UI", 24, FontStyle.Bold);
                 var iconBrush = new SolidBrush(Color.White);
-                var userIcon = UserSession.IsLoggedIn ? UserSession.Username.Substring(0, 1).ToUpper() : "U";
+                var userIcon = UserSession.IsLoggedIn ? UserSession.CurrentUserName.Substring(0, 1).ToUpper() : "U";
                 var iconSize = e.Graphics.MeasureString(userIcon, iconFont);
                 var iconX = (60 - iconSize.Width) / 2;
                 var iconY = (60 - iconSize.Height) / 2;
@@ -370,12 +363,12 @@ namespace EmployeeManagement.GUI
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
-            // Title
+            // Title - ĐÃ SỬA MÀU ĐEN
             var titleLabel = new Label
             {
                 Text = title,
                 Font = new Font("Segoe UI", 11),
-                ForeColor = Color.FromArgb(100, 100, 100),
+                ForeColor = Color.FromArgb(30, 30, 30), // ĐỔI THÀNH MÀU ĐEN ĐẬM
                 Location = new Point(85, 40),
                 Size = new Size(200, 20),
                 TextAlign = ContentAlignment.MiddleLeft
@@ -471,7 +464,7 @@ namespace EmployeeManagement.GUI
             panel.Paint += (s, e) =>
             {
                 var rect = panel.ClientRectangle;
-                // Draw shadow and border (same as before)
+                // Draw shadow and border
                 using (var shadowBrush = new SolidBrush(Color.FromArgb(10, 0, 0, 0)))
                 {
                     e.Graphics.FillRectangle(shadowBrush, 2, 2, rect.Width, rect.Height);
@@ -486,11 +479,12 @@ namespace EmployeeManagement.GUI
                 }
             };
 
+            // Title - ĐÃ SỬA MÀU ĐEN
             var titleLabel = new Label
             {
                 Text = "🏆 TOP NHÂN VIÊN XUẤT SẮC",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
+                ForeColor = Color.FromArgb(30, 30, 30), // ĐỔI THÀNH MÀU ĐEN ĐẬM
                 Location = new Point(20, 15),
                 Size = new Size(550, 25)
             };
@@ -502,7 +496,9 @@ namespace EmployeeManagement.GUI
                 GridLines = true,
                 Location = new Point(20, 50),
                 Size = new Size(550, 220),
-                Font = new Font("Segoe UI", 9)
+                Font = new Font("Segoe UI", 9),
+                ForeColor = Color.FromArgb(30, 30, 30), // TEXT MÀU ĐEN
+                BackColor = Color.White // BACKGROUND TRẮNG
             };
 
             listView.Columns.Add("STT", 40);
@@ -515,15 +511,30 @@ namespace EmployeeManagement.GUI
                 for (int i = 0; i < currentMetrics.TopPerformers.Count; i++)
                 {
                     var emp = currentMetrics.TopPerformers[i];
-                    var item = new ListViewItem((i + 1).ToString());
+                    var item = new ListViewItem((i + 1).ToString())
+                    {
+                        ForeColor = Color.FromArgb(30, 30, 30) // TEXT MÀU ĐEN CHO TỪNG ITEM
+                    };
                     item.SubItems.Add(emp.FullName);
                     item.SubItems.Add(emp.Department);
                     item.SubItems.Add(emp.PerformanceScore.ToString("F1"));
 
                     // Color coding for top performers
-                    if (i == 0) item.BackColor = Color.Gold;
-                    else if (i == 1) item.BackColor = Color.LightGray;
-                    else if (i == 2) item.BackColor = Color.FromArgb(205, 127, 50);
+                    if (i == 0)
+                    {
+                        item.BackColor = Color.Gold;
+                        item.ForeColor = Color.FromArgb(30, 30, 30); // Giữ text đen trên nền vàng
+                    }
+                    else if (i == 1)
+                    {
+                        item.BackColor = Color.LightGray;
+                        item.ForeColor = Color.FromArgb(30, 30, 30); // Giữ text đen
+                    }
+                    else if (i == 2)
+                    {
+                        item.BackColor = Color.FromArgb(205, 127, 50);
+                        item.ForeColor = Color.White; // Text trắng trên nền đồng
+                    }
 
                     listView.Items.Add(item);
                 }
@@ -558,11 +569,12 @@ namespace EmployeeManagement.GUI
                 }
             };
 
+            // Title - ĐÃ SỬA MÀU ĐEN
             var titleLabel = new Label
             {
                 Text = "📊 PHÂN BỐ THEO PHÒNG BAN",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
+                ForeColor = Color.FromArgb(30, 30, 30), // ĐỔI THÀNH MÀU ĐEN ĐẬM
                 Location = new Point(20, 15),
                 Size = new Size(550, 25)
             };
@@ -574,7 +586,9 @@ namespace EmployeeManagement.GUI
                 GridLines = true,
                 Location = new Point(20, 50),
                 Size = new Size(550, 220),
-                Font = new Font("Segoe UI", 9)
+                Font = new Font("Segoe UI", 9),
+                ForeColor = Color.FromArgb(30, 30, 30), // TEXT MÀU ĐEN
+                BackColor = Color.White // BACKGROUND TRẮNG
             };
 
             listView.Columns.Add("Phòng ban", 280);
@@ -585,7 +599,10 @@ namespace EmployeeManagement.GUI
             {
                 foreach (var dept in currentMetrics.DepartmentBreakdown)
                 {
-                    var item = new ListViewItem(dept.DepartmentName);
+                    var item = new ListViewItem(dept.DepartmentName)
+                    {
+                        ForeColor = Color.FromArgb(30, 30, 30) // TEXT MÀU ĐEN CHO TỪNG ITEM
+                    };
                     item.SubItems.Add(dept.TotalEmployees.ToString());
                     item.SubItems.Add($"{dept.EmployeePercentage:F1}%");
                     listView.Items.Add(item);
@@ -596,201 +613,6 @@ namespace EmployeeManagement.GUI
             return panel;
         }
 
-        private void CreateQuickActionsSection(Panel parent)
-        {
-            quickActionsContainer = new Panel
-            {
-                Location = new Point(20, 680),
-                Size = new Size(1200, 120),
-                BackColor = Color.Transparent
-            };
-
-            var titleLabel = new Label
-            {
-                Text = "⚡ Thao tác nhanh",
-                Font = new Font("Segoe UI", 16, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(0, 0),
-                Size = new Size(200, 30)
-            };
-
-            var actions = new[]
-            {
-                new { Text = "Thêm nhân viên", Icon = "👤", Color = Color.FromArgb(33, 150, 243) },
-                new { Text = "Xem báo cáo", Icon = "📊", Color = Color.FromArgb(255, 152, 0) },
-                new { Text = "Quản lý lương", Icon = "💰", Color = Color.FromArgb(156, 39, 176) },
-                new { Text = "Chấm công", Icon = "⏰", Color = Color.FromArgb(244, 67, 54) },
-                new { Text = "Sinh nhật", Icon = "🎂", Color = Color.FromArgb(76, 175, 80) },
-                new { Text = "Cài đặt", Icon = "⚙️", Color = Color.FromArgb(0, 150, 136) }
-            };
-
-            for (int i = 0; i < actions.Length; i++)
-            {
-                var button = CreateQuickActionButton(actions[i].Text, actions[i].Icon, actions[i].Color);
-                button.Location = new Point(i * 200, 40);
-                quickActionsContainer.Controls.Add(button);
-            }
-
-            quickActionsContainer.Controls.Add(titleLabel);
-            parent.Controls.Add(quickActionsContainer);
-        }
-
-        private Button CreateQuickActionButton(string text, string icon, Color color)
-        {
-            var button = new Button
-            {
-                Size = new Size(180, 70),
-                Text = $"{icon}\n{text}",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                ForeColor = Color.White,
-                BackColor = color,
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand,
-                TextAlign = ContentAlignment.MiddleCenter
-            };
-
-            button.FlatAppearance.BorderSize = 0;
-
-            // Hover effects
-            button.MouseEnter += (s, e) =>
-            {
-                button.BackColor = Color.FromArgb(Math.Max(0, color.R - 30),
-                                                Math.Max(0, color.G - 30),
-                                                Math.Max(0, color.B - 30));
-            };
-
-            button.MouseLeave += (s, e) =>
-            {
-                button.BackColor = color;
-            };
-
-            return button;
-        }
-
-        private void CreateRecentActivitiesSection(Panel parent)
-        {
-            var activitiesPanel = new Panel
-            {
-                Location = new Point(20, 820),
-                Size = new Size(1200, 250),
-                BackColor = Color.White,
-                Name = "RecentActivitiesPanel"
-            };
-
-            activitiesPanel.Paint += (s, e) =>
-            {
-                var rect = activitiesPanel.ClientRectangle;
-
-                // Draw shadow
-                using (var shadowBrush = new SolidBrush(Color.FromArgb(10, 0, 0, 0)))
-                {
-                    e.Graphics.FillRectangle(shadowBrush, 2, 2, rect.Width, rect.Height);
-                }
-
-                // Draw background
-                using (var brush = new SolidBrush(Color.White))
-                {
-                    e.Graphics.FillRectangle(brush, rect);
-                }
-
-                // Draw border
-                using (var pen = new Pen(Color.FromArgb(230, 230, 230), 1))
-                {
-                    e.Graphics.DrawRectangle(pen, 0, 0, rect.Width - 1, rect.Height - 1);
-                }
-            };
-
-            var titleLabel = new Label
-            {
-                Text = "📋 Hoạt động gần đây",
-                Font = new Font("Segoe UI", 16, FontStyle.Bold),
-                ForeColor = Color.FromArgb(60, 60, 60),
-                Location = new Point(20, 15),
-                Size = new Size(300, 30)
-            };
-
-            activitiesPanel.Controls.Add(titleLabel);
-            parent.Controls.Add(activitiesPanel);
-
-            // Load recent activities from data
-            UpdateRecentActivitiesWithRealData();
-        }
-
-        private void UpdateRecentActivitiesWithRealData()
-        {
-            var activitiesPanel = this.Controls.Find("RecentActivitiesPanel", true).FirstOrDefault();
-            if (activitiesPanel == null) return;
-
-            // Clear existing activity labels (keep title)
-            var toRemove = activitiesPanel.Controls.OfType<Label>().Where(l => l.Text.Contains("🔵") || l.Text.Contains("🟢") || l.Text.Contains("🟡") || l.Text.Contains("🔴") || l.Text.Contains("🟣")).ToList();
-            foreach (var label in toRemove)
-            {
-                activitiesPanel.Controls.Remove(label);
-            }
-
-            var activities = new List<string>();
-
-            // Add birthday activities if available
-            if (currentMetrics?.UpcomingBirthdays != null)
-            {
-                var todayBirthdays = currentMetrics.UpcomingBirthdays.Where(b => b.DaysUntilBirthday == 0).ToList();
-                var upcomingBirthdays = currentMetrics.UpcomingBirthdays.Where(b => b.DaysUntilBirthday > 0 && b.DaysUntilBirthday <= 3).ToList();
-
-                foreach (var birthday in todayBirthdays)
-                {
-                    activities.Add($"🎂 {DateTime.Now:HH:mm} - Hôm nay là sinh nhật của {birthday.FullName} ({birthday.Department})");
-                }
-
-                foreach (var birthday in upcomingBirthdays)
-                {
-                    activities.Add($"🎉 Sắp tới - {birthday.FullName} sẽ có sinh nhật trong {birthday.DaysUntilBirthday} ngày");
-                }
-            }
-
-            // Add general activities with real data context
-            if (currentMetrics?.GeneralStats != null)
-            {
-                activities.Add($"🔵 {DateTime.Now.AddMinutes(-5):HH:mm} - Có {currentMetrics.GeneralStats.ActiveEmployees} nhân viên đang có mặt");
-                activities.Add($"🟢 {DateTime.Now.AddMinutes(-15):HH:mm} - Tỷ lệ chấm công hôm nay: {currentMetrics.GeneralStats.AverageAttendanceRate:F1}%");
-                activities.Add($"🟡 {DateTime.Now.AddMinutes(-30):HH:mm} - Đã có {currentMetrics.GeneralStats.NewHires} nhân viên mới trong tháng");
-
-                if (currentMetrics.TopPerformers?.Any() == true)
-                {
-                    var topPerformer = currentMetrics.TopPerformers.First();
-                    activities.Add($"🏆 {DateTime.Now.AddHours(-1):HH:mm} - {topPerformer.FullName} dẫn đầu với điểm số {topPerformer.PerformanceScore:F1}");
-                }
-
-                activities.Add($"🟣 {DateTime.Now.AddHours(-2):HH:mm} - Tổng cộng {currentMetrics.GeneralStats.TotalEmployees} nhân viên trong hệ thống");
-            }
-
-            // Default activities if no real data
-            if (!activities.Any())
-            {
-                activities.AddRange(new[]
-                {
-                    $"🔵 {DateTime.Now.AddMinutes(-5):HH:mm} - Hệ thống đang hoạt động bình thường",
-                    $"🟢 {DateTime.Now.AddMinutes(-15):HH:mm} - Đang tải dữ liệu từ cơ sở dữ liệu",
-                    $"🟡 {DateTime.Now.AddMinutes(-30):HH:mm} - Dashboard đã được khởi tạo",
-                    $"🔴 {DateTime.Now.AddHours(-1):HH:mm} - Chào mừng bạn đến với EMS",
-                    $"🟣 {DateTime.Now.AddHours(-2):HH:mm} - Sẵn sàng phục vụ"
-                });
-            }
-
-            // Display activities (limit to 5 most recent)
-            for (int i = 0; i < Math.Min(activities.Count, 5); i++)
-            {
-                var activityLabel = new Label
-                {
-                    Text = activities[i],
-                    Font = new Font("Segoe UI", 11),
-                    ForeColor = Color.FromArgb(80, 80, 80),
-                    Location = new Point(30, 55 + i * 35),
-                    Size = new Size(1140, 25),
-                    TextAlign = ContentAlignment.MiddleLeft
-                };
-                activitiesPanel.Controls.Add(activityLabel);
-            }
-        }
         #endregion
 
         #region Animations and Timers
@@ -849,21 +671,6 @@ namespace EmployeeManagement.GUI
             dataRefreshTimer?.Dispose();
             Logger.LogInfo("DashboardForm closed");
             base.OnFormClosed(e);
-        }
-
-        private void RefreshDashboard()
-        {
-            try
-            {
-                LoadDashboardData();
-                Logger.LogInfo("Dashboard refreshed manually");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError($"Error refreshing dashboard: {ex.Message}");
-                MessageBox.Show($"Lỗi khi làm mới dashboard: {ex.Message}", "Lỗi",
-                               MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
         #endregion
 

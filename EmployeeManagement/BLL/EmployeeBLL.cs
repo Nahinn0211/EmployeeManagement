@@ -562,10 +562,10 @@ namespace EmployeeManagement.BLL
         {
             try
             {
-                if (!SessionManager.IsLoggedIn)
+                if (!UserSession.IsLoggedIn)
                     return null;
 
-                int currentUserId = SessionManager.CurrentUserId;
+                int currentUserId = UserSession.CurrentUserId;
 
                 // Có thể gọi UserDAL hoặc tìm trong danh sách employees
                 return await Task.Run(() => userDAL.GetEmployeeByUserId(currentUserId));

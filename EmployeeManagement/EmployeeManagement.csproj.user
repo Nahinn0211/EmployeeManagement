@@ -7,10 +7,22 @@
     <Compile Update="GUI\Admin\UserManagementForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GUI\Attendance\AttendanceReportForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Attendance\CameraCaptureForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="GUI\Attendance\FaceRecognitionForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="GUI\Attendance\FaceRegistrationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="GUI\Auth\LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="GUI\Dashboard\Dashboard.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="GUI\Department\DepartmentList.cs">

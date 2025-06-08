@@ -289,24 +289,24 @@ namespace EmployeeManagement.GUI.Finance
         {
             try
             {
-                // Check if user is logged in - Fallback nếu SessionManager chưa có
+                // Check if user is logged in - Fallback nếu UserSession chưa có
                 try
                 {
-                    if (!SessionManager.IsLoggedIn)
+                    if (!UserSession.IsLoggedIn)
                     {
                         MessageBox.Show("Vui lòng đăng nhập để thực hiện chức năng này!", "Chưa đăng nhập",
                             MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
 
-                    if (!SessionManager.HasPermission("AddFinance"))
+                    if (!UserSession.HasPermission("AddFinance"))
                     {
                         MessageBox.Show("Bạn không có quyền thêm giao dịch tài chính!", "Không có quyền",
                             MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
 
-                    using (var form = new FinanceDetailForm(SessionManager.CurrentUserId))
+                    using (var form = new FinanceDetailForm(UserSession.CurrentUserId))
                     {
                         if (form.ShowDialog() == DialogResult.OK)
                         {
@@ -318,7 +318,7 @@ namespace EmployeeManagement.GUI.Finance
                 }
                 catch (InvalidOperationException)
                 {
-                    // Fallback nếu SessionManager chưa được setup
+                    // Fallback nếu UserSession chưa được setup
                     using (var form = new FinanceDetailForm(1)) // Default user ID
                     {
                         if (form.ShowDialog() == DialogResult.OK)
@@ -350,7 +350,7 @@ namespace EmployeeManagement.GUI.Finance
             try
             {
                 // Check if user is logged in
-                if (!SessionManager.IsLoggedIn)
+                if (!UserSession.IsLoggedIn)
                 {
                     MessageBox.Show("Vui lòng đăng nhập để thực hiện chức năng này!", "Chưa đăng nhập",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -358,7 +358,7 @@ namespace EmployeeManagement.GUI.Finance
                 }
 
                 // Check permissions
-                if (!SessionManager.HasPermission("EditFinance"))
+                if (!UserSession.HasPermission("EditFinance"))
                 {
                     MessageBox.Show("Bạn không có quyền sửa giao dịch tài chính!", "Không có quyền",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -366,14 +366,14 @@ namespace EmployeeManagement.GUI.Finance
                 }
 
                 // Additional check: only allow editing own records for regular users
-                if (SessionManager.CurrentUserRole == "User" && finance.RecordedByID != SessionManager.CurrentUserId)
+                if (UserSession.CurrentUserRole == "User" && finance.RecordedByID != UserSession.CurrentUserId)
                 {
                     MessageBox.Show("Bạn chỉ có thể sửa giao dịch do chính mình tạo!", "Không có quyền",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                using (var form = new FinanceDetailForm(finance.FinanceID, SessionManager.CurrentUserId, true))
+                using (var form = new FinanceDetailForm(finance.FinanceID, UserSession.CurrentUserId, true))
                 {
                     if (form.ShowDialog() == DialogResult.OK)
                     {
@@ -402,14 +402,14 @@ namespace EmployeeManagement.GUI.Finance
             try
             {
                 // Check if user is logged in
-                if (!SessionManager.IsLoggedIn)
+                if (!UserSession.IsLoggedIn)
                 {
                     MessageBox.Show("Vui lòng đăng nhập để thực hiện chức năng này!", "Chưa đăng nhập",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                 using (var form = new FinanceDetailForm(finance.FinanceID, SessionManager.CurrentUserId, true))
+                 using (var form = new FinanceDetailForm(finance.FinanceID, UserSession.CurrentUserId, true))
                 {
                     form.ShowDialog();
                 }
@@ -449,7 +449,7 @@ namespace EmployeeManagement.GUI.Finance
                     int userId = 1; // Default
                     try
                     {
-                        userId = SessionManager.CurrentUserId;
+                        userId = UserSession.CurrentUserId;
                     }
                     catch (InvalidOperationException) { }
 
