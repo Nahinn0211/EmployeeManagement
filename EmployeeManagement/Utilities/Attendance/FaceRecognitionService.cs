@@ -246,7 +246,6 @@ namespace EmployeeManagement.Utilities
 
         // THAY THẾ trong FaceRecognitionService.cs
 
-        // 1. Giảm threshold và cải thiện logic nhận diện
         private static async Task<FaceRecognitionResult> PerformFaceRecognitionAsync(int timeoutSeconds)
         {
             try
@@ -268,8 +267,10 @@ namespace EmployeeManagement.Utilities
                 string recognizedEmployeeName = "";
                 double bestConfidence = 0;
 
-                // ✅ Lưu trữ nhiều kết quả để lấy kết quả tốt nhất
+                // ✅ Thu thập nhiều kết quả để tăng độ tin cậy
                 var recognitionResults = new List<(string? employeeId, string employeeName, double confidence)>();
+
+                System.Diagnostics.Debug.WriteLine("🚀 Starting face recognition process...");
 
                 while ((DateTime.Now - startTime).TotalSeconds < timeoutSeconds)
                 {
@@ -278,13 +279,11 @@ namespace EmployeeManagement.Utilities
                     {
                         var realResult = await PerformRealFaceRecognitionAsync(frame);
 
-                        // ✅ Thu thập tất cả kết quả có confidence > 40%
-                        if (realResult.confidence > 40.0 && !string.IsNullOrEmpty(realResult.employeeId))
+                        // ✅ Giảm threshold xuống 30% để dễ nhận diện hơn
+                        if (realResult.confidence > 30.0 && !string.IsNullOrEmpty(realResult.employeeId))
                         {
                             recognitionResults.Add(realResult);
-
-                            // Log để debug
-                            System.Diagnostics.Debug.WriteLine($"📊 Result: {realResult.employeeId} - {realResult.confidence:F1}%");
+                            System.Diagnostics.Debug.WriteLine($"📊 Recognition result: {realResult.employeeId} - {realResult.confidence:F1}%");
                         }
 
                         // ✅ Cập nhật best result
@@ -294,69 +293,83 @@ namespace EmployeeManagement.Utilities
                             recognizedEmployeeId = realResult.employeeId;
                             recognizedEmployeeName = realResult.employeeName;
 
-                            // ✅ Giảm threshold xuống 50% để dễ nhận diện hơn
-                            if (bestConfidence >= 50.0)
+                            // ✅ Giảm threshold cho early exit xuống 40%
+                            if (bestConfidence >= 40.0)
                             {
-                                System.Diagnostics.Debug.WriteLine($"✅ Quick recognition: {recognizedEmployeeId} ({bestConfidence:F1}%)");
+                                System.Diagnostics.Debug.WriteLine($"✅ Quick recognition success: {recognizedEmployeeId} ({bestConfidence:F1}%)");
                                 break;
                             }
                         }
                     }
 
-                    await Task.Delay(100);
+                    await Task.Delay(50); // ✅ Giảm delay từ 100ms xuống 50ms để capture nhiều frame hơn
                 }
 
                 StopCameraCapture();
 
-                // ✅ Phân tích kết quả thu thập được
+                // ✅ Phân tích kết quả với logic cải tiến
                 if (recognitionResults.Count > 0)
                 {
-                    // Tìm employeeId xuất hiện nhiều nhất
-                    var mostFrequentEmployee = recognitionResults
+                    System.Diagnostics.Debug.WriteLine($"📈 Total recognition attempts: {recognitionResults.Count}");
+
+                    // Tìm employeeId xuất hiện nhiều nhất và có confidence cao
+                    var groupedResults = recognitionResults
                         .Where(r => !string.IsNullOrEmpty(r.employeeId))
                         .GroupBy(r => r.employeeId)
-                        .OrderByDescending(g => g.Count())
-                        .ThenByDescending(g => g.Max(x => x.confidence))
-                        .FirstOrDefault();
-
-                    if (mostFrequentEmployee != null && mostFrequentEmployee.Count() >= 2)
-                    {
-                        var bestResult = mostFrequentEmployee.OrderByDescending(r => r.confidence).First();
-
-                        // ✅ Giảm threshold cuối xuống 45%
-                        if (bestResult.confidence >= 45.0)
+                        .Select(g => new
                         {
-                            string imagePath = await SaveAttendanceImageAsync(GetLatestFrame(), bestResult.employeeId);
+                            EmployeeId = g.Key,
+                            Count = g.Count(),
+                            MaxConfidence = g.Max(x => x.confidence),
+                            AvgConfidence = g.Average(x => x.confidence),
+                            EmployeeName = g.First().employeeName
+                        })
+                        .OrderByDescending(x => x.Count)
+                        .ThenByDescending(x => x.MaxConfidence)
+                        .ToList();
+
+                    var bestCandidate = groupedResults.FirstOrDefault();
+
+                    if (bestCandidate != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 Best candidate: {bestCandidate.EmployeeId} (Count: {bestCandidate.Count}, Max: {bestCandidate.MaxConfidence:F1}%, Avg: {bestCandidate.AvgConfidence:F1}%)");
+
+                        // ✅ Logic chấp nhận kết quả linh hoạt hơn
+                        bool isAcceptable = false;
+                        string acceptanceReason = "";
+
+                        if (bestCandidate.MaxConfidence >= 35.0 && bestCandidate.Count >= 2)
+                        {
+                            isAcceptable = true;
+                            acceptanceReason = $"High confidence with multiple confirmations ({bestCandidate.Count}x)";
+                        }
+                        else if (bestCandidate.MaxConfidence >= 45.0)
+                        {
+                            isAcceptable = true;
+                            acceptanceReason = "High confidence single detection";
+                        }
+                        else if (bestCandidate.AvgConfidence >= 30.0 && bestCandidate.Count >= 3)
+                        {
+                            isAcceptable = true;
+                            acceptanceReason = $"Consistent detection across multiple frames ({bestCandidate.Count}x)";
+                        }
+
+                        if (isAcceptable)
+                        {
+                            string imagePath = await SaveAttendanceImageAsync(GetLatestFrame(), bestCandidate.EmployeeId);
 
                             return new FaceRecognitionResult
                             {
                                 Success = true,
-                                Message = $"Face recognized with multiple confirmations ({mostFrequentEmployee.Count()} times)",
-                                EmployeeId = bestResult.employeeId,
-                                EmployeeName = bestResult.employeeName,
-                                Confidence = bestResult.confidence,
+                                Message = $"Face recognized: {acceptanceReason}",
+                                EmployeeId = bestCandidate.EmployeeId,
+                                EmployeeName = bestCandidate.EmployeeName,
+                                Confidence = bestCandidate.MaxConfidence,
                                 Timestamp = DateTime.Now,
                                 AttendanceImagePath = imagePath
                             };
                         }
                     }
-                }
-
-                // ✅ Fallback - nếu có kết quả tốt nhất >= 40%
-                if (bestConfidence >= 40.0 && !string.IsNullOrEmpty(recognizedEmployeeId))
-                {
-                    string imagePath = await SaveAttendanceImageAsync(GetLatestFrame(), recognizedEmployeeId);
-
-                    return new FaceRecognitionResult
-                    {
-                        Success = true,
-                        Message = "Face recognized with lower confidence",
-                        EmployeeId = recognizedEmployeeId,
-                        EmployeeName = recognizedEmployeeName,
-                        Confidence = bestConfidence,
-                        Timestamp = DateTime.Now,
-                        AttendanceImagePath = imagePath
-                    };
                 }
 
                 return new FaceRecognitionResult
@@ -381,8 +394,6 @@ namespace EmployeeManagement.Utilities
             }
         }
 
-
-      
         // Helper methods for data augmentation
         private Image<Gray, byte> RotateImage(Image<Gray, byte> image, double angle)
         {
@@ -409,15 +420,11 @@ namespace EmployeeManagement.Utilities
 
 
 
-
-
-        // ===== THAY THẾ PHƯƠNG THỨC RecognizeFaceFromImageAsync TRONG FaceRecognitionService.cs =====
-
         public async Task<FaceRecognitionResult> RecognizeFaceFromImageAsync(string imagePath, CancellationToken cancellationToken = default)
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"🔍 RecognizeFaceFromImage: {imagePath}");
+                System.Diagnostics.Debug.WriteLine($"🔍 RecognizeFaceFromImage: {Path.GetFileName(imagePath)}");
 
                 if (!File.Exists(imagePath))
                 {
@@ -435,69 +442,128 @@ namespace EmployeeManagement.Utilities
                 using var image = new Image<Bgr, byte>(imagePath);
                 using var grayImage = image.Convert<Gray, byte>();
 
-                // ✅ PREPROCESSING PIPELINE cải tiến
-                using var preprocessedImage = PreprocessImageForRecognition(grayImage);
+                var allResults = new List<FaceRecognitionResult>();
 
-                // ✅ Cải thiện face detection với multiple attempts
-                System.Drawing.Rectangle[] faces = DetectFacesMultipleAttempts(preprocessedImage);
-
-                // ✅ Nếu không detect được face, thử dùng multiple preprocessing methods
-                if (faces.Length == 0)
+                // ✅ Thử multiple preprocessing approaches
+                var preprocessingMethods = new Func<Image<Gray, byte>, string, Image<Gray, byte>>[]
                 {
-                    System.Diagnostics.Debug.WriteLine("⚠️ No face detected - trying alternative preprocessing");
-                    faces = TryAlternativePreprocessingAndDetection(grayImage);
+                // Method 1: Standard processing
+                (img, name) => {
+                    System.Diagnostics.Debug.WriteLine($"🔧 Trying: {name}");
+                    var result = img.Clone();
+                    CvInvoke.EqualizeHist(result, result);
+                    return result;
+                },
+                
+                // Method 2: Enhanced contrast + brightness
+                (img, name) => {
+                    System.Diagnostics.Debug.WriteLine($"🔧 Trying: {name}");
+                    var result = img.Clone();
+                    result._Mul(1.2); // Tăng brightness
+                    CvInvoke.EqualizeHist(result, result);
+                    return result;
+                },
+                
+                // Method 3: Smooth then enhance
+                (img, name) => {
+                    System.Diagnostics.Debug.WriteLine($"🔧 Trying: {name}");
+                    var temp = img.Clone();
+                    CvInvoke.GaussianBlur(temp, temp, new Size(3, 3), 1);
+                    CvInvoke.EqualizeHist(temp, temp);
+                    return temp;
+                },
+                
+                // Method 4: Darker images enhancement
+                (img, name) => {
+                    System.Diagnostics.Debug.WriteLine($"🔧 Trying: {name}");
+                    var result = img.Clone();
+                    result._Mul(1.4); // Tăng brightness nhiều hơn cho ảnh tối
+                    CvInvoke.EqualizeHist(result, result);
+                    return result;
                 }
+                };
 
-                // ✅ Fallback: sử dụng center crop nếu vẫn không detect được
-                if (faces.Length == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("⚠️ Using center crop as fallback");
-                    faces = new System.Drawing.Rectangle[]
-                    {
-                CreateCenterCropRectangle(grayImage.Width, grayImage.Height)
-                    };
-                }
+                string[] methodNames = { "Standard", "Enhanced Contrast", "Smooth + Enhance", "Dark Image Enhancement" };
 
-                // ✅ Thử nhiều vùng mặt và multiple preprocessing cho mỗi vùng
-                var bestResult = new FaceRecognitionResult { Success = false, Confidence = 0 };
-
-                foreach (var face in faces.Take(3)) // Thử tối đa 3 faces
+                for (int methodIndex = 0; methodIndex < preprocessingMethods.Length; methodIndex++)
                 {
                     try
                     {
-                        // Thử multiple preprocessing methods cho mỗi face region
-                        var faceResults = await ProcessFaceRegionWithMultipleMethods(preprocessedImage, face);
+                        using var processedImage = preprocessingMethods[methodIndex](grayImage, methodNames[methodIndex]);
 
-                        foreach (var result in faceResults)
+                        // ✅ Face detection với multiple parameters
+                        var faces = DetectFacesImproved(processedImage);
+
+                        if (faces.Length == 0)
                         {
-                            if (result.Confidence > bestResult.Confidence)
-                            {
-                                bestResult = result;
-                            }
+                            // ✅ Fallback: sử dụng center crop
+                            faces = new[] { CreateCenterCropRectangle(processedImage.Width, processedImage.Height, 0.8) };
+                            System.Diagnostics.Debug.WriteLine($"⚠️ No face detected in {methodNames[methodIndex]}, using center crop");
+                        }
+
+                        // ✅ Process each detected face
+                        foreach (var face in faces.Take(2)) // Tối đa 2 faces
+                        {
+                            var results = ProcessFaceRegionImproved(processedImage, face, methodNames[methodIndex]);
+                            allResults.AddRange(results);
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"❌ Face processing error: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"❌ Method {methodNames[methodIndex]} failed: {ex.Message}");
                     }
                 }
 
-                // ✅ Giảm threshold xuống 25% để dễ nhận diện hơn
-                if (bestResult.Confidence >= 25.0)
+                // ✅ Phân tích tất cả kết quả
+                if (allResults.Count > 0)
                 {
-                    bestResult.Success = true;
-                    bestResult.Message = bestResult.Confidence >= 40.0 ?
-                        "Face recognized successfully" :
-                        $"Face recognized with lower confidence: {bestResult.Confidence:F1}%";
-                }
-                else
-                {
-                    bestResult.Message = $"Face not recognized. Best confidence: {bestResult.Confidence:F1}%";
+                    var validResults = allResults.Where(r => !string.IsNullOrEmpty(r.EmployeeId)).ToList();
+
+                    if (validResults.Count > 0)
+                    {
+                        // Group by EmployeeId và tìm kết quả tốt nhất
+                        var groupedResults = validResults
+                            .GroupBy(r => r.EmployeeId)
+                            .Select(g => new
+                            {
+                                EmployeeId = g.Key,
+                                EmployeeName = g.First().EmployeeName,
+                                Count = g.Count(),
+                                MaxConfidence = g.Max(x => x.Confidence),
+                                AvgConfidence = g.Average(x => x.Confidence)
+                            })
+                            .OrderByDescending(x => x.MaxConfidence)
+                            .ThenByDescending(x => x.Count)
+                            .ToList();
+
+                        var bestResult = groupedResults.First();
+
+                        System.Diagnostics.Debug.WriteLine($"🎯 Best result: {bestResult.EmployeeId} - Max: {bestResult.MaxConfidence:F1}%, Avg: {bestResult.AvgConfidence:F1}%, Count: {bestResult.Count}");
+
+                        // ✅ Giảm threshold xuống 25% và flexible logic
+                        bool isAcceptable = bestResult.MaxConfidence >= 25.0;
+
+                        return new FaceRecognitionResult
+                        {
+                            Success = isAcceptable,
+                            Message = isAcceptable ?
+                                $"Face recognized with {bestResult.Count} confirmations" :
+                                $"Low confidence: {bestResult.MaxConfidence:F1}%",
+                            EmployeeId = bestResult.EmployeeId,
+                            EmployeeName = bestResult.EmployeeName,
+                            Confidence = bestResult.MaxConfidence,
+                            Timestamp = DateTime.Now
+                        };
+                    }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"🎯 Final result: {bestResult.EmployeeId} - {bestResult.Confidence:F1}% - {bestResult.Success}");
-
-                return bestResult;
+                return new FaceRecognitionResult
+                {
+                    Success = false,
+                    Message = $"Face not recognized. Tried {allResults.Count} attempts.",
+                    Confidence = allResults.Count > 0 ? allResults.Max(r => r.Confidence) : 0,
+                    Timestamp = DateTime.Now
+                };
             }
             catch (Exception ex)
             {
@@ -506,32 +572,222 @@ namespace EmployeeManagement.Utilities
             }
         }
 
-        // ✅ THÊM CÁC PHƯƠNG THỨC HỖ TRỢ MỚI
-
-        private Image<Gray, byte> PreprocessImageForRecognition(Image<Gray, byte> grayImage)
+        // ✅ 3. PHƯƠNG THỨC DETECT FACE CẢI TIẾN
+        private System.Drawing.Rectangle[] DetectFacesImproved(Image<Gray, byte> grayImage)
         {
+            if (faceCascade == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ No face cascade available");
+                return new System.Drawing.Rectangle[0];
+            }
+
+            // ✅ Thử nhiều tham số detection khác nhau - bao gồm cả loose parameters
+            var detectionAttempts = new[]
+            {
+            new { ScaleFactor = 1.05, MinNeighbors = 3, MinSize = new Size(30, 30) },
+            new { ScaleFactor = 1.1, MinNeighbors = 3, MinSize = new Size(30, 30) },
+            new { ScaleFactor = 1.05, MinNeighbors = 2, MinSize = new Size(25, 25) }, // Looser
+            new { ScaleFactor = 1.15, MinNeighbors = 4, MinSize = new Size(40, 40) },
+            new { ScaleFactor = 1.08, MinNeighbors = 2, MinSize = new Size(20, 20) }, // Very loose
+            new { ScaleFactor = 1.2, MinNeighbors = 3, MinSize = new Size(35, 35) },
+            new { ScaleFactor = 1.03, MinNeighbors = 1, MinSize = new Size(15, 15) }, // Extremely loose
+        };
+
+            foreach (var attempt in detectionAttempts)
+            {
+                try
+                {
+                    var faces = faceCascade.DetectMultiScale(
+                        grayImage,
+                        attempt.ScaleFactor,
+                        attempt.MinNeighbors,
+                        Size.Empty,
+                        attempt.MinSize
+                    );
+
+                    if (faces.Length > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"✅ Faces detected: {faces.Length} (scale: {attempt.ScaleFactor}, neighbors: {attempt.MinNeighbors})");
+
+                        // Sort by size, return largest faces first
+                        return faces.OrderByDescending(f => f.Width * f.Height).ToArray();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Detection attempt failed: {ex.Message}");
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine("❌ No faces detected with any parameters");
+            return new System.Drawing.Rectangle[0];
+        }
+
+        // ✅ 4. PROCESS FACE REGION CẢI TIẾN
+        private List<FaceRecognitionResult> ProcessFaceRegionImproved(Image<Gray, byte> grayImage, System.Drawing.Rectangle faceRect, string methodName)
+        {
+            var results = new List<FaceRecognitionResult>();
+
             try
             {
-                var processed = grayImage.Clone();
+                using var faceImage = grayImage.Copy(faceRect);
 
-                // 1. Cải thiện contrast
-                CvInvoke.EqualizeHist(processed, processed);
+                // ✅ Thử multiple sizes và processing variations
+                var sizeVariations = new[] {
+                new Size(100, 100),  // Standard
+                new Size(92, 112),   // Slightly different aspect ratio
+                new Size(80, 80),    // Smaller
+                new Size(120, 120)   // Larger
+            };
 
-                // 2. Giảm noise
-                CvInvoke.GaussianBlur(processed, processed, new Size(3, 3), 0);
+                foreach (var size in sizeVariations)
+                {
+                    try
+                    {
+                        using var resizedFace = faceImage.Resize(size.Width, size.Height, Inter.Cubic);
 
-                // 3. Chuẩn hóa brightness
-                processed._Mul(1.1); // Tăng brightness một chút
+                        // ✅ Multiple final processing steps
+                        var finalProcessingSteps = new Func<Image<Gray, byte>, Image<Gray, byte>>[]
+                        {
+                        // Standard
+                        img => {
+                            var result = img.Clone();
+                            CvInvoke.EqualizeHist(result, result);
+                            return result;
+                        },
+                        
+                        // Enhanced
+                        img => {
+                            var result = img.Clone();
+                            result._Mul(1.1);
+                            CvInvoke.EqualizeHist(result, result);
+                            return result;
+                        },
+                        
+                        // Smoothed
+                        img => {
+                            var result = img.Clone();
+                            CvInvoke.GaussianBlur(result, result, new Size(3, 3), 0.5);
+                            CvInvoke.EqualizeHist(result, result);
+                            return result;
+                        }
+                        };
 
-                return processed;
+                        foreach (var processStep in finalProcessingSteps)
+                        {
+                            try
+                            {
+                                using var finalImage = processStep(resizedFace);
+                                var prediction = recognizer.Predict(finalImage);
+
+                                // ✅ Cải thiện công thức confidence - ít penalty hơn
+                                double confidence = Math.Max(0, 100 - (prediction.Distance / 1.5)); // Giảm từ 1.8 xuống 1.5
+
+                                if (prediction.Label >= 0 && prediction.Label < registeredFaces.Count)
+                                {
+                                    var recognizedFace = registeredFaces[prediction.Label];
+
+                                    results.Add(new FaceRecognitionResult
+                                    {
+                                        Success = confidence >= 25.0,
+                                        Message = $"{methodName} - Size {size.Width}x{size.Height}",
+                                        EmployeeId = recognizedFace.EmployeeId,
+                                        EmployeeName = recognizedFace.EmployeeName,
+                                        Confidence = confidence,
+                                        Timestamp = DateTime.Now
+                                    });
+
+                                    System.Diagnostics.Debug.WriteLine($"🔍 {methodName} result: {recognizedFace.EmployeeId} - {confidence:F1}% (distance: {prediction.Distance:F2}, size: {size.Width}x{size.Height})");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Final processing failed: {ex.Message}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Size variation {size} failed: {ex.Message}");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Preprocessing error: {ex.Message}");
-                return grayImage.Clone();
+                System.Diagnostics.Debug.WriteLine($"Face region processing error: {ex.Message}");
+            }
+
+            return results;
+        }
+
+        // ✅ 5. CENTER CROP CẢI TIẾN
+        private System.Drawing.Rectangle CreateCenterCropRectangle(int width, int height, double cropRatio = 0.75)
+        {
+            int centerX = width / 2;
+            int centerY = height / 2;
+            int cropWidth = (int)(width * cropRatio);
+            int cropHeight = (int)(height * cropRatio);
+
+            return new System.Drawing.Rectangle(
+                Math.Max(0, centerX - cropWidth / 2),
+                Math.Max(0, centerY - cropHeight / 2),
+                Math.Min(cropWidth, width),
+                Math.Min(cropHeight, height)
+            );
+        }
+
+        // ✅ 6. THÊM PHƯƠNG THỨC TEST DEBUG CHO SPECIFIC IMAGE
+        public async Task<string> DebugRecognitionForImageAsync(string imagePath)
+        {
+            try
+            {
+                var result = new System.Text.StringBuilder();
+                result.AppendLine("=== FACE RECOGNITION DEBUG ===");
+                result.AppendLine($"Image: {Path.GetFileName(imagePath)}");
+                result.AppendLine($"Registered faces: {registeredFaces.Count}");
+
+                foreach (var face in registeredFaces)
+                {
+                    result.AppendLine($"  - {face.EmployeeId}: {face.EmployeeName}");
+                }
+                result.AppendLine();
+
+                var recognitionResult = await RecognizeFaceFromImageAsync(imagePath);
+
+                result.AppendLine("FINAL RESULT:");
+                result.AppendLine($"Success: {recognitionResult.Success}");
+                result.AppendLine($"Employee: {recognitionResult.EmployeeId} - {recognitionResult.EmployeeName}");
+                result.AppendLine($"Confidence: {recognitionResult.Confidence:F1}%");
+                result.AppendLine($"Message: {recognitionResult.Message}");
+
+                return result.ToString();
+            }
+            catch (Exception ex)
+            {
+                return $"Debug error: {ex.Message}";
             }
         }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
         private System.Drawing.Rectangle[] DetectFacesMultipleAttempts(Image<Gray, byte> grayImage)
         {
             if (faceCascade == null) return new System.Drawing.Rectangle[0];
@@ -1376,4 +1632,8 @@ namespace EmployeeManagement.Utilities
 
         #endregion
     }
+
+
+
+
 }
